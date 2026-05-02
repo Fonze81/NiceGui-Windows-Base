@@ -6,7 +6,7 @@ A Hello World template for NiceGUI projects.
 
 ## Development environment
 
-This project currently targets Python 3.13.x or lower for the native mode dependency chain used on Windows.
+This project currently targets Python 3.13.x for the native mode dependency chain used on Windows.
 
 See the setup guide for installation, execution, and packaging details:
 
@@ -25,11 +25,32 @@ See the setup guide for installation, execution, and packaging details:
 │       ├── __init__.py
 │       ├── __main__.py
 │       └── app.py
-├── README.md
-└── requirements.txt
+├── pyproject.toml
+└── README.md
+```
+
+## Install
+
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -e ".[packaging]"
 ```
 
 ## Run locally
+
+Use the project command:
+
+```powershell
+nicegui-hello-world
+```
+
+Alternative module execution:
+
+```powershell
+python -m nicegui_hello_world
+```
+
+Direct script execution remains useful for quick diagnostics:
 
 ```powershell
 python src\nicegui_hello_world\app.py
