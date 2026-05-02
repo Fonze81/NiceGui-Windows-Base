@@ -5,6 +5,7 @@
 		}
 	],
 	"settings": {
+		"python.analysis.typeCheckingMode": "standard",
 		"python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
 		"editor.fontFamily": "'Fira Code', Consolas, 'Courier New', monospace",
 		"editor.fontLigatures": true,
