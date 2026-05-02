@@ -2,4 +2,4 @@ from nicegui import ui
 
 ui.label("Hello, NiceGUI!")
 
-ui.run()
+ui.run(native=True)

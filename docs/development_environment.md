@@ -2,7 +2,7 @@
 
 This guide explains how to prepare a basic development environment for the **NiceGUI Hello World** repository on Windows.
 
-The goal is to help developers install the basic tools, create a virtual environment, activate it, install project dependencies, run the NiceGUI application, and open the project in Visual Studio Code.
+The goal is to help developers install the required tools, create a Python 3.13 virtual environment, activate it, install project dependencies, run the NiceGUI application in native mode, and open the project in Visual Studio Code.
 
 ---
 
@@ -17,7 +17,8 @@ Use this guide when:
 - PowerShell blocks virtual environment activation;
 - VS Code needs to be configured to use the project environment;
 - NiceGUI needs to be installed from `requirements.txt`;
-- the local `app.py` script needs to be executed.
+- the local `app.py` script needs to be executed;
+- NiceGUI native mode needs to be tested.
 
 ---
 
@@ -25,20 +26,20 @@ Use this guide when:
 
 Follow this order:
 
-1. Install Python.
+1. Install Python 3.13.
 2. Install Visual Studio Code.
 3. Open the repository folder in VS Code.
-4. Create the `.venv`.
+4. Create the `.venv` with Python 3.13.
 5. Activate the `.venv`.
 6. Apply a temporary PowerShell execution policy only if activation is blocked.
 7. Select the `.venv` interpreter in VS Code.
 8. Install the project dependencies.
-9. Run the NiceGUI application.
+9. Run the NiceGUI application in native mode.
 10. Confirm that Python runs from the virtual environment.
 
 ---
 
-## 🐍 1. Install Python
+## 🐍 1. Install Python 3.13
 
 Download Python from the official website:
 
@@ -46,35 +47,63 @@ Download Python from the official website:
 https://www.python.org/downloads/windows/
 ```
 
-During installation:
+Use **Python 3.13.x** for this project.
+
+This project uses NiceGUI native mode, which depends on `pywebview`. On Windows, `pywebview` can depend on `pythonnet`. The current `pythonnet` package supports Python versions lower than 3.14, so Python 3.14 should not be used for this project until the native dependency chain officially supports it.
+
+The issue was identified while installing the native-mode dependencies from `requirements.txt`. The installation collected `pywebview`, then `pythonnet`, and failed while building the `pythonnet` wheel. The stack trace also showed Python 3.14 being used from a `Python314` path.
+
+During Python installation:
 
 1. use the official Windows installer;
-2. enable **Add python.exe to PATH**, if the option appears;
-3. keep the recommended installation options unless you have a specific reason to change them;
-4. close and reopen PowerShell after installation.
+2. install Python **3.13.x**;
+3. enable **Add python.exe to PATH**, if the option appears;
+4. keep the recommended installation options unless you have a specific reason to change them;
+5. close and reopen PowerShell after installation.
 
 On Windows, a newly installed Python version may not appear immediately in an already opened terminal. Start by closing and reopening PowerShell or VS Code.
 
 If the old Python version is still being used after reopening the terminal, restart Windows and check again.
 
-After installing Python, open a new PowerShell window and check if Python is available:
+After installing Python, open a new PowerShell window and check if Python 3.13 is available:
 
 ```powershell
-python --version
+py -3.13 --version
 ```
 
-You can also check the Python launcher:
+Expected result:
+
+```text
+Python 3.13.x
+```
+
+You can also list the Python versions detected by the Python launcher:
 
 ```powershell
-py --version
+py -0p
 ```
 
-If both commands fail, follow this order:
+If Python 3.13 does not appear, install Python 3.13, close and reopen PowerShell, and restart Windows if the new version is still not detected.
 
-1. close and reopen PowerShell;
-2. close and reopen VS Code, if you are using the integrated terminal;
-3. restart Windows;
-4. reinstall Python and confirm that the PATH option was enabled.
+Avoid creating the `.venv` with Python 3.14 for this project.
+
+### Check future pythonnet support
+
+The Python 3.13 limit should be reviewed when `pythonnet` adds official support for newer Python versions.
+
+Use these links to check future compatibility:
+
+- PyPI project page: <https://pypi.org/project/pythonnet/>
+- GitHub repository: <https://github.com/pythonnet/pythonnet>
+- GitHub releases: <https://github.com/pythonnet/pythonnet/releases>
+- GitHub issue for Python 3.14 support: <https://github.com/pythonnet/pythonnet/issues/2610>
+
+Before changing the project to a newer Python version, confirm that:
+
+- the PyPI `Requires-Python` field allows the new version;
+- a compatible `pythonnet` release exists;
+- `pywebview` installs successfully on Windows;
+- `python app.py` opens the NiceGUI native window correctly.
 
 ---
 
@@ -121,19 +150,17 @@ Avoid opening only a subfolder. Keeping VS Code opened at the repository root ma
 
 ---
 
-## ⚙️ 4. Create the virtual environment
+## ⚙️ 4. Create the virtual environment with Python 3.13
 
 Open PowerShell in the repository root folder and run:
 
 ```powershell
-py -m venv .venv
+py -3.13 -m venv .venv
 ```
 
-If the `py` launcher is not available, use:
+This command explicitly creates the virtual environment with Python 3.13.
 
-```powershell
-python -m venv .venv
-```
+After creating the `.venv`, activate it and confirm the version before installing dependencies.
 
 The `.venv` folder stores the local Python environment for this project.
 
@@ -142,7 +169,8 @@ This helps avoid conflicts with:
 - other Python projects;
 - globally installed packages;
 - different dependency versions;
-- old environment settings.
+- old environment settings;
+- accidental usage of Python 3.14 with native-mode dependencies.
 
 Do not commit the `.venv` folder to Git.
 
@@ -168,6 +196,12 @@ Then confirm which Python is active:
 python --version
 ```
 
+Expected result:
+
+```text
+Python 3.13.x
+```
+
 You can also confirm the executable path:
 
 ```powershell
@@ -179,6 +213,8 @@ Expected result: the path should point to the repository `.venv`, similar to:
 ```text
 C:\path\to\NiceGUI-Hello-World\.venv\Scripts\python.exe
 ```
+
+If the active version is Python 3.14, remove the `.venv` and recreate it with Python 3.13.
 
 ---
 
@@ -228,7 +264,19 @@ If the interpreter does not appear automatically, choose **Enter interpreter pat
 <repository-root>\.venv\Scripts\python.exe
 ```
 
-This helps VS Code use the same Python environment that was created for the repository.
+This helps VS Code use the same Python 3.13 environment that was created for the repository.
+
+After selecting the interpreter, open a new VS Code terminal and run:
+
+```powershell
+python --version
+```
+
+Expected result:
+
+```text
+Python 3.13.x
+```
 
 ---
 
@@ -246,17 +294,22 @@ Then install the dependencies listed in `requirements.txt`:
 python -m pip install -r requirements.txt
 ```
 
-For this project step, the dependency file should contain NiceGUI:
+The dependency file should contain NiceGUI and pywebview:
 
 ```text
 nicegui
+pywebview
 ```
 
-Using `requirements.txt` keeps dependency installation repeatable for anyone cloning the repository.
+NiceGUI provides the application framework.
+
+pywebview provides the native desktop window used by NiceGUI native mode.
+
+Because native mode depends on this dependency chain, the project should currently use Python 3.13 instead of Python 3.14.
 
 ---
 
-## ▶️ 9. Run the NiceGUI application
+## ▶️ 9. Run the NiceGUI application in native mode
 
 After installing the dependencies, run the application from the repository root:
 
@@ -271,18 +324,14 @@ from nicegui import ui
 
 ui.label("Hello, NiceGUI!")
 
-ui.run()
+ui.run(native=True)
 ```
 
-The `ui.run()` call starts the NiceGUI application.
-
-If the browser does not open automatically, check the local address printed in the terminal. In a default local run, NiceGUI commonly serves the application at:
-
-```text
-http://localhost:8080
-```
+The `native=True` option opens the NiceGUI interface in a desktop-style window instead of relying only on the external browser.
 
 Keep the terminal open while testing the application. Stop the app with `Ctrl + C` when finished.
+
+If the native window does not open, check the terminal output first. Native mode depends on `pywebview` and may also depend on Windows components already installed on the machine, such as the webview backend used by `pywebview`.
 
 ---
 
@@ -367,18 +416,20 @@ Install only what is useful for your workflow and repository needs.
 
 Before continuing development, confirm:
 
-- [ ] Python is installed.
+- [ ] Python 3.13 is installed.
+- [ ] `py -3.13 --version` works.
 - [ ] VS Code is installed.
 - [ ] The repository root folder is open in VS Code.
 - [ ] The `.venv` folder exists in the repository root.
+- [ ] The `.venv` was created with Python 3.13.
 - [ ] The `.venv` is activated in PowerShell.
-- [ ] `python --version` works.
+- [ ] `python --version` returns `Python 3.13.x`.
 - [ ] `python -c "import sys; print(sys.executable)"` points to `.venv`.
 - [ ] VS Code is using `.venv\Scripts\python.exe`.
 - [ ] PowerShell policy was changed only temporarily, if activation was blocked.
 - [ ] `python -m pip install -r requirements.txt` completed successfully.
 - [ ] `python app.py` starts the NiceGUI application.
-- [ ] The Hello NiceGUI page opens in the browser or is available at the local address shown in the terminal.
+- [ ] A native desktop-style window opens with the Hello NiceGUI interface.
 
 ---
 
@@ -399,19 +450,52 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-If the `.venv` was created incorrectly, remove it and create it again:
-
-```powershell
-Remove-Item -Recurse -Force .venv
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
 If Python was recently installed or updated and the terminal still shows the previous version, close and reopen PowerShell or VS Code. If the version still does not change, restart Windows and check again.
 
-If NiceGUI is not found when running `python app.py`, reinstall the dependencies inside the active `.venv`:
+If the `.venv` was created incorrectly or with Python 3.14, remove it and create it again with Python 3.13:
 
 ```powershell
+Deactivate
+Remove-Item -Recurse -Force .venv
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python --version
+```
+
+Expected result:
+
+```text
+Python 3.13.x
+```
+
+If NiceGUI or pywebview is not found when running `python app.py`, reinstall the dependencies inside the active Python 3.13 `.venv`:
+
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python app.py
+```
+
+If the web version works but the native window does not open, confirm that `pywebview` is installed in the active `.venv`:
+
+```powershell
+python -m pip show pywebview
+```
+
+If `pywebview` is missing, run:
+
+```powershell
+python -m pip install pywebview
+python app.py
+```
+
+If dependency installation fails with `pythonnet` while the stack trace shows a Python 3.14 path, recreate the `.venv` with Python 3.13:
+
+```powershell
+Deactivate
+Remove-Item -Recurse -Force .venv
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python app.py
