@@ -2,7 +2,7 @@
 
 This guide explains how to prepare a basic development environment for the **NiceGUI Hello World** repository on Windows.
 
-The goal is to help developers install the required tools, create a Python 3.13 virtual environment, activate it, install project dependencies, run the NiceGUI application in native mode, and open the project in Visual Studio Code.
+The goal is to help developers install the required tools, create a Python 3.13 virtual environment, activate it, install project dependencies, run the NiceGUI application in native mode, package it as a Windows executable with nicegui-pack, and open the project in Visual Studio Code.
 
 ---
 
@@ -18,7 +18,8 @@ Use this guide when:
 - VS Code needs to be configured to use the project environment;
 - NiceGUI needs to be installed from `requirements.txt`;
 - the local `app.py` script needs to be executed;
-- NiceGUI native mode needs to be tested.
+- NiceGUI native mode needs to be tested;
+- the application needs to be packaged as a Windows executable with `nicegui-pack`.
 
 ---
 
@@ -35,7 +36,8 @@ Follow this order:
 7. Select the `.venv` interpreter in VS Code.
 8. Install the project dependencies.
 9. Run the NiceGUI application in native mode.
-10. Confirm that Python runs from the virtual environment.
+10. Package the application as a Windows executable.
+11. Confirm that Python runs from the virtual environment.
 
 ---
 
@@ -49,9 +51,7 @@ https://www.python.org/downloads/windows/
 
 Use **Python 3.13.x** for this project.
 
-This project uses NiceGUI native mode, which depends on `pywebview`. On Windows, `pywebview` can depend on `pythonnet`. The current `pythonnet` package supports Python versions lower than 3.14, so Python 3.14 should not be used for this project until the native dependency chain officially supports it.
-
-The issue was identified while installing the native-mode dependencies from `requirements.txt`. The installation collected `pywebview`, then `pythonnet`, and failed while building the `pythonnet` wheel. The stack trace also showed Python 3.14 being used from a `Python314` path.
+This project uses NiceGUI native mode, which depends on `pywebview`. On Windows, `pywebview` can depend on `pythonnet`. The current native-mode dependency chain has shown installation issues when the virtual environment is created with Python 3.14, so Python 3.13 should be used for this project until the dependency chain officially supports newer Python versions.
 
 During Python installation:
 
@@ -103,7 +103,8 @@ Before changing the project to a newer Python version, confirm that:
 - the PyPI `Requires-Python` field allows the new version;
 - a compatible `pythonnet` release exists;
 - `pywebview` installs successfully on Windows;
-- `python app.py` opens the NiceGUI native window correctly.
+- `python app.py` opens the NiceGUI native window correctly;
+- `scripts\package_windows.ps1` generates the Windows executable correctly.
 
 ---
 
@@ -294,16 +295,19 @@ Then install the dependencies listed in `requirements.txt`:
 python -m pip install -r requirements.txt
 ```
 
-The dependency file should contain NiceGUI and pywebview:
+The dependency file should contain:
 
 ```text
 nicegui
 pywebview
+pyinstaller
 ```
 
 NiceGUI provides the application framework.
 
 pywebview provides the native desktop window used by NiceGUI native mode.
+
+PyInstaller provides the `pyinstaller` command used internally by `nicegui-pack` during packaging.
 
 Because native mode depends on this dependency chain, the project should currently use Python 3.13 instead of Python 3.14.
 
@@ -320,14 +324,18 @@ python app.py
 The minimal application file should contain:
 
 ```python
-from nicegui import ui
+from nicegui import native, ui
 
 ui.label("Hello, NiceGUI!")
 
-ui.run(native=True)
+ui.run(native=True, reload=False, port=native.find_open_port())
 ```
 
 The `native=True` option opens the NiceGUI interface in a desktop-style window instead of relying only on the external browser.
+
+The `reload=False` option is important for packaged execution because the reload server should not be used inside the executable.
+
+The `native.find_open_port()` call lets NiceGUI choose an available local port, reducing the chance of port conflicts when the packaged application starts.
 
 Keep the terminal open while testing the application. Stop the app with `Ctrl + C` when finished.
 
@@ -335,7 +343,98 @@ If the native window does not open, check the terminal output first. Native mode
 
 ---
 
-## 🧩 10. Recommended VS Code extensions
+## 📦 10. Package the application as a Windows executable
+
+This project can be packaged with `nicegui-pack`.
+
+At this point, packaging is intentionally simple and does not use a `settings.toml` file. Runtime behavior is still configured directly in `app.py`.
+
+Before packaging, confirm that the application works locally:
+
+```powershell
+python app.py
+```
+
+Then run the packaging script:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+If PowerShell blocks the script, run it with a process-level execution policy bypass:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1
+```
+
+The script:
+
+1. installs dependencies from `requirements.txt`;
+2. checks whether `pyinstaller` is available in the active environment;
+3. removes previous `build`, `dist`, and `.spec` outputs;
+4. runs `nicegui-pack`;
+5. checks whether `nicegui-pack` failed;
+6. confirms that `dist\nicegui-hello-world.exe` was actually created.
+
+The `nicegui-pack` command uses PyInstaller internally. The packaging command generated by `nicegui-pack` calls `pyinstaller`, so PyInstaller must be installed and available in the active `.venv`.
+
+### Current packaging command
+
+```powershell
+nicegui-pack `
+  --onefile `
+  --windowed `
+  --clean `
+  --noconfirm `
+  --name "nicegui-hello-world" `
+  app.py
+```
+
+### Why use `--onefile`?
+
+`--onefile` creates a single executable file in the `dist` folder.
+
+This is convenient for a first distribution test, but the executable may take longer to start because it needs to unpack support files at runtime.
+
+### Why use `--windowed`?
+
+`--windowed` hides the terminal console when opening the executable.
+
+Use this option only because the application already runs with:
+
+```python
+ui.run(native=True, reload=False, port=native.find_open_port())
+```
+
+When diagnosing packaging failures, temporarily remove `--windowed` from the script so the console can show errors.
+
+### Expected output
+
+After packaging, the executable should be available at:
+
+```text
+dist\nicegui-hello-world.exe
+```
+
+Run it from PowerShell:
+
+```powershell
+.\dist\nicegui-hello-world.exe
+```
+
+A native desktop-style window should open with the Hello NiceGUI interface.
+
+### No `settings.toml` yet
+
+This packaging step does not introduce `settings.toml`.
+
+That keeps the project simple while packaging is being validated for the first time.
+
+Configuration can move to a dedicated settings file later if the application needs persistent runtime options, environment-specific behavior, or more structured configuration.
+
+---
+
+## 🧩 11. Recommended VS Code extensions
 
 VS Code extension recommendations should be treated as optional developer environment helpers.
 
@@ -412,7 +511,7 @@ Install only what is useful for your workflow and repository needs.
 
 ---
 
-## ✅ 11. Quick validation checklist
+## ✅ 12. Quick validation checklist
 
 Before continuing development, confirm:
 
@@ -430,6 +529,9 @@ Before continuing development, confirm:
 - [ ] `python -m pip install -r requirements.txt` completed successfully.
 - [ ] `python app.py` starts the NiceGUI application.
 - [ ] A native desktop-style window opens with the Hello NiceGUI interface.
+- [ ] `pyinstaller --version` works inside the active `.venv`.
+- [ ] `scripts\package_windows.ps1` generates `dist\nicegui-hello-world.exe`.
+- [ ] `dist\nicegui-hello-world.exe` opens the native Hello NiceGUI window.
 
 ---
 
@@ -468,7 +570,7 @@ Expected result:
 Python 3.13.x
 ```
 
-If NiceGUI or pywebview is not found when running `python app.py`, reinstall the dependencies inside the active Python 3.13 `.venv`:
+If NiceGUI, pywebview, or PyInstaller is not found when running the application or packaging script, reinstall the dependencies inside the active Python 3.13 `.venv`:
 
 ```powershell
 python -m pip install --upgrade pip
@@ -476,29 +578,34 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-If the web version works but the native window does not open, confirm that `pywebview` is installed in the active `.venv`:
+If `nicegui-pack` fails with `FileNotFoundError: [WinError 2] O sistema não pode encontrar o arquivo especificado` after printing a `pyinstaller` command, PyInstaller is missing or unavailable in the active environment.
+
+Check it with:
 
 ```powershell
-python -m pip show pywebview
+pyinstaller --version
 ```
 
-If `pywebview` is missing, run:
+If the command is not recognized, reinstall dependencies:
 
 ```powershell
-python -m pip install pywebview
-python app.py
-```
-
-If dependency installation fails with `pythonnet` while the stack trace shows a Python 3.14 path, recreate the `.venv` with Python 3.13:
-
-```powershell
-Deactivate
-Remove-Item -Recurse -Force .venv
-py -3.13 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python app.py
+```
+
+Then package again:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+If the packaging script fails while using `--windowed`, remove `--windowed` temporarily from `scripts\package_windows.ps1` and run the script again to keep the console visible for diagnostics.
+
+If an old executable keeps being tested by mistake, remove old build outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
 ```
 
 ---
