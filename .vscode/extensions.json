@@ -2,6 +2,7 @@
     "recommendations": [
         "ms-python.python",
         "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
         "yzhang.markdown-all-in-one",
         "editorconfig.editorconfig",
         "dracula-theme.theme-dracula",

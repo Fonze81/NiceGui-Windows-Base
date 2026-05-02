@@ -1,6 +1,7 @@
 # NiceGUI Hello World
 
 [![Python](https://img.shields.io/badge/python-3.13.X-blue)](https://www.python.org/downloads/)
+[![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-46aef7)](https://docs.astral.sh/ruff/)
 
 A Hello World template for NiceGUI projects.
 
@@ -8,7 +9,7 @@ A Hello World template for NiceGUI projects.
 
 This project currently targets Python 3.13.x for the native mode dependency chain used on Windows.
 
-See the setup guide for installation, execution, development mode, and packaging details:
+See the setup guide for installation, execution, development mode, code quality, and packaging details:
 
 - [Development Environment Setup](docs/development_environment.md)
 
@@ -16,6 +17,8 @@ See the setup guide for installation, execution, development mode, and packaging
 
 ```text
 .
+├── .vscode/
+│   └── extensions.json
 ├── docs/
 │   └── development_environment.md
 ├── scripts/
@@ -34,7 +37,7 @@ See the setup guide for installation, execution, development mode, and packaging
 
 ```powershell
 python -m pip install --upgrade pip
-python -m pip install -e ".[packaging]"
+python -m pip install -e ".[dev,packaging]"
 ```
 
 ## Run normally
@@ -66,6 +69,34 @@ python dev_run.py
 ```
 
 This starts the same UI in the browser with automatic reload enabled.
+
+On Windows, `dev_run.py` must allow execution as both `__main__` and `__mp_main__` because reload mode uses multiprocessing.
+
+## Code quality with Ruff
+
+Run lint checks:
+
+```powershell
+ruff check .
+```
+
+Check formatting:
+
+```powershell
+ruff format --check .
+```
+
+Apply safe lint fixes:
+
+```powershell
+ruff check --fix .
+```
+
+Format code:
+
+```powershell
+ruff format .
+```
 
 ## Package for Windows
 

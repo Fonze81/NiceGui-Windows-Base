@@ -2,7 +2,7 @@
 
 This guide explains how to prepare a basic development environment for the **NiceGUI Hello World** repository on Windows.
 
-The goal is to help developers install the required tools, create a Python 3.13 virtual environment, activate it, install the project in editable mode, run the NiceGUI application in native mode, use web development mode while creating the interface, package it as a Windows executable with nicegui-pack, and open the project in Visual Studio Code.
+The goal is to help developers install the required tools, create a Python 3.13 virtual environment, activate it, install the project in editable mode, run the NiceGUI application in native mode, use web development mode while creating the interface, organize code with Ruff, package it as a Windows executable with nicegui-pack, and open the project in Visual Studio Code.
 
 ---
 
@@ -20,6 +20,7 @@ Use this guide when:
 - the local NiceGUI application needs to be executed;
 - NiceGUI native mode needs to be tested;
 - the interface needs to be developed faster in browser mode;
+- code quality needs to be checked or formatted with Ruff;
 - the application needs to be packaged as a Windows executable with `nicegui-pack`.
 
 ---
@@ -38,8 +39,9 @@ Follow this order:
 8. Install the project in editable mode.
 9. Run the NiceGUI application through the project command.
 10. Use web development mode while creating the interface.
-11. Package the application as a Windows executable.
-12. Confirm that Python runs from the virtual environment.
+11. Check and format code with Ruff.
+12. Package the application as a Windows executable.
+13. Confirm that Python runs from the virtual environment.
 
 ---
 
@@ -107,6 +109,7 @@ Before changing the project to a newer Python version, confirm that:
 - `pywebview` installs successfully on Windows;
 - `nicegui-hello-world` opens the NiceGUI native window correctly;
 - `python dev_run.py` opens the browser-based development mode correctly;
+- `ruff check .` works correctly;
 - `scripts\package_windows.ps1` generates the Windows executable correctly.
 
 ---
@@ -163,6 +166,8 @@ The project uses a `src` layout and `pyproject.toml`.
 
 ```text
 .
+├── .vscode/
+│   └── extensions.json
 ├── src/
 │   └── nicegui_hello_world/
 │       ├── __init__.py
@@ -181,7 +186,7 @@ The application code lives inside:
 src\nicegui_hello_world
 ```
 
-The project metadata, Python version rule, dependencies, optional packaging dependencies, and command-line entry point are defined in:
+The project metadata, Python version rule, dependencies, optional development dependencies, optional packaging dependencies, command-line entry point, and Ruff configuration are defined in:
 
 ```text
 pyproject.toml
@@ -325,10 +330,10 @@ With the `.venv` activated, upgrade `pip`:
 python -m pip install --upgrade pip
 ```
 
-Then install the project in editable mode with packaging dependencies:
+Then install the project in editable mode with development and packaging dependencies:
 
 ```powershell
-python -m pip install -e ".[packaging]"
+python -m pip install -e ".[dev,packaging]"
 ```
 
 This reads dependency information from `pyproject.toml`.
@@ -339,6 +344,7 @@ Editable installation is useful because:
 - the `nicegui-hello-world` command becomes available;
 - `python -m nicegui_hello_world` works;
 - `python dev_run.py` can import the installed package;
+- Ruff is installed for linting and formatting;
 - packaging dependencies such as PyInstaller are installed;
 - future package metadata can evolve in one central file.
 
@@ -391,23 +397,106 @@ This mode is useful while building the web interface because:
 
 Use this mode only for development.
 
-For normal execution, use:
+### Windows multiprocessing guard
 
-```powershell
-nicegui-hello-world
+On Windows, reload mode uses multiprocessing and can re-run the script using the `__mp_main__` module name.
+
+For this reason, `dev_run.py` must use:
+
+```python
+if __name__ in {"__main__", "__mp_main__"}:
+    main()
 ```
 
-For packaging, use:
+If the guard only checks `__main__`, NiceGUI reload mode can fail with:
 
-```powershell
-.\scripts\package_windows.ps1
+```text
+You must call ui.run() to start the server.
 ```
-
-On Windows, reload mode can create extra processes or duplicated startup behavior. If logs appear duplicated, stop the process and run the normal command instead.
 
 ---
 
-## 📦 12. Package the application as a Windows executable
+## 🧹 12. Organize code with Ruff
+
+Ruff is used as the project linting and formatting tool.
+
+The configuration lives in:
+
+```text
+pyproject.toml
+```
+
+This keeps style rules close to the package metadata and avoids adding another configuration file while the project is still small.
+
+Run lint checks:
+
+```powershell
+ruff check .
+```
+
+Check formatting without changing files:
+
+```powershell
+ruff format --check .
+```
+
+Apply safe lint fixes:
+
+```powershell
+ruff check --fix .
+```
+
+Format code:
+
+```powershell
+ruff format .
+```
+
+Recommended validation before committing changes:
+
+```powershell
+ruff check .
+ruff format --check .
+```
+
+Use `ruff check --fix .` and `ruff format .` when you intentionally want Ruff to modify files.
+
+### Current Ruff configuration
+
+The project uses:
+
+```toml
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+src = ["src"]
+extend-exclude = [
+    ".venv",
+    "build",
+    "dist"
+]
+
+[tool.ruff.lint]
+select = [
+    "B",
+    "E",
+    "F",
+    "I",
+    "SIM",
+    "UP"
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "auto"
+quote-style = "double"
+```
+
+The selected rules cover common Python errors, pycodestyle checks, import sorting, pyupgrade suggestions, bugbear checks, and simplification suggestions.
+
+---
+
+## 📦 13. Package the application as a Windows executable
 
 Before packaging, confirm that the application works locally:
 
@@ -427,42 +516,13 @@ If PowerShell blocks the script, run it with a process-level execution policy by
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1
 ```
 
-The script:
-
-1. installs the project in editable mode with packaging dependencies;
-2. checks whether `pyinstaller` is available in the active environment;
-3. removes previous `build`, `dist`, and `.spec` outputs;
-4. runs `nicegui-pack`;
-5. checks whether `nicegui-pack` failed;
-6. confirms that `dist\nicegui-hello-world.exe` was actually created.
-
-The packaging command still points directly to the app file:
-
-```powershell
-nicegui-pack `
-  --onefile `
-  --windowed `
-  --clean `
-  --noconfirm `
-  --name "nicegui-hello-world" `
-  src\nicegui_hello_world\app.py
-```
-
-This keeps the packaging step simple while the executable flow is being validated.
-
-### No `settings.toml` yet
-
-This packaging step does not introduce `settings.toml`.
-
-Configuration can move to a dedicated settings file later if the application needs persistent runtime options, environment-specific behavior, or more structured configuration.
+The script installs the project in editable mode with packaging dependencies, checks whether `pyinstaller` is available, cleans previous outputs, runs `nicegui-pack`, and confirms that `dist\nicegui-hello-world.exe` was created.
 
 ---
 
-## 🧩 13. Recommended VS Code extensions
+## 🧩 14. Recommended VS Code extensions
 
 VS Code extension recommendations should be treated as optional developer environment helpers.
-
-They can improve editing, navigation, Git visualization, and visual comfort, but they are not required to run the project.
 
 A common place to keep project extension recommendations is:
 
@@ -470,61 +530,32 @@ A common place to keep project extension recommendations is:
 .vscode/extensions.json
 ```
 
-Keeping extension recommendations in this file helps VS Code suggest them when the repository folder is opened.
-
 ### Core development recommendations
 
-These extensions are useful for Python and Markdown editing:
-
-| Extension           | Identifier                   | Purpose                          |
-| ------------------- | ---------------------------- | -------------------------------- |
-| Python              | `ms-python.python`           | Python language support          |
-| Pylance             | `ms-python.vscode-pylance`   | Python analysis and IntelliSense |
-| Markdown All in One | `yzhang.markdown-all-in-one` | Markdown editing support         |
-| EditorConfig        | `editorconfig.editorconfig`  | Consistent editor settings       |
+| Extension | Identifier | Purpose |
+|---|---|---|
+| Python | `ms-python.python` | Python language support |
+| Pylance | `ms-python.vscode-pylance` | Python analysis and IntelliSense |
+| Ruff | `charliermarsh.ruff` | Ruff linting and formatting integration |
+| Markdown All in One | `yzhang.markdown-all-in-one` | Markdown editing support |
+| EditorConfig | `editorconfig.editorconfig` | Consistent editor settings |
 
 ### Optional visual and productivity recommendations
 
-These extensions improve the developer experience, but they are only preferences:
-
-| Extension           | Identifier                    | Purpose                                         |
-| ------------------- | ----------------------------- | ----------------------------------------------- |
-| Dracula Theme       | `dracula-theme.theme-dracula` | Optional dark color theme                       |
-| FiraCode Font       | `seyyedkhandon.firacode`      | Optional Fira Code font helper                  |
-| Material Icon Theme | `PKief.material-icon-theme`   | Optional file and folder icons                  |
-| Bookmarks           | `alefragnani.Bookmarks`       | Optional code navigation bookmarks              |
-| Git Graph           | `mhutchie.git-graph`          | Optional visual Git branch and commit history   |
-| Git History         | `donjayamanne.githistory`     | Optional file and repository history inspection |
-| Todo Tree           | `Gruntfuggly.todo-tree`       | Optional TODO and FIXME tracking                |
-| Trailing Spaces     | `shardulm94.trailing-spaces`  | Optional trailing whitespace visualization      |
-
-
-### Optional Fira Code font
-
-Fira Code is a font used by the editor. It can be installed manually on Windows or assisted by the optional VS Code extension:
-
-```text
-seyyedkhandon.firacode
-```
-
-Even when using the extension, the font may still need to be installed on the operating system and VS Code may need to be restarted.
-
-Example workspace or VS Code setting:
-
-```json
-{
-    "editor.fontFamily": "'Fira Code', Consolas, 'Courier New', monospace",
-    "editor.fontLigatures": true
-}
-```
-
-If Fira Code is not installed or not available to VS Code, the editor will use one of the fallback fonts.
-
-Install only what is useful for your workflow and repository needs.
+| Extension | Identifier | Purpose |
+|---|---|---|
+| Dracula Theme | `dracula-theme.theme-dracula` | Optional dark color theme |
+| FiraCode Font | `seyyedkhandon.firacode` | Optional Fira Code font helper |
+| Material Icon Theme | `PKief.material-icon-theme` | Optional file and folder icons |
+| Bookmarks | `alefragnani.Bookmarks` | Optional code navigation bookmarks |
+| Git Graph | `mhutchie.git-graph` | Optional visual Git branch and commit history |
+| Git History | `donjayamanne.githistory` | Optional file and repository history inspection |
+| Todo Tree | `Gruntfuggly.todo-tree` | Optional TODO and FIXME tracking |
+| Trailing Spaces | `shardulm94.trailing-spaces` | Optional trailing whitespace visualization |
 
 ---
 
-## ✅ 14. Quick validation checklist
+## ✅ 15. Quick validation checklist
 
 Before continuing development, confirm:
 
@@ -536,10 +567,12 @@ Before continuing development, confirm:
 - [ ] The `.venv` was created with Python 3.13.
 - [ ] The `.venv` is activated in PowerShell.
 - [ ] `python --version` returns `Python 3.13.x`.
-- [ ] `python -m pip install -e ".[packaging]"` completed successfully.
+- [ ] `python -m pip install -e ".[dev,packaging]"` completed successfully.
 - [ ] `nicegui-hello-world` starts the NiceGUI application.
 - [ ] `python -m nicegui_hello_world` starts the NiceGUI application.
 - [ ] `python dev_run.py` starts the browser-based development mode.
+- [ ] `ruff check .` passes.
+- [ ] `ruff format --check .` passes.
 - [ ] A native desktop-style window opens with the Hello NiceGUI interface in normal mode.
 - [ ] `pyinstaller --version` works inside the active `.venv`.
 - [ ] `scripts\package_windows.ps1` generates `dist\nicegui-hello-world.exe`.
@@ -574,24 +607,31 @@ py -3.13 -m venv .venv
 python --version
 ```
 
-If imports fail or the `nicegui-hello-world` command is not recognized, reinstall the project in editable mode:
+If imports fail, Ruff is not recognized, or the `nicegui-hello-world` command is not recognized, reinstall the project in editable mode:
 
 ```powershell
 python -m pip install --upgrade pip
-python -m pip install -e ".[packaging]"
+python -m pip install -e ".[dev,packaging]"
+```
+
+If Ruff reports issues, review them first:
+
+```powershell
+ruff check .
+```
+
+Then apply safe fixes only when intended:
+
+```powershell
+ruff check --fix .
+ruff format .
 ```
 
 If `python dev_run.py` fails with an import error for `nicegui_hello_world`, confirm that editable installation completed successfully:
 
 ```powershell
-python -m pip install -e ".[packaging]"
+python -m pip install -e ".[dev,packaging]"
 python dev_run.py
-```
-
-If reload mode shows duplicated logs or unexpected repeated startup behavior, stop the process with `Ctrl + C` and run normal mode:
-
-```powershell
-nicegui-hello-world
 ```
 
 If an old executable keeps being tested by mistake, remove old build outputs and package again:
