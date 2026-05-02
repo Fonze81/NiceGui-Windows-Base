@@ -230,14 +230,76 @@ This helps VS Code use the same Python environment that was created for the repo
 
 ## 🧩 8. Recommended VS Code extensions
 
-Recommended extensions:
+VS Code extension recommendations should be treated as optional developer environment helpers.
 
-| Extension | Purpose |
-|---|---|
-| Python | Python language support |
-| Pylance | Python analysis and IntelliSense |
-| Markdown All in One | Markdown editing support |
-| EditorConfig | Consistent editor settings |
+They can improve editing, navigation, Git visualization, and visual comfort, but they are not required to run the project.
+
+A common place to keep project extension recommendations is:
+
+```text
+.vscode/extensions.json
+```
+
+Keeping extension recommendations in this file helps VS Code suggest them when the repository folder is opened.
+
+### Required vs optional behavior
+
+The project should not depend on these extensions to work.
+
+If a developer does not install them:
+
+- the repository should still open normally;
+- Python should still work from the `.venv`;
+- source files should still be editable;
+- Git should still work from the terminal or GitHub Desktop.
+
+### Core development recommendations
+
+These extensions are useful for Python and Markdown editing:
+
+| Extension           | Identifier                   | Purpose                          |
+| ------------------- | ---------------------------- | -------------------------------- |
+| Python              | `ms-python.python`           | Python language support          |
+| Pylance             | `ms-python.vscode-pylance`   | Python analysis and IntelliSense |
+| Markdown All in One | `yzhang.markdown-all-in-one` | Markdown editing support         |
+| EditorConfig        | `editorconfig.editorconfig`  | Consistent editor settings       |
+
+### Optional visual and productivity recommendations
+
+These extensions improve the developer experience, but they are only preferences:
+
+| Extension           | Identifier                    | Purpose                                         |
+| ------------------- | ----------------------------- | ----------------------------------------------- |
+| Dracula Theme       | `dracula-theme.theme-dracula` | Optional dark color theme                       |
+| FiraCode Font       | `seyyedkhandon.firacode`      | Optional Fira Code font helper                  |
+| Material Icon Theme | `PKief.material-icon-theme`   | Optional file and folder icons                  |
+| Bookmarks           | `alefragnani.Bookmarks`       | Optional code navigation bookmarks              |
+| Git Graph           | `mhutchie.git-graph`          | Optional visual Git branch and commit history   |
+| Git History         | `donjayamanne.githistory`     | Optional file and repository history inspection |
+| Todo Tree           | `Gruntfuggly.todo-tree`       | Optional TODO and FIXME tracking                |
+| Trailing Spaces     | `shardulm94.trailing-spaces`  | Optional trailing whitespace visualization      |
+
+
+### Optional Fira Code font
+
+Fira Code is a font used by the editor. It can be installed manually on Windows or assisted by the optional VS Code extension:
+
+```text
+seyyedkhandon.firacode
+```
+
+Even when using the extension, the font may still need to be installed on the operating system and VS Code may need to be restarted.
+
+Example workspace or VS Code setting:
+
+```json
+{
+    "editor.fontFamily": "'Fira Code', Consolas, 'Courier New', monospace",
+    "editor.fontLigatures": true
+}
+```
+
+If Fira Code is not installed or not available to VS Code, the editor will use one of the fallback fonts.
 
 Install only what is useful for your workflow and repository needs.
 

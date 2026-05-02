@@ -1,8 +1,16 @@
 {
-	"recommendations": [
-		"ms-python.python",
-		"ms-python.vscode-pylance",
-		"yzhang.markdown-all-in-one",
-		"editorconfig.editorconfig"
-	]
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "yzhang.markdown-all-in-one",
+        "editorconfig.editorconfig",
+        "dracula-theme.theme-dracula",
+        "PKief.material-icon-theme",
+        "alefragnani.Bookmarks",
+        "mhutchie.git-graph",
+        "donjayamanne.githistory",
+        "Gruntfuggly.todo-tree",
+        "shardulm94.trailing-spaces",
+        "seyyedkhandon.firacode"
+    ]
 }
