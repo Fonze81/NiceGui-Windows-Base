@@ -30,4 +30,4 @@ If PowerShell blocks the script, run it with a process-level policy bypass:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1
 ```
 
-The script installs the dependencies from `requirements.txt`, checks that `pyinstaller` is available, cleans previous build outputs, runs `nicegui-pack`, and validates that the expected executable was created.
+The application uses an explicit NiceGUI root function in `ui.run(...)` so the packaged executable does not rely on NiceGUI script mode.

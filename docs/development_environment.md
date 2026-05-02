@@ -326,10 +326,18 @@ The minimal application file should contain:
 ```python
 from nicegui import native, ui
 
-ui.label("Hello, NiceGUI!")
 
-ui.run(native=True, reload=False, port=native.find_open_port())
+def create_ui() -> None:
+    """Build the main NiceGUI interface."""
+    ui.label("Hello, NiceGUI!")
+
+
+ui.run(create_ui, native=True, reload=False, port=native.find_open_port())
 ```
+
+The first argument passed to `ui.run(...)` is the root function used to build the interface.
+
+This is important for packaging. When UI elements are created directly at module level without a root function or decorated page, NiceGUI may use script mode. Script mode can fail after packaging because the executable is not a Python source file.
 
 The `native=True` option opens the NiceGUI interface in a desktop-style window instead of relying only on the external browser.
 
@@ -390,6 +398,20 @@ nicegui-pack `
   app.py
 ```
 
+### Why use a root function?
+
+Packaging a NiceGUI script that creates UI elements directly at module level can fail in a packaged executable.
+
+The observed error was:
+
+```text
+SyntaxError: source code string cannot contain null bytes
+```
+
+The traceback showed NiceGUI trying to execute `sys.argv[0]` with `runpy.run_path(...)`. In a packaged executable, `sys.argv[0]` points to the `.exe`, not to a Python `.py` source file. The `.exe` contains binary bytes, so Python raises a null-byte syntax error.
+
+Using an explicit root function in `ui.run(create_ui, ...)` avoids this script-mode packaging path and lets NiceGUI build the page from a normal callable.
+
 ### Why use `--onefile`?
 
 `--onefile` creates a single executable file in the `dist` folder.
@@ -403,7 +425,7 @@ This is convenient for a first distribution test, but the executable may take lo
 Use this option only because the application already runs with:
 
 ```python
-ui.run(native=True, reload=False, port=native.find_open_port())
+ui.run(create_ui, native=True, reload=False, port=native.find_open_port())
 ```
 
 When diagnosing packaging failures, temporarily remove `--windowed` from the script so the console can show errors.
@@ -595,6 +617,30 @@ python -m pip install -r requirements.txt
 Then package again:
 
 ```powershell
+.\scripts\package_windows.ps1
+```
+
+If the packaged executable starts but shows `SyntaxError: source code string cannot contain null bytes`, check whether `app.py` is using a root function in `ui.run(...)`.
+
+The correct pattern is:
+
+```python
+from nicegui import native, ui
+
+
+def create_ui() -> None:
+    """Build the main NiceGUI interface."""
+    ui.label("Hello, NiceGUI!")
+
+
+ui.run(create_ui, native=True, reload=False, port=native.find_open_port())
+```
+
+After changing `app.py`, clean old build outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 .\scripts\package_windows.ps1
 ```
 
