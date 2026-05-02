@@ -74,6 +74,16 @@ On Windows, `dev_run.py` must allow execution as both `__main__` and `__mp_main_
 
 ## Code quality with Ruff
 
+### Ruff on save in VS Code
+
+The project includes `.vscode/settings.json` to run Ruff automatically when saving Python files in VS Code.
+
+On save, VS Code will:
+
+- format Python files with Ruff;
+- apply safe Ruff fixes;
+- organize imports with Ruff.
+
 Run lint checks:
 
 ```powershell

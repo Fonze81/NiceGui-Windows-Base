@@ -428,6 +428,44 @@ pyproject.toml
 
 This keeps style rules close to the package metadata and avoids adding another configuration file while the project is still small.
 
+### Ruff on save in VS Code
+
+The project includes this workspace file:
+
+```text
+.vscode/settings.json
+```
+
+It enables Ruff automatically when a Python file is saved in VS Code.
+
+Current settings:
+
+```json
+{
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        }
+    }
+}
+```
+
+This configuration means:
+
+- `editor.defaultFormatter` makes Ruff the Python formatter;
+- `editor.formatOnSave` formats Python files when they are saved;
+- `source.fixAll.ruff` applies safe Ruff fixes on save;
+- `source.organizeImports.ruff` organizes imports with Ruff on save.
+
+The Ruff-specific actions are used instead of generic `source.fixAll` and `source.organizeImports` so VS Code does not accidentally run other extensions for those actions.
+
+The value `"explicit"` means the action runs when the file is explicitly saved. This is usually safer than running formatting and fixes continuously during automatic background saves.
+
+
+
 Run lint checks:
 
 ```powershell
@@ -573,6 +611,7 @@ Before continuing development, confirm:
 - [ ] `python dev_run.py` starts the browser-based development mode.
 - [ ] `ruff check .` passes.
 - [ ] `ruff format --check .` passes.
+- [ ] Saving a Python file in VS Code runs Ruff formatting, fixes, and import organization.
 - [ ] A native desktop-style window opens with the Hello NiceGUI interface in normal mode.
 - [ ] `pyinstaller --version` works inside the active `.venv`.
 - [ ] `scripts\package_windows.ps1` generates `dist\nicegui-hello-world.exe`.
@@ -613,6 +652,14 @@ If imports fail, Ruff is not recognized, or the `nicegui-hello-world` command is
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev,packaging]"
 ```
+
+If Ruff does not run when saving files in VS Code, confirm that:
+
+- the Ruff extension is installed;
+- VS Code opened the repository root folder;
+- `.vscode/settings.json` exists;
+- the selected interpreter is `.venv\Scripts\python.exe`;
+- the project was installed with `python -m pip install -e ".[dev,packaging]"`.
 
 If Ruff reports issues, review them first:
 
