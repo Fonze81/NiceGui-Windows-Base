@@ -8,7 +8,7 @@ A Hello World template for NiceGUI projects.
 
 This project currently targets Python 3.13.x for the native mode dependency chain used on Windows.
 
-See the setup guide for installation, execution, and packaging details:
+See the setup guide for installation, execution, development mode, and packaging details:
 
 - [Development Environment Setup](docs/development_environment.md)
 
@@ -25,6 +25,7 @@ See the setup guide for installation, execution, and packaging details:
 │       ├── __init__.py
 │       ├── __main__.py
 │       └── app.py
+├── dev_run.py
 ├── pyproject.toml
 └── README.md
 ```
@@ -36,7 +37,7 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[packaging]"
 ```
 
-## Run locally
+## Run normally
 
 Use the project command:
 
@@ -55,6 +56,16 @@ Direct script execution remains useful for quick diagnostics:
 ```powershell
 python src\nicegui_hello_world\app.py
 ```
+
+## Run in web development mode
+
+Use this command while creating or adjusting the web interface:
+
+```powershell
+python dev_run.py
+```
+
+This starts the same UI in the browser with automatic reload enabled.
 
 ## Package for Windows
 

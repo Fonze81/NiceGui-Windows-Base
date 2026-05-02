@@ -2,7 +2,7 @@
 
 This guide explains how to prepare a basic development environment for the **NiceGUI Hello World** repository on Windows.
 
-The goal is to help developers install the required tools, create a Python 3.13 virtual environment, activate it, install the project in editable mode, run the NiceGUI application in native mode, package it as a Windows executable with nicegui-pack, and open the project in Visual Studio Code.
+The goal is to help developers install the required tools, create a Python 3.13 virtual environment, activate it, install the project in editable mode, run the NiceGUI application in native mode, use web development mode while creating the interface, package it as a Windows executable with nicegui-pack, and open the project in Visual Studio Code.
 
 ---
 
@@ -19,6 +19,7 @@ Use this guide when:
 - the project needs to be installed from `pyproject.toml`;
 - the local NiceGUI application needs to be executed;
 - NiceGUI native mode needs to be tested;
+- the interface needs to be developed faster in browser mode;
 - the application needs to be packaged as a Windows executable with `nicegui-pack`.
 
 ---
@@ -36,8 +37,9 @@ Follow this order:
 7. Select the `.venv` interpreter in VS Code.
 8. Install the project in editable mode.
 9. Run the NiceGUI application through the project command.
-10. Package the application as a Windows executable.
-11. Confirm that Python runs from the virtual environment.
+10. Use web development mode while creating the interface.
+11. Package the application as a Windows executable.
+12. Confirm that Python runs from the virtual environment.
 
 ---
 
@@ -104,6 +106,7 @@ Before changing the project to a newer Python version, confirm that:
 - a compatible `pythonnet` release exists;
 - `pywebview` installs successfully on Windows;
 - `nicegui-hello-world` opens the NiceGUI native window correctly;
+- `python dev_run.py` opens the browser-based development mode correctly;
 - `scripts\package_windows.ps1` generates the Windows executable correctly.
 
 ---
@@ -144,6 +147,7 @@ The root folder should contain files and folders such as:
 ```text
 README.md
 pyproject.toml
+dev_run.py
 docs
 scripts
 src
@@ -166,6 +170,7 @@ The project uses a `src` layout and `pyproject.toml`.
 │       └── app.py
 ├── scripts/
 ├── docs/
+├── dev_run.py
 ├── pyproject.toml
 └── README.md
 ```
@@ -332,14 +337,14 @@ Editable installation is useful because:
 
 - Python can import the package from the `src` layout;
 - the `nicegui-hello-world` command becomes available;
+- `python -m nicegui_hello_world` works;
+- `python dev_run.py` can import the installed package;
 - packaging dependencies such as PyInstaller are installed;
 - future package metadata can evolve in one central file.
 
-The old `requirements.txt` file is no longer needed after this commit.
-
 ---
 
-## ▶️ 10. Run the NiceGUI application in native mode
+## ▶️ 10. Run the NiceGUI application normally
 
 After installing the project, run the application from the repository root:
 
@@ -359,33 +364,50 @@ Direct script execution remains useful for quick diagnostics:
 python src\nicegui_hello_world\app.py
 ```
 
-The main application file should contain:
-
-```python
-from nicegui import native, ui
-
-
-def create_ui() -> None:
-    """Build the main NiceGUI interface."""
-    ui.label("Hello, NiceGUI!")
-
-
-def main() -> None:
-    """Run the NiceGUI application."""
-    ui.run(create_ui, native=True, reload=False, port=native.find_open_port())
-
-
-if __name__ == "__main__":
-    main()
-```
-
-The first argument passed to `ui.run(...)` is the root function used to build the interface.
-
-This is important for packaging. When UI elements are created directly at module level without a root function or decorated page, NiceGUI may use script mode. Script mode can fail after packaging because the executable is not a Python source file.
+The normal application runs in native mode and is closer to the packaged executable behavior.
 
 ---
 
-## 📦 11. Package the application as a Windows executable
+## 🌐 11. Run in web development mode
+
+Use `dev_run.py` while creating or adjusting the interface:
+
+```powershell
+python dev_run.py
+```
+
+This command starts the same UI in the browser with:
+
+```python
+ui.run(create_ui, native=False, reload=True, title="NiceGUI Hello World")
+```
+
+This mode is useful while building the web interface because:
+
+- the browser is faster for visual iteration;
+- `reload=True` reloads the app when code changes;
+- the native desktop window does not need to be restarted manually after every small UI change;
+- development stays separate from the native and packaged execution path.
+
+Use this mode only for development.
+
+For normal execution, use:
+
+```powershell
+nicegui-hello-world
+```
+
+For packaging, use:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+On Windows, reload mode can create extra processes or duplicated startup behavior. If logs appear duplicated, stop the process and run the normal command instead.
+
+---
+
+## 📦 12. Package the application as a Windows executable
 
 Before packaging, confirm that the application works locally:
 
@@ -436,7 +458,7 @@ Configuration can move to a dedicated settings file later if the application nee
 
 ---
 
-## 🧩 12. Recommended VS Code extensions
+## 🧩 13. Recommended VS Code extensions
 
 VS Code extension recommendations should be treated as optional developer environment helpers.
 
@@ -502,7 +524,7 @@ Install only what is useful for your workflow and repository needs.
 
 ---
 
-## ✅ 13. Quick validation checklist
+## ✅ 14. Quick validation checklist
 
 Before continuing development, confirm:
 
@@ -517,7 +539,8 @@ Before continuing development, confirm:
 - [ ] `python -m pip install -e ".[packaging]"` completed successfully.
 - [ ] `nicegui-hello-world` starts the NiceGUI application.
 - [ ] `python -m nicegui_hello_world` starts the NiceGUI application.
-- [ ] A native desktop-style window opens with the Hello NiceGUI interface.
+- [ ] `python dev_run.py` starts the browser-based development mode.
+- [ ] A native desktop-style window opens with the Hello NiceGUI interface in normal mode.
 - [ ] `pyinstaller --version` works inside the active `.venv`.
 - [ ] `scripts\package_windows.ps1` generates `dist\nicegui-hello-world.exe`.
 - [ ] `dist\nicegui-hello-world.exe` opens the native Hello NiceGUI window.
@@ -558,26 +581,17 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[packaging]"
 ```
 
-If `python -m nicegui_hello_world` does not work, confirm that the editable installation completed successfully and that VS Code is using the `.venv` interpreter.
-
-If `nicegui-pack` fails with `FileNotFoundError: [WinError 2] O sistema não pode encontrar o arquivo especificado` after printing a `pyinstaller` command, PyInstaller is missing or unavailable in the active environment.
-
-Check it with:
-
-```powershell
-pyinstaller --version
-```
-
-If the command is not recognized, reinstall packaging dependencies:
+If `python dev_run.py` fails with an import error for `nicegui_hello_world`, confirm that editable installation completed successfully:
 
 ```powershell
 python -m pip install -e ".[packaging]"
+python dev_run.py
 ```
 
-Then package again:
+If reload mode shows duplicated logs or unexpected repeated startup behavior, stop the process with `Ctrl + C` and run normal mode:
 
 ```powershell
-.\scripts\package_windows.ps1
+nicegui-hello-world
 ```
 
 If an old executable keeps being tested by mistake, remove old build outputs and package again:
