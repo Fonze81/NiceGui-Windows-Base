@@ -17,7 +17,7 @@ Use this guide when:
 - PowerShell blocks virtual environment activation;
 - VS Code needs to be configured to use the project environment;
 - NiceGUI needs to be installed from `requirements.txt`;
-- the local `app.py` script needs to be executed;
+- the local application script needs to be executed;
 - NiceGUI native mode needs to be tested;
 - the application needs to be packaged as a Windows executable with `nicegui-pack`.
 
@@ -103,7 +103,7 @@ Before changing the project to a newer Python version, confirm that:
 - the PyPI `Requires-Python` field allows the new version;
 - a compatible `pythonnet` release exists;
 - `pywebview` installs successfully on Windows;
-- `python app.py` opens the NiceGUI native window correctly;
+- `python src\nicegui_hello_world\app.py` opens the NiceGUI native window correctly;
 - `scripts\package_windows.ps1` generates the Windows executable correctly.
 
 ---
@@ -139,19 +139,56 @@ File > Open Folder
 
 Select the root folder of the repository.
 
-The root folder should contain files created with the repository, such as:
+The root folder should contain files and folders such as:
 
 ```text
 README.md
-LICENSE
-.gitignore
+requirements.txt
+docs
+scripts
+src
 ```
 
-Avoid opening only a subfolder. Keeping VS Code opened at the repository root makes configuration, paths, and terminal usage easier.
+Avoid opening only the `src` folder. Keeping VS Code opened at the repository root makes configuration, paths, and terminal usage easier.
 
 ---
 
-## ⚙️ 4. Create the virtual environment with Python 3.13
+## 🧱 4. Understand the src layout
+
+The project now uses a `src` layout.
+
+```text
+.
+├── src/
+│   └── nicegui_hello_world/
+│       ├── __init__.py
+│       ├── __main__.py
+│       └── app.py
+├── scripts/
+├── docs/
+├── README.md
+└── requirements.txt
+```
+
+The application code lives inside:
+
+```text
+src\nicegui_hello_world
+```
+
+The main application entry point is:
+
+```text
+src\nicegui_hello_world\app.py
+```
+
+This keeps source code separated from documentation, scripts, generated files, and repository metadata.
+
+At this step, the project still uses `requirements.txt` and direct script execution. A package installation file such as `pyproject.toml` can be introduced later when the project needs an editable install or a command-line entry point.
+
+---
+
+## ⚙️ 5. Create the virtual environment with Python 3.13
 
 Open PowerShell in the repository root folder and run:
 
@@ -177,7 +214,7 @@ Do not commit the `.venv` folder to Git.
 
 ---
 
-## ▶️ 5. Activate the virtual environment
+## ▶️ 6. Activate the virtual environment
 
 From the repository root folder, run:
 
@@ -219,7 +256,7 @@ If the active version is Python 3.14, remove the `.venv` and recreate it with Py
 
 ---
 
-## 🔐 6. Resolve PowerShell activation blocking
+## 🔐 7. Resolve PowerShell activation blocking
 
 PowerShell may block virtual environment activation with an error similar to:
 
@@ -247,7 +284,7 @@ Avoid changing machine-wide or permanent execution policies unless you understan
 
 ---
 
-## 🐍 7. Select the `.venv` interpreter in VS Code
+## 🐍 8. Select the `.venv` interpreter in VS Code
 
 In VS Code:
 
@@ -281,7 +318,7 @@ Python 3.13.x
 
 ---
 
-## 📦 8. Install project dependencies
+## 📦 9. Install project dependencies
 
 With the `.venv` activated, upgrade `pip`:
 
@@ -313,15 +350,15 @@ Because native mode depends on this dependency chain, the project should current
 
 ---
 
-## ▶️ 9. Run the NiceGUI application in native mode
+## ▶️ 10. Run the NiceGUI application in native mode
 
 After installing the dependencies, run the application from the repository root:
 
 ```powershell
-python app.py
+python src\nicegui_hello_world\app.py
 ```
 
-The minimal application file should contain:
+The main application file should contain:
 
 ```python
 from nicegui import native, ui
@@ -332,7 +369,13 @@ def create_ui() -> None:
     ui.label("Hello, NiceGUI!")
 
 
-ui.run(create_ui, native=True, reload=False, port=native.find_open_port())
+def main() -> None:
+    """Run the NiceGUI application."""
+    ui.run(create_ui, native=True, reload=False, port=native.find_open_port())
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 The first argument passed to `ui.run(...)` is the root function used to build the interface.
@@ -351,7 +394,7 @@ If the native window does not open, check the terminal output first. Native mode
 
 ---
 
-## 📦 10. Package the application as a Windows executable
+## 📦 11. Package the application as a Windows executable
 
 This project can be packaged with `nicegui-pack`.
 
@@ -360,7 +403,7 @@ At this point, packaging is intentionally simple and does not use a `settings.to
 Before packaging, confirm that the application works locally:
 
 ```powershell
-python app.py
+python src\nicegui_hello_world\app.py
 ```
 
 Then run the packaging script:
@@ -395,7 +438,7 @@ nicegui-pack `
   --clean `
   --noconfirm `
   --name "nicegui-hello-world" `
-  app.py
+  src\nicegui_hello_world\app.py
 ```
 
 ### Why use a root function?
@@ -456,7 +499,7 @@ Configuration can move to a dedicated settings file later if the application nee
 
 ---
 
-## 🧩 11. Recommended VS Code extensions
+## 🧩 12. Recommended VS Code extensions
 
 VS Code extension recommendations should be treated as optional developer environment helpers.
 
@@ -533,7 +576,7 @@ Install only what is useful for your workflow and repository needs.
 
 ---
 
-## ✅ 12. Quick validation checklist
+## ✅ 13. Quick validation checklist
 
 Before continuing development, confirm:
 
@@ -549,7 +592,7 @@ Before continuing development, confirm:
 - [ ] VS Code is using `.venv\Scripts\python.exe`.
 - [ ] PowerShell policy was changed only temporarily, if activation was blocked.
 - [ ] `python -m pip install -r requirements.txt` completed successfully.
-- [ ] `python app.py` starts the NiceGUI application.
+- [ ] `python src\nicegui_hello_world\app.py` starts the NiceGUI application.
 - [ ] A native desktop-style window opens with the Hello NiceGUI interface.
 - [ ] `pyinstaller --version` works inside the active `.venv`.
 - [ ] `scripts\package_windows.ps1` generates `dist\nicegui-hello-world.exe`.
@@ -597,7 +640,7 @@ If NiceGUI, pywebview, or PyInstaller is not found when running the application 
 ```powershell
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python app.py
+python src\nicegui_hello_world\app.py
 ```
 
 If `nicegui-pack` fails with `FileNotFoundError: [WinError 2] O sistema não pode encontrar o arquivo especificado` after printing a `pyinstaller` command, PyInstaller is missing or unavailable in the active environment.
@@ -633,7 +676,13 @@ def create_ui() -> None:
     ui.label("Hello, NiceGUI!")
 
 
-ui.run(create_ui, native=True, reload=False, port=native.find_open_port())
+def main() -> None:
+    """Run the NiceGUI application."""
+    ui.run(create_ui, native=True, reload=False, port=native.find_open_port())
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 After changing `app.py`, clean old build outputs and package again:

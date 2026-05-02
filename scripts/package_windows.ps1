@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $appName = "nicegui-hello-world"
-$entryPoint = "app.py"
+$entryPoint = "src\nicegui_hello_world\app.py"
 $exePath = Join-Path "dist" "$appName.exe"
 
 Write-Host "Installing project dependencies..."

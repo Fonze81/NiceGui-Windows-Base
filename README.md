@@ -12,10 +12,27 @@ See the setup guide for installation, execution, and packaging details:
 
 - [Development Environment Setup](docs/development_environment.md)
 
+## Project structure
+
+```text
+.
+├── docs/
+│   └── development_environment.md
+├── scripts/
+│   └── package_windows.ps1
+├── src/
+│   └── nicegui_hello_world/
+│       ├── __init__.py
+│       ├── __main__.py
+│       └── app.py
+├── README.md
+└── requirements.txt
+```
+
 ## Run locally
 
 ```powershell
-python app.py
+python src\nicegui_hello_world\app.py
 ```
 
 ## Package for Windows
