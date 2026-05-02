@@ -40,6 +40,22 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev,packaging]"
 ```
 
+## Startup message
+
+When the application starts, `app.py` prints who started it, the selected mode, and the reload status.
+
+Examples:
+
+```text
+Initializing NiceGUI Hello World from pyproject command in native mode with reload inactive.
+Initializing NiceGUI Hello World from script in native mode with reload inactive.
+Initializing NiceGUI Hello World from module in native mode with reload inactive.
+Initializing NiceGUI Hello World from dev_run.py in web mode with reload active.
+Initializing NiceGUI Hello World from package in native mode with reload inactive.
+```
+
+`dev_run.py` only requests `development_mode=True`. The `main(...)` function then uses an explicit `if` to switch to web mode and enable reload.
+
 ## Run normally
 
 Use the project command:
@@ -69,6 +85,8 @@ python dev_run.py
 ```
 
 This starts the same UI in the browser with automatic reload enabled.
+
+`dev_run.py` calls `main(development_mode=True)`. The main application decides to use web mode and reload when development mode is enabled.
 
 On Windows, `dev_run.py` must allow execution as both `__main__` and `__mp_main__` because reload mode uses multiprocessing.
 

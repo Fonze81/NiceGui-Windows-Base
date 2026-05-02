@@ -350,6 +350,55 @@ Editable installation is useful because:
 
 ---
 
+---
+
+## 🖨️ Startup message
+
+The application prints startup information from `main(...)` in `src\nicegui_hello_world\app.py`.
+
+The message shows:
+
+- who started the application;
+- whether it is running in native or web mode;
+- whether reload is active or inactive.
+
+Expected examples:
+
+```text
+Initializing NiceGUI Hello World from pyproject command in native mode with reload inactive.
+Initializing NiceGUI Hello World from script in native mode with reload inactive.
+Initializing NiceGUI Hello World from module in native mode with reload inactive.
+Initializing NiceGUI Hello World from dev_run.py in web mode with reload active.
+Initializing NiceGUI Hello World from package in native mode with reload inactive.
+```
+
+The source is detected as follows:
+
+| Source | How it is identified |
+|---|---|
+| `dev_run.py` | `dev_run.py` calls `main(development_mode=True)` |
+| `package` | `is_packaged()` detects a packaged executable |
+| `pyproject command` | the command created by `[project.scripts]` starts the app |
+| `module` | `python -m nicegui_hello_world` starts the app |
+| `script` | `src\nicegui_hello_world\app.py` starts the app directly |
+
+When `development_mode=True`, `main(...)` uses an explicit `if` to select the execution behavior:
+
+```python
+if development_mode:
+    native_mode = False
+    reload_enabled = True
+else:
+    native_mode = True
+    reload_enabled = False
+```
+
+For normal execution, `development_mode` stays disabled, so the app uses native mode with reload disabled.
+
+The packaged check is isolated in `is_packaged()`, while startup source detection is kept in `identify_startup_source(...)` to keep `main(...)` readable without adding heavy structure.
+
+---
+
 ## ▶️ 10. Run the NiceGUI application normally
 
 After installing the project, run the application from the repository root:
@@ -382,11 +431,13 @@ Use `dev_run.py` while creating or adjusting the interface:
 python dev_run.py
 ```
 
-This command starts the same UI in the browser with:
+This command calls:
 
 ```python
-ui.run(create_ui, native=False, reload=True, title="NiceGUI Hello World")
+main(development_mode=True)
 ```
+
+Then `main(...)` starts the same UI in the browser with native mode disabled and reload enabled.
 
 This mode is useful while building the web interface because:
 
