@@ -2,7 +2,7 @@
 
 This guide explains how to prepare a basic development environment for the **NiceGUI Hello World** repository on Windows.
 
-The goal is to help developers install the basic tools, create a virtual environment, activate it, and open the project in Visual Studio Code.
+The goal is to help developers install the basic tools, create a virtual environment, activate it, install project dependencies, run the NiceGUI application, and open the project in Visual Studio Code.
 
 ---
 
@@ -15,7 +15,9 @@ Use this guide when:
 - the repository was just cloned or created;
 - you need to create a local `.venv`;
 - PowerShell blocks virtual environment activation;
-- VS Code needs to be configured to use the project environment.
+- VS Code needs to be configured to use the project environment;
+- NiceGUI needs to be installed from `requirements.txt`;
+- the local `app.py` script needs to be executed.
 
 ---
 
@@ -30,7 +32,9 @@ Follow this order:
 5. Activate the `.venv`.
 6. Apply a temporary PowerShell execution policy only if activation is blocked.
 7. Select the `.venv` interpreter in VS Code.
-8. Confirm that Python runs from the virtual environment.
+8. Install the project dependencies.
+9. Run the NiceGUI application.
+10. Confirm that Python runs from the virtual environment.
 
 ---
 
@@ -228,7 +232,61 @@ This helps VS Code use the same Python environment that was created for the repo
 
 ---
 
-## 🧩 8. Recommended VS Code extensions
+## 📦 8. Install project dependencies
+
+With the `.venv` activated, upgrade `pip`:
+
+```powershell
+python -m pip install --upgrade pip
+```
+
+Then install the dependencies listed in `requirements.txt`:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+For this project step, the dependency file should contain NiceGUI:
+
+```text
+nicegui
+```
+
+Using `requirements.txt` keeps dependency installation repeatable for anyone cloning the repository.
+
+---
+
+## ▶️ 9. Run the NiceGUI application
+
+After installing the dependencies, run the application from the repository root:
+
+```powershell
+python app.py
+```
+
+The minimal application file should contain:
+
+```python
+from nicegui import ui
+
+ui.label("Hello, NiceGUI!")
+
+ui.run()
+```
+
+The `ui.run()` call starts the NiceGUI application.
+
+If the browser does not open automatically, check the local address printed in the terminal. In a default local run, NiceGUI commonly serves the application at:
+
+```text
+http://localhost:8080
+```
+
+Keep the terminal open while testing the application. Stop the app with `Ctrl + C` when finished.
+
+---
+
+## 🧩 10. Recommended VS Code extensions
 
 VS Code extension recommendations should be treated as optional developer environment helpers.
 
@@ -305,7 +363,7 @@ Install only what is useful for your workflow and repository needs.
 
 ---
 
-## ✅ 9. Quick validation checklist
+## ✅ 11. Quick validation checklist
 
 Before continuing development, confirm:
 
@@ -318,6 +376,9 @@ Before continuing development, confirm:
 - [ ] `python -c "import sys; print(sys.executable)"` points to `.venv`.
 - [ ] VS Code is using `.venv\Scripts\python.exe`.
 - [ ] PowerShell policy was changed only temporarily, if activation was blocked.
+- [ ] `python -m pip install -r requirements.txt` completed successfully.
+- [ ] `python app.py` starts the NiceGUI application.
+- [ ] The Hello NiceGUI page opens in the browser or is available at the local address shown in the terminal.
 
 ---
 
@@ -347,6 +408,14 @@ py -m venv .venv
 ```
 
 If Python was recently installed or updated and the terminal still shows the previous version, close and reopen PowerShell or VS Code. If the version still does not change, restart Windows and check again.
+
+If NiceGUI is not found when running `python app.py`, reinstall the dependencies inside the active `.venv`:
+
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python app.py
+```
 
 ---
 
