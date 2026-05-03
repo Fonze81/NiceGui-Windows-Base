@@ -162,6 +162,24 @@ src\nicegui_hello_world\app.py
 
 ---
 
+## 🧊 Packaged execution and multiprocessing
+
+The packaged executable uses the normal application entry point in `app.py`.
+
+For packaged execution, `app.py` should keep a standard `__main__` guard with `freeze_support()`:
+
+```python
+if __name__ == "__main__":
+    freeze_support()
+    main()
+```
+
+The `__mp_main__` guard should not be added to `app.py` because packaged execution should not behave like development reload mode.
+
+The `__mp_main__` guard remains only in `dev_run.py`, where it supports NiceGUI reload mode on Windows.
+
+---
+
 ## 🔗 Related documents
 
 - [Development environment](development_environment.md)

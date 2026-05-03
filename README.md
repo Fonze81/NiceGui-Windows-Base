@@ -142,3 +142,9 @@ Details are documented in [Execution modes](docs/execution_modes.md).
 - [Windows packaging](docs/packaging_windows.md)
 - [First run checklist](docs/first_run_checklist.md)
 - [Troubleshooting](docs/troubleshooting.md)
+
+## Packaged startup
+
+For packaged execution, `app.py` calls `multiprocessing.freeze_support()` before `main()` in the `__main__` guard. This avoids frozen multiprocessing child processes re-entering the application startup flow and duplicating startup messages.
+
+Do not add `__mp_main__` to the packaged application guard. The `__mp_main__` guard belongs to `dev_run.py`, where NiceGUI reload mode uses multiprocessing during development.

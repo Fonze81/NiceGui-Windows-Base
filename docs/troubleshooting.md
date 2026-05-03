@@ -207,6 +207,37 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 ---
 
+## 📦 Packaged executable prints startup messages twice
+
+Likely cause: a frozen multiprocessing child process is re-entering the application startup flow.
+
+Do not solve this by adding `__mp_main__` to `app.py`.
+
+For packaged execution, keep the app guard as:
+
+```python
+if __name__ == "__main__":
+    freeze_support()
+    main()
+```
+
+Use `__mp_main__` only in `dev_run.py`, where `reload=True` needs it during development on Windows:
+
+```python
+if __name__ in {"__main__", "__mp_main__"}:
+    main(development_mode=True)
+```
+
+After changing `app.py`, clean old build outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
+```
+
+---
+
 ## 🔗 Related documents
 
 - [Python 3.13 setup on Windows](python_windows_setup.md)

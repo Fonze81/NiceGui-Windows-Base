@@ -12,6 +12,7 @@
 # -----------------------------------------------------------------------------
 
 import sys
+from multiprocessing import freeze_support
 from pathlib import Path
 
 from nicegui import native, ui
@@ -89,4 +90,5 @@ def main(*, development_mode: bool = False) -> None:
 
 
 if __name__ == "__main__":
+    freeze_support()
     main()

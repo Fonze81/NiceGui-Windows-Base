@@ -168,6 +168,26 @@ Those should be documented only when they are actually introduced into the proje
 
 ---
 
+## 🧊 Why `freeze_support()` is used
+
+The packaged executable is built with PyInstaller through `nicegui-pack`.
+
+When a frozen application starts child processes through Python multiprocessing, the executable can be launched again as part of the child process bootstrap. If the frozen process is not diverted correctly, application startup code can run more than once and duplicate startup messages.
+
+For this reason, `app.py` calls `multiprocessing.freeze_support()` before `main()`:
+
+```python
+if __name__ == "__main__":
+    freeze_support()
+    main()
+```
+
+Keep this in `app.py` because `app.py` is the current packaging entry file.
+
+Do not add `__mp_main__` to this guard for packaged execution. `__mp_main__` is only needed in `dev_run.py`, where `reload=True` uses multiprocessing during browser-based development mode.
+
+---
+
 ## 🔗 Related documents
 
 - [Execution modes](execution_modes.md)
