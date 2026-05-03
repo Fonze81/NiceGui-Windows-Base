@@ -258,6 +258,32 @@ Avoid rebuilding the message separately inside `create_ui(...)`, because that ca
 
 ---
 
+## 🖼️ Icon does not appear
+
+Confirm that the icon exists:
+
+```powershell
+Test-Path .\src\nicegui_hello_world\assets\app_icon.ico
+```
+
+If the executable icon did not update, clean old build outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
+```
+
+Windows Explorer may cache executable icons. If the file was rebuilt correctly but Explorer still shows the old icon, rename the executable or refresh/restart Explorer before retesting.
+
+If the NiceGUI favicon does not appear in packaged mode, confirm that the packaging script still includes:
+
+```powershell
+--add-data $iconData
+```
+
+---
+
 ## 🔗 Related documents
 
 - [Python 3.13 setup on Windows](python_windows_setup.md)

@@ -18,6 +18,8 @@ from pathlib import Path
 
 from nicegui import native, ui
 
+APP_ICON_FILENAME = "app_icon.ico"
+
 
 def create_ui(*, startup_message: str) -> None:
     """Build the main NiceGUI interface.
@@ -32,6 +34,19 @@ def create_ui(*, startup_message: str) -> None:
 def is_packaged() -> bool:
     """Return whether the application is running from a packaged executable."""
     return bool(getattr(sys, "frozen", False))
+
+
+def get_app_icon_path() -> str:
+    """Return the application icon path for normal and packaged execution.
+
+    Returns:
+        Absolute path to the application icon file.
+    """
+    if is_packaged():
+        base_path = Path(sys._MEIPASS)
+        return str(base_path / "nicegui_hello_world" / "assets" / APP_ICON_FILENAME)
+
+    return str(Path(__file__).parent / "assets" / APP_ICON_FILENAME)
 
 
 def identify_startup_source(*, development_mode: bool) -> str:
@@ -116,6 +131,7 @@ def main(*, development_mode: bool = False) -> None:
         native=native_mode,
         reload=reload_enabled,
         title="NiceGUI Hello World",
+        favicon=get_app_icon_path(),
         port=native.find_open_port(),
     )
 

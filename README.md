@@ -149,6 +149,20 @@ For packaged execution, `app.py` calls `multiprocessing.freeze_support()` before
 
 Do not add `__mp_main__` to the packaged application guard. The `__mp_main__` guard belongs to `dev_run.py`, where NiceGUI reload mode uses multiprocessing during development.
 
+## Application icon
+
+The project icon is stored inside the Python package:
+
+```text
+src/nicegui_hello_world/assets/app_icon.ico
+```
+
+The same `.ico` file is used as:
+
+- the NiceGUI favicon through `ui.run(favicon=...)`;
+- the native window icon on Windows;
+- the packaged executable icon through `nicegui-pack --icon`.
+
 ## Startup message
 
 When the application starts, `app.py` prints who started it, the selected mode, and the reload status. The same message is also shown in the page after the Hello World text.

@@ -193,6 +193,16 @@ This avoids duplicated formatting logic and keeps the terminal diagnostics align
 
 ---
 
+## 🖼️ Application icon
+
+`app.py` passes the project icon to NiceGUI with `ui.run(favicon=...)`.
+
+The icon path is resolved by `get_app_icon_path()` so it works in normal execution and in the packaged executable.
+
+On Windows, NiceGUI can use a file-path favicon as the native window icon when the file is an `.ico` file. The executable icon is configured separately in the packaging script with `nicegui-pack --icon`.
+
+---
+
 ## 🔗 Related documents
 
 - [Development environment](development_environment.md)

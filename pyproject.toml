@@ -55,3 +55,6 @@ select = [
 docstring-code-format = true
 line-ending = "auto"
 quote-style = "double"
+
+[tool.setuptools.package-data]
+nicegui_hello_world = ["assets/*.ico"]

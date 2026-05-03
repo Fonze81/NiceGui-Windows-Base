@@ -188,6 +188,32 @@ Do not add `__mp_main__` to this guard for packaged execution. `__mp_main__` is 
 
 ---
 
+## 🖼️ Application icon
+
+The Windows packaging script uses the project icon from:
+
+```text
+src\nicegui_hello_world\assets\app_icon.ico
+```
+
+The icon is passed to `nicegui-pack` with:
+
+```powershell
+--icon $iconPath
+```
+
+The same icon is also bundled as runtime data with:
+
+```powershell
+--add-data $iconData
+```
+
+This is required because `ui.run(favicon=...)` needs the `.ico` file at runtime, including when the application is running as a one-file executable.
+
+The script validates the icon path before packaging and fails early if the icon file is missing.
+
+---
+
 ## 🔗 Related documents
 
 - [Execution modes](execution_modes.md)
