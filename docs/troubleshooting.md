@@ -344,6 +344,39 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 ---
 
+## ⚖️ Packaging comparison report was not created
+
+Expected output:
+
+```text
+dist\packaging_comparison.md
+```
+
+If the report is missing, one of the two packaging flows probably failed before the comparison step.
+
+Check that these commands are available in the active `.venv`:
+
+```powershell
+nicegui-pack --help
+pyinstaller --version
+pyi-set_version -h
+```
+
+Then run the packaging script again:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+The script should create both executables:
+
+```text
+dist\nicegui-hello-world-nicegui-pack.exe
+dist\nicegui-hello-world-pyinstaller.exe
+```
+
+---
+
 ## 🔗 Related documents
 
 - [Python 3.13 setup on Windows](python_windows_setup.md)

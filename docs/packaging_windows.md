@@ -218,7 +218,7 @@ The script validates the icon path before packaging and fails early if the icon 
 
 `nicegui-pack` does not expose a direct option for Windows version properties.
 
-After the executable is created, the packaging script applies those properties with PyInstaller's `pyi-set_version` utility:
+For the `nicegui-pack` build, after the executable is created, the packaging script applies those properties with PyInstaller's `pyi-set_version` utility:
 
 ```powershell
 pyi-set_version scripts\version_info.txt dist\nicegui-hello-world.exe
@@ -250,7 +250,66 @@ version_info.txt: filevers=(0, 1, 0, 0)
 version_info.txt: FileVersion = "0.1.0.0"
 ```
 
-The packaging script validates that `pyi-set_version` is available before building and fails early if it is missing.
+The packaging script validates that `pyi-set_version` is available before building because it is still required for the `nicegui-pack` executable. The direct PyInstaller executable receives the same metadata during build through `--version-file`.
+
+---
+
+## ⚖️ Comparing nicegui-pack and PyInstaller
+
+The packaging script creates two executables so their output size and packaging duration can be compared:
+
+```text
+dist\nicegui-hello-world-nicegui-pack.exe
+dist\nicegui-hello-world-pyinstaller.exe
+```
+
+Both builds use:
+
+- one-file mode;
+- windowed mode;
+- the same entry point;
+- the same icon;
+- the same bundled assets directory;
+- the same Windows version resource data.
+
+The difference is how the executable is created:
+
+| Build | Version properties strategy |
+|---|---|
+| `nicegui-pack` | build first, then apply `pyi-set_version` |
+| `pyinstaller` | pass `--version-file scripts\version_info.txt` during the build |
+
+The script measures elapsed time for each build with `System.Diagnostics.Stopwatch` and writes the comparison report to:
+
+```text
+dist\packaging_comparison.md
+```
+
+The report includes:
+
+- executable path;
+- size in MB;
+- packaging time in seconds;
+- which executable is smaller.
+
+### Direct PyInstaller command
+
+The direct PyInstaller build uses:
+
+```powershell
+pyinstaller `
+    --onefile `
+    --windowed `
+    --clean `
+    --noconfirm `
+    --icon $iconPath `
+    --add-data $assetsData `
+    --version-file $versionInfoPath `
+    --name $pyInstallerName `
+    $entryPoint
+```
+
+`--version-file` is used here because direct PyInstaller supports applying the Windows version resource during the build.
 
 ---
 
