@@ -181,3 +181,22 @@ The same `.ico` file is used as:
 ## Startup message
 
 When the application starts, `app.py` prints who started it, the selected mode, and the reload status. The same message is also shown in the page after the Hello World text.
+
+## Executable properties
+
+Windows executable properties are applied after `nicegui-pack` finishes.
+
+The packaging script uses:
+
+```powershell
+pyi-set_version scripts\version_info.txt dist\nicegui-hello-world.exe
+```
+
+The version resource file is stored at:
+
+```text
+scripts/version_info.txt
+```
+
+Keep this file aligned with `pyproject.toml` when the project version changes.
+

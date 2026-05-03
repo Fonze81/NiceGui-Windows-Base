@@ -308,6 +308,42 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 ---
 
+## 🏷️ Executable properties are missing
+
+Confirm that the version info file exists:
+
+```powershell
+Test-Path .\scripts\version_info.txt
+```
+
+Confirm that `pyi-set_version` is available in the active environment:
+
+```powershell
+pyi-set_version -h
+```
+
+If the command is not recognized, reinstall packaging dependencies:
+
+```powershell
+python -m pip install -e ".[packaging]"
+```
+
+Then package again:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+If Windows Explorer still shows old properties, clean old outputs and rebuild:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
+```
+
+---
+
 ## 🔗 Related documents
 
 - [Python 3.13 setup on Windows](python_windows_setup.md)

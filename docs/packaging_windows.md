@@ -214,6 +214,46 @@ The script validates the icon path before packaging and fails early if the icon 
 
 ---
 
+## 🏷️ Windows executable properties
+
+`nicegui-pack` does not expose a direct option for Windows version properties.
+
+After the executable is created, the packaging script applies those properties with PyInstaller's `pyi-set_version` utility:
+
+```powershell
+pyi-set_version scripts\version_info.txt dist\nicegui-hello-world.exe
+```
+
+The version resource file is:
+
+```text
+scripts/version_info.txt
+```
+
+This file controls Windows details such as:
+
+- `CompanyName`;
+- `FileDescription`;
+- `FileVersion`;
+- `InternalName`;
+- `OriginalFilename`;
+- `ProductName`;
+- `ProductVersion`.
+
+When the project version changes in `pyproject.toml`, update both the numeric tuples and string values in `scripts/version_info.txt`.
+
+Example:
+
+```text
+pyproject.toml: version = "0.1.0"
+version_info.txt: filevers=(0, 1, 0, 0)
+version_info.txt: FileVersion = "0.1.0.0"
+```
+
+The packaging script validates that `pyi-set_version` is available before building and fails early if it is missing.
+
+---
+
 ## 🔗 Related documents
 
 - [Execution modes](execution_modes.md)
