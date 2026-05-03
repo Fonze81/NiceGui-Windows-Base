@@ -1,14 +1,14 @@
 # -----------------------------------------------------------------------------
 # File: src/nicegui_hello_world/app.py
 # Purpose:
-# Define the minimal NiceGUI Hello World application entry point.
+# Define the NiceGUI Hello World application entry point and shared runtime helpers.
 # Behavior:
-# Builds the main UI and starts NiceGUI in native mode by default. Development
-# scripts can request development mode, which runs the same UI in web mode with
-# reload enabled.
+# Builds the main UI, resolves bundled assets for normal and PyInstaller execution,
+# starts NiceGUI in native mode by default, and supports browser reload mode through
+# the development runner.
 # Notes:
-# Uses pywebview through NiceGUI native mode. The explicit root function avoids
-# NiceGUI script mode issues when the app is packaged as an executable.
+# The UI remains intentionally small. Runtime helpers are kept in this module to
+# avoid unnecessary layers for this template application.
 # -----------------------------------------------------------------------------
 
 import sys
@@ -20,6 +20,7 @@ from nicegui import native, ui
 
 APP_ICON_FILENAME = "app_icon.ico"
 PAGE_IMAGE_FILENAME = "page_image.png"
+APPLICATION_TITLE = "NiceGUI Hello World"
 
 
 def create_ui(*, startup_message: str) -> None:
@@ -61,8 +62,30 @@ def create_ui(*, startup_message: str) -> None:
 
 
 def is_packaged() -> bool:
-    """Return whether the application is running from a packaged executable."""
+    """Return whether the application is running from a packaged executable.
+
+    Returns:
+        True when PyInstaller marks the process as frozen; otherwise False.
+    """
     return bool(getattr(sys, "frozen", False))
+
+
+def get_bundle_root() -> Path:
+    """Return the runtime root used to resolve bundled files.
+
+    Returns:
+        The PyInstaller extraction directory when available, the executable folder
+        for other frozen cases, or the package directory during normal execution.
+    """
+    bundled_path = getattr(sys, "_MEIPASS", None)
+
+    if bundled_path is not None:
+        return Path(str(bundled_path))
+
+    if is_packaged():
+        return Path(sys.executable).parent
+
+    return Path(__file__).parent
 
 
 def get_asset_path(filename: str) -> str:
@@ -75,16 +98,9 @@ def get_asset_path(filename: str) -> str:
         Absolute path to the requested asset file.
     """
     if is_packaged():
-        bundled_path = getattr(sys, "_MEIPASS", None)
+        return str(get_bundle_root() / "nicegui_hello_world" / "assets" / filename)
 
-        if bundled_path is not None:
-            base_path = Path(str(bundled_path))
-        else:
-            base_path = Path(sys.executable).parent
-
-        return str(base_path / "nicegui_hello_world" / "assets" / filename)
-
-    return str(Path(__file__).parent / "assets" / filename)
+    return str(get_bundle_root() / "assets" / filename)
 
 
 def get_app_icon_path() -> str:
@@ -151,19 +167,28 @@ def build_startup_message(
     )
 
 
+def get_runtime_mode(*, development_mode: bool) -> tuple[bool, bool]:
+    """Return NiceGUI native and reload settings for the requested runtime mode.
+
+    Args:
+        development_mode: Whether to run in browser development mode.
+
+    Returns:
+        A tuple containing native mode and reload status.
+    """
+    if development_mode:
+        return False, True
+
+    return True, False
+
+
 def main(*, development_mode: bool = False) -> None:
     """Run the NiceGUI application.
 
     Args:
         development_mode: Whether to run in web development mode with reload.
     """
-    if development_mode:
-        native_mode = False
-        reload_enabled = True
-    else:
-        native_mode = True
-        reload_enabled = False
-
+    native_mode, reload_enabled = get_runtime_mode(development_mode=development_mode)
     startup_source = identify_startup_source(development_mode=development_mode)
     startup_message = build_startup_message(
         startup_source=startup_source,
@@ -179,7 +204,7 @@ def main(*, development_mode: bool = False) -> None:
         partial(create_ui, startup_message=startup_message),
         native=native_mode,
         reload=reload_enabled,
-        title="NiceGUI Hello World",
+        title=APPLICATION_TITLE,
         favicon=get_app_icon_path(),
         port=native.find_open_port(),
     )
