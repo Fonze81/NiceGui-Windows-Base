@@ -202,10 +202,10 @@ The icon is passed to `nicegui-pack` with:
 --icon $iconPath
 ```
 
-The same icon is also bundled as runtime data with:
+The full assets directory is bundled as runtime data with:
 
 ```powershell
---add-data $iconData
+--add-data $assetsData
 ```
 
 This is required because `ui.run(favicon=...)` needs the `.ico` file at runtime, including when the application is running as a one-file executable.
@@ -219,3 +219,5 @@ The script validates the icon path before packaging and fails early if the icon 
 - [Execution modes](execution_modes.md)
 - [PowerShell execution policy](powershell_execution_policy.md)
 - [Troubleshooting](troubleshooting.md)
+
+The same bundled assets directory also includes `page_image.png`, which is displayed inside the NiceGUI page.

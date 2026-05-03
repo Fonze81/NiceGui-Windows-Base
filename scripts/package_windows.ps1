@@ -4,8 +4,9 @@ $ErrorActionPreference = "Stop"
 
 $appName = "nicegui-hello-world"
 $entryPoint = "src\nicegui_hello_world\app.py"
-$iconPath = "src\nicegui_hello_world\assets\app_icon.ico"
-$iconData = "$iconPath;nicegui_hello_world\assets"
+$assetsPath = "src\nicegui_hello_world\assets"
+$iconPath = Join-Path $assetsPath "app_icon.ico"
+$assetsData = "$assetsPath;nicegui_hello_world\assets"
 $exePath = Join-Path "dist" "$appName.exe"
 
 Write-Host "Installing project in editable mode with packaging dependencies..."
@@ -26,6 +27,10 @@ if (-not (Test-Path $iconPath)) {
     throw "Application icon was not found: $iconPath"
 }
 
+if (-not (Test-Path (Join-Path $assetsPath "page_image.png"))) {
+    throw "Page image was not found: $(Join-Path $assetsPath "page_image.png")"
+}
+
 Write-Host "Removing previous packaging outputs..."
 Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
 Remove-Item -Force *.spec -ErrorAction SilentlyContinue
@@ -37,7 +42,7 @@ nicegui-pack `
     --clean `
     --noconfirm `
     --icon $iconPath `
-    --add-data $iconData `
+    --add-data $assetsData `
     --name $appName `
     $entryPoint
 

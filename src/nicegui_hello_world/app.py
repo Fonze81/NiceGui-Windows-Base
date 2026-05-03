@@ -19,6 +19,7 @@ from pathlib import Path
 from nicegui import native, ui
 
 APP_ICON_FILENAME = "app_icon.ico"
+PAGE_IMAGE_FILENAME = "page_image.png"
 
 
 def create_ui(*, startup_message: str) -> None:
@@ -27,8 +28,36 @@ def create_ui(*, startup_message: str) -> None:
     Args:
         startup_message: Startup diagnostic message shown in the page.
     """
-    ui.label("Hello, NiceGUI!")
-    ui.label(startup_message)
+    ui.query("body").classes("bg-slate-100")
+
+    with (
+        ui.column().classes(
+            "fixed inset-0 items-center justify-center "
+            "bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6"
+        ),
+        ui.card().classes(
+            "w-full max-w-2xl items-center gap-5 rounded-2xl p-8 text-center shadow-xl"
+        ),
+    ):
+        ui.image(get_asset_path(PAGE_IMAGE_FILENAME)).classes(
+            "h-40 w-40 rounded-2xl object-contain"
+        )
+        ui.label("Hello, NiceGUI!").classes(
+            "text-4xl font-bold tracking-tight text-slate-800"
+        )
+        ui.label("A minimal native and web Hello World template.").classes(
+            "text-base text-slate-500"
+        )
+
+        with ui.card().classes(
+            "w-full rounded-xl bg-slate-50 p-4 text-left shadow-none"
+        ):
+            ui.label("Startup status").classes(
+                "text-sm font-semibold uppercase tracking-wide text-slate-500"
+            )
+            ui.label(startup_message).classes(
+                "mt-1 text-sm leading-relaxed text-slate-700"
+            )
 
 
 def is_packaged() -> bool:
@@ -36,17 +65,29 @@ def is_packaged() -> bool:
     return bool(getattr(sys, "frozen", False))
 
 
+def get_asset_path(filename: str) -> str:
+    """Return an application asset path for normal and packaged execution.
+
+    Args:
+        filename: Asset filename stored in the package assets directory.
+
+    Returns:
+        Absolute path to the requested asset file.
+    """
+    if is_packaged():
+        base_path = Path(sys._MEIPASS)
+        return str(base_path / "nicegui_hello_world" / "assets" / filename)
+
+    return str(Path(__file__).parent / "assets" / filename)
+
+
 def get_app_icon_path() -> str:
-    """Return the application icon path for normal and packaged execution.
+    """Return the application icon path.
 
     Returns:
         Absolute path to the application icon file.
     """
-    if is_packaged():
-        base_path = Path(sys._MEIPASS)
-        return str(base_path / "nicegui_hello_world" / "assets" / APP_ICON_FILENAME)
-
-    return str(Path(__file__).parent / "assets" / APP_ICON_FILENAME)
+    return get_asset_path(APP_ICON_FILENAME)
 
 
 def identify_startup_source(*, development_mode: bool) -> str:

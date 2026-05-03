@@ -284,6 +284,30 @@ If the NiceGUI favicon does not appear in packaged mode, confirm that the packag
 
 ---
 
+## 🖼️ Page image does not appear
+
+Confirm that the PNG exists:
+
+```powershell
+Test-Path .\src\nicegui_hello_world\assets\page_image.png
+```
+
+If the image does not appear only in packaged mode, confirm that the packaging script includes the full assets directory:
+
+```powershell
+--add-data $assetsData
+```
+
+Then clean old build outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
+```
+
+---
+
 ## 🔗 Related documents
 
 - [Python 3.13 setup on Windows](python_windows_setup.md)

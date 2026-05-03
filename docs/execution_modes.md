@@ -203,6 +203,20 @@ On Windows, NiceGUI can use a file-path favicon as the native window icon when t
 
 ---
 
+## 🖼️ Page image and layout
+
+The main page displays a PNG illustration from:
+
+```text
+src\nicegui_hello_world\assets\page_image.png
+```
+
+The UI uses a centered card layout with the image, the Hello World title, a short description, and the startup status message.
+
+`app.py` resolves the image path through `get_asset_path(...)`, which supports both normal execution and packaged execution.
+
+---
+
 ## 🔗 Related documents
 
 - [Development environment](development_environment.md)

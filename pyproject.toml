@@ -57,4 +57,4 @@ line-ending = "auto"
 quote-style = "double"
 
 [tool.setuptools.package-data]
-nicegui_hello_world = ["assets/*.ico"]
+nicegui_hello_world = ["assets/*.ico", "assets/*.png"]
