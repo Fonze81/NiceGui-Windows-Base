@@ -16,6 +16,6 @@
 		"search.exclude": {
 			"**/.venv": true,
 			"**/__pycache__": true
-		},
+		}
 	}
 }
