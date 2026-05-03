@@ -2,16 +2,22 @@ Set-StrictMode -Version Latest
 
 $ErrorActionPreference = "Stop"
 
-$niceGuiPackName = "nicegui-hello-world-nicegui-pack"
-$pyInstallerName = "nicegui-hello-world-pyinstaller"
+# PyInstaller is used directly instead of nicegui-pack because both approaches
+# produced similar executable size and build time in this project:
+# - nicegui-pack: 41.26 MB in 80.54 seconds
+# - PyInstaller: 40.37 MB in 78.36 seconds
+#
+# Direct PyInstaller also exposes packaging options that nicegui-pack does not
+# currently expose in this project flow, such as --version-file and future splash
+# screen configuration.
+$appName = "nicegui-hello-world"
 $entryPoint = "src\nicegui_hello_world\app.py"
 $assetsPath = "src\nicegui_hello_world\assets"
 $iconPath = Join-Path $assetsPath "app_icon.ico"
 $assetsData = "$assetsPath;nicegui_hello_world\assets"
 $versionInfoPath = "scripts\version_info.txt"
-$niceGuiPackExePath = Join-Path "dist" "$niceGuiPackName.exe"
-$pyInstallerExePath = Join-Path "dist" "$pyInstallerName.exe"
-$comparisonReportPath = Join-Path "dist" "packaging_comparison.md"
+$exePath = Join-Path "dist" "$appName.exe"
+$packagingReportPath = Join-Path "dist" "packaging_report.md"
 
 function Test-LastExitCode {
     param(
@@ -78,47 +84,6 @@ function Invoke-NativeCommand {
     }
 }
 
-function Invoke-NiceGuiPackBuild {
-    Write-Host "Packaging with nicegui-pack..."
-
-    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-
-    Invoke-NativeCommand `
-        -StepName "nicegui-pack" `
-        -Command "nicegui-pack" `
-        -Arguments @(
-        "--onefile",
-        "--windowed",
-        "--clean",
-        "--noconfirm",
-        "--icon",
-        $iconPath,
-        "--add-data",
-        $assetsData,
-        "--name",
-        $niceGuiPackName,
-        $entryPoint
-    )
-
-    if (-not (Test-Path $niceGuiPackExePath)) {
-        throw "nicegui-pack finished without creating the expected executable: $niceGuiPackExePath"
-    }
-
-    Write-Host "Applying Windows version resource to nicegui-pack executable..."
-
-    Invoke-NativeCommand `
-        -StepName "pyi-set_version for nicegui-pack" `
-        -Command "pyi-set_version" `
-        -Arguments @(
-        $versionInfoPath,
-        $niceGuiPackExePath
-    )
-
-    $stopwatch.Stop()
-
-    return $stopwatch.Elapsed
-}
-
 function Invoke-PyInstallerBuild {
     Write-Host "Packaging with PyInstaller..."
 
@@ -139,12 +104,12 @@ function Invoke-PyInstallerBuild {
         "--version-file",
         $versionInfoPath,
         "--name",
-        $pyInstallerName,
+        $appName,
         $entryPoint
     )
 
-    if (-not (Test-Path $pyInstallerExePath)) {
-        throw "PyInstaller finished without creating the expected executable: $pyInstallerExePath"
+    if (-not (Test-Path $exePath)) {
+        throw "PyInstaller finished without creating the expected executable: $exePath"
     }
 
     $stopwatch.Stop()
@@ -152,64 +117,51 @@ function Invoke-PyInstallerBuild {
     return $stopwatch.Elapsed
 }
 
-function Write-PackagingComparisonReport {
+function Write-PackagingReport {
     param(
         [Parameter(Mandatory = $true)]
-        [TimeSpan]$NiceGuiPackElapsed,
-
-        [Parameter(Mandatory = $true)]
-        [TimeSpan]$PyInstallerElapsed
+        [TimeSpan]$Elapsed
     )
 
-    $niceGuiPackFile = Get-Item $niceGuiPackExePath
-    $pyInstallerFile = Get-Item $pyInstallerExePath
-
-    $niceGuiPackSizeMb = Format-Bytes -Bytes $niceGuiPackFile.Length
-    $pyInstallerSizeMb = Format-Bytes -Bytes $pyInstallerFile.Length
-
-    $differenceBytes = $pyInstallerFile.Length - $niceGuiPackFile.Length
-    $differenceMb = Format-Bytes -Bytes ([math]::Abs($differenceBytes))
-
-    if ($differenceBytes -lt 0) {
-        $sizeSummary = "PyInstaller generated the smaller executable by $differenceMb MB."
-    }
-    elseif ($differenceBytes -gt 0) {
-        $sizeSummary = "nicegui-pack generated the smaller executable by $differenceMb MB."
-    }
-    else {
-        $sizeSummary = "Both executables have the same size."
-    }
-
-    $niceGuiPackSeconds = [math]::Round($NiceGuiPackElapsed.TotalSeconds, 2)
-    $pyInstallerSeconds = [math]::Round($PyInstallerElapsed.TotalSeconds, 2)
+    $executableFile = Get-Item $exePath
+    $sizeMb = Format-Bytes -Bytes $executableFile.Length
+    $elapsedSeconds = [math]::Round($Elapsed.TotalSeconds, 2)
 
     $report = @"
-# Windows Packaging Comparison
+# Windows Packaging Report
 
 Generated at: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 
 | Packager | Executable | Size (MB) | Time (s) |
 |---|---|---:|---:|
-| nicegui-pack | $niceGuiPackExePath | $niceGuiPackSizeMb | $niceGuiPackSeconds |
-| PyInstaller | $pyInstallerExePath | $pyInstallerSizeMb | $pyInstallerSeconds |
+| PyInstaller | $exePath | $sizeMb | $elapsedSeconds |
 
-$sizeSummary
+## Packaging decision
+
+PyInstaller is now used directly because the comparison between nicegui-pack and
+PyInstaller showed similar results:
+
+| Packager | Size (MB) | Time (s) |
+|---|---:|---:|
+| nicegui-pack | 41.26 | 80.54 |
+| PyInstaller | 40.37 | 78.36 |
+
+Direct PyInstaller keeps the packaging flow simpler and exposes options needed by
+this project, including `--version-file` and future splash screen configuration.
 
 ## Notes
 
-- The nicegui-pack executable receives Windows version properties after build with `pyi-set_version`.
-- The PyInstaller executable receives Windows version properties during build with `--version-file`.
-- Both builds use the same icon, assets directory, entry point, one-file mode, and windowed mode.
+- The executable receives Windows version properties during build with `--version-file`.
+- The build uses the project icon, assets directory, entry point, one-file mode, and windowed mode.
+- The previous nicegui-pack comparison flow was removed after confirming that file size and build time were similar.
 "@
 
-    $report | Set-Content -Path $comparisonReportPath -Encoding UTF8
+    $report | Set-Content -Path $packagingReportPath -Encoding UTF8
 
     Write-Host ""
-    Write-Host "Packaging comparison:"
-    Write-Host "nicegui-pack: $niceGuiPackSizeMb MB in $niceGuiPackSeconds seconds"
-    Write-Host "PyInstaller:   $pyInstallerSizeMb MB in $pyInstallerSeconds seconds"
-    Write-Host $sizeSummary
-    Write-Host "Comparison report created at: $comparisonReportPath"
+    Write-Host "Packaging result:"
+    Write-Host "PyInstaller: $sizeMb MB in $elapsedSeconds seconds"
+    Write-Host "Packaging report created at: $packagingReportPath"
 }
 
 Write-Host "Installing project in editable mode with packaging dependencies..."
@@ -231,20 +183,6 @@ if (-not $pyInstallerCommand) {
     throw 'PyInstaller was not found in the active environment. Activate .venv and run: python -m pip install -e ".[packaging]"'
 }
 
-Write-Host "Checking nicegui-pack availability..."
-$niceGuiPackCommand = Get-Command nicegui-pack -ErrorAction SilentlyContinue
-
-if (-not $niceGuiPackCommand) {
-    throw 'nicegui-pack was not found in the active environment. Activate .venv and run: python -m pip install -e ".[packaging]"'
-}
-
-Write-Host "Checking pyi-set_version availability..."
-$pyiSetVersionCommand = Get-Command pyi-set_version -ErrorAction SilentlyContinue
-
-if (-not $pyiSetVersionCommand) {
-    throw 'pyi-set_version was not found in the active environment. Activate .venv and run: python -m pip install -e ".[packaging]"'
-}
-
 if (-not (Test-Path $iconPath)) {
     throw "Application icon was not found: $iconPath"
 }
@@ -261,14 +199,10 @@ Write-Host "Removing previous packaging outputs..."
 Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
 Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
-[TimeSpan]$niceGuiPackElapsed = Invoke-NiceGuiPackBuild
 [TimeSpan]$pyInstallerElapsed = Invoke-PyInstallerBuild
 
-Write-PackagingComparisonReport `
-    -NiceGuiPackElapsed $niceGuiPackElapsed `
-    -PyInstallerElapsed $pyInstallerElapsed
+Write-PackagingReport -Elapsed $pyInstallerElapsed
 
 Write-Host ""
-Write-Host "Executables created:"
-Write-Host "- $niceGuiPackExePath"
-Write-Host "- $pyInstallerExePath"
+Write-Host "Executable created:"
+Write-Host "- $exePath"

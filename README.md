@@ -184,10 +184,7 @@ When the application starts, `app.py` prints who started it, the selected mode, 
 
 ## Executable properties
 
-Windows executable properties are applied in two ways:
-
-- `nicegui-pack` build: properties are applied after build with `pyi-set_version`;
-- direct PyInstaller build: properties are applied during build with `--version-file`.
+Windows executable properties are applied during the PyInstaller build with `--version-file`.
 
 The version resource file is stored at:
 
@@ -198,14 +195,19 @@ scripts/version_info.txt
 Keep this file aligned with `pyproject.toml` when the project version changes.
 
 
-## Packaging comparison
 
-The Windows packaging script builds two executables to compare output size and build time:
+## Windows packaging
 
-```text
-dist/nicegui-hello-world-nicegui-pack.exe
-dist/nicegui-hello-world-pyinstaller.exe
-```
+The project is packaged directly with PyInstaller.
+
+This decision was made after comparing the previous `nicegui-pack` flow with direct PyInstaller:
+
+| Packager     |     Size |    Time |
+| ------------ | -------: | ------: |
+| nicegui-pack | 41.26 MB | 80.54 s |
+| PyInstaller  | 40.37 MB | 78.36 s |
+
+The results were similar, but direct PyInstaller is now preferred because it supports the options needed by this project, including Windows version properties through `--version-file` and future splash screen configuration.
 
 Run:
 
@@ -213,9 +215,10 @@ Run:
 .\scripts\package_windows.ps1
 ```
 
-The script measures each packaging flow and creates:
+The script creates:
 
 ```text
-dist/packaging_comparison.md
+dist/nicegui-hello-world.exe
+dist/packaging_report.md
 ```
 

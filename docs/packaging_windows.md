@@ -1,76 +1,45 @@
 # 📦 Windows Packaging
 
-This guide explains the current Windows executable packaging flow.
+This document explains how the **NiceGUI Hello World** project is packaged as a Windows executable.
 
-The project uses:
+---
+
+## 🎯 Current decision
+
+The project now uses **direct PyInstaller packaging only**.
+
+The previous comparison produced similar results:
+
+| Packager | Size | Time |
+|---|---:|---:|
+| nicegui-pack | 41.26 MB | 80.54 s |
+| PyInstaller | 40.37 MB | 78.36 s |
+
+Direct PyInstaller is now preferred because:
+
+- the executable size was slightly smaller in the comparison;
+- the packaging time was slightly faster in the comparison;
+- PyInstaller supports Windows version properties directly with `--version-file`;
+- PyInstaller keeps the path open for future splash screen configuration;
+- using one packager keeps the script simpler.
+
+The decision is also documented as a comment in:
 
 ```text
-scripts\package_windows.ps1
-```
-
-The script packages the application with `nicegui-pack`.
-
----
-
-## ✅ Prerequisites
-
-Activate `.venv` and install the project with packaging tools:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev,packaging]"
-```
-
-Confirm PyInstaller is available:
-
-```powershell
-pyinstaller --version
+scripts/package_windows.ps1
 ```
 
 ---
 
-## ▶️ Validate before packaging
+## ▶️ Packaging command
 
-Run the normal app first:
-
-```powershell
-nicegui-hello-world
-```
-
-Expected message:
-
-```text
-Initializing NiceGUI Hello World from pyproject command in native mode with reload inactive.
-```
-
-Also validate module execution:
-
-```powershell
-python -m nicegui_hello_world
-```
-
----
-
-## 🧹 Optional clean before packaging
-
-The packaging script already removes previous `build`, `dist`, and `.spec` outputs.
-
-Manual cleanup, if needed:
-
-```powershell
-Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
-Remove-Item -Force *.spec -ErrorAction SilentlyContinue
-```
-
----
-
-## 🛠️ Run the packaging script
+Run from the repository root:
 
 ```powershell
 .\scripts\package_windows.ps1
 ```
 
-If PowerShell blocks the script:
+If PowerShell blocks the script, run it with a process-level execution policy bypass:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1
@@ -78,150 +47,42 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_window
 
 ---
 
-## 📄 Current packaging behavior
+## 🧱 PyInstaller command
 
-The script currently:
-
-1. installs the project in editable mode with packaging dependencies;
-2. checks if `pyinstaller` is available;
-3. removes previous build outputs;
-4. runs `nicegui-pack`;
-5. checks whether `nicegui-pack` failed;
-6. confirms that the expected executable exists.
-
-The package entry file is:
-
-```text
-src\nicegui_hello_world\app.py
-```
-
-The expected executable is:
-
-```text
-dist\nicegui-hello-world.exe
-```
-
----
-
-## 📄 Current nicegui-pack command shape
-
-The script uses a command equivalent to:
+The script uses direct PyInstaller packaging:
 
 ```powershell
-nicegui-pack `
+pyinstaller `
     --onefile `
     --windowed `
     --clean `
     --noconfirm `
-    --name "nicegui-hello-world" `
-    src\nicegui_hello_world\app.py
+    --icon $iconPath `
+    --add-data $assetsData `
+    --version-file $versionInfoPath `
+    --name $appName `
+    $entryPoint
 ```
 
----
-
-## 🧠 Why `ui.run(create_ui, ...)` matters
-
-The application uses an explicit root function:
-
-```python
-ui.run(create_ui, native=native_mode, reload=reload_enabled, ...)
-```
-
-This avoids NiceGUI script-mode issues during packaging. Without an explicit root function, a packaged executable can make NiceGUI try to execute the executable path as Python source, which can fail because the executable is binary.
-
----
-
-## 🧪 Test the executable
-
-After packaging:
+The relevant paths are:
 
 ```powershell
-.\dist\nicegui-hello-world.exe
+$appName = "nicegui-hello-world"
+$entryPoint = "src\nicegui_hello_world\app.py"
+$assetsPath = "src\nicegui_hello_world\assets"
+$iconPath = Join-Path $assetsPath "app_icon.ico"
+$assetsData = "$assetsPath;nicegui_hello_world\assets"
+$versionInfoPath = "scripts\version_info.txt"
 ```
-
-Expected startup message:
-
-```text
-Initializing NiceGUI Hello World from package in native mode with reload inactive.
-```
-
-Confirm that:
-
-- the native window opens;
-- the Hello NiceGUI interface appears;
-- no error appears during startup;
-- the app closes correctly.
-
----
-
-## ⚠️ Important current limitations
-
-The current packaging flow does not configure:
-
-- custom executable icon;
-- splash screen;
-- Windows version metadata;
-- custom `.spec` file;
-- external runtime assets.
-
-Those should be documented only when they are actually introduced into the project.
-
----
-
-## 🧊 Why `freeze_support()` is used
-
-The packaged executable is built with PyInstaller through `nicegui-pack`.
-
-When a frozen application starts child processes through Python multiprocessing, the executable can be launched again as part of the child process bootstrap. If the frozen process is not diverted correctly, application startup code can run more than once and duplicate startup messages.
-
-For this reason, `app.py` calls `multiprocessing.freeze_support()` before `main()`:
-
-```python
-if __name__ == "__main__":
-    freeze_support()
-    main()
-```
-
-Keep this in `app.py` because `app.py` is the current packaging entry file.
-
-Do not add `__mp_main__` to this guard for packaged execution. `__mp_main__` is only needed in `dev_run.py`, where `reload=True` uses multiprocessing during browser-based development mode.
-
----
-
-## 🖼️ Application icon
-
-The Windows packaging script uses the project icon from:
-
-```text
-src\nicegui_hello_world\assets\app_icon.ico
-```
-
-The icon is passed to `nicegui-pack` with:
-
-```powershell
---icon $iconPath
-```
-
-The full assets directory is bundled as runtime data with:
-
-```powershell
---add-data $assetsData
-```
-
-This is required because `ui.run(favicon=...)` needs the `.ico` file at runtime, including when the application is running as a one-file executable.
-
-The script validates the icon path before packaging and fails early if the icon file is missing.
 
 ---
 
 ## 🏷️ Windows executable properties
 
-`nicegui-pack` does not expose a direct option for Windows version properties.
-
-For the `nicegui-pack` build, after the executable is created, the packaging script applies those properties with PyInstaller's `pyi-set_version` utility:
+Windows executable properties are applied during the PyInstaller build with:
 
 ```powershell
-pyi-set_version scripts\version_info.txt dist\nicegui-hello-world.exe
+--version-file $versionInfoPath
 ```
 
 The version resource file is:
@@ -250,73 +111,73 @@ version_info.txt: filevers=(0, 1, 0, 0)
 version_info.txt: FileVersion = "0.1.0.0"
 ```
 
-The packaging script validates that `pyi-set_version` is available before building because it is still required for the `nicegui-pack` executable. The direct PyInstaller executable receives the same metadata during build through `--version-file`.
+---
+
+## 🖼️ Assets and icon
+
+The executable uses the icon from:
+
+```text
+src\nicegui_hello_world\assets\app_icon.ico
+```
+
+The same assets directory also includes:
+
+```text
+src\nicegui_hello_world\assets\page_image.png
+```
+
+The assets directory is bundled with:
+
+```powershell
+--add-data $assetsData
+```
+
+This is required because `ui.run(favicon=...)` and `ui.image(...)` need the files at runtime, including when the application is running as a one-file executable.
 
 ---
 
-## ⚖️ Comparing nicegui-pack and PyInstaller
+## ⏱️ Build time and size report
 
-The packaging script creates two executables so their output size and packaging duration can be compared:
+The script measures elapsed time with:
 
-```text
-dist\nicegui-hello-world-nicegui-pack.exe
-dist\nicegui-hello-world-pyinstaller.exe
+```powershell
+[System.Diagnostics.Stopwatch]::StartNew()
 ```
 
-Both builds use:
-
-- one-file mode;
-- windowed mode;
-- the same entry point;
-- the same icon;
-- the same bundled assets directory;
-- the same Windows version resource data.
-
-The difference is how the executable is created:
-
-| Build | Version properties strategy |
-|---|---|
-| `nicegui-pack` | build first, then apply `pyi-set_version` |
-| `pyinstaller` | pass `--version-file scripts\version_info.txt` during the build |
-
-The script measures elapsed time for each build with `System.Diagnostics.Stopwatch` and writes the comparison report to:
+After packaging, it creates:
 
 ```text
-dist\packaging_comparison.md
+dist\packaging_report.md
 ```
 
 The report includes:
 
-- executable path;
+- generated executable path;
 - size in MB;
 - packaging time in seconds;
-- which executable is smaller.
+- the reason PyInstaller is the selected packager.
 
-### Direct PyInstaller command
+---
 
-The direct PyInstaller build uses:
+## 🧪 PowerShell function output handling
 
-```powershell
-pyinstaller `
-    --onefile `
-    --windowed `
-    --clean `
-    --noconfirm `
-    --icon $iconPath `
-    --add-data $assetsData `
-    --version-file $versionInfoPath `
-    --name $pyInstallerName `
-    $entryPoint
-```
+PowerShell functions return every object written to the success output pipeline, not only values passed to `return`.
 
-`--version-file` is used here because direct PyInstaller supports applying the Windows version resource during the build.
+For that reason, native command output must not leak into the function return pipeline. The script uses `Invoke-NativeCommand` to execute commands, print their output with `Write-Host`, and keep function return values clean.
+
+The function also temporarily changes native command error handling while the external command runs. PyInstaller can write normal progress information to stderr. With `$ErrorActionPreference = "Stop"`, redirected stderr can become a `NativeCommandError` and stop the script even when the native command has not actually failed.
+
+`Invoke-NativeCommand` avoids that by:
+
+- temporarily setting `$ErrorActionPreference` to `"Continue"`;
+- disabling `$PSNativeCommandUseErrorActionPreference` when available;
+- checking the native process exit code explicitly after the command finishes.
 
 ---
 
 ## 🔗 Related documents
 
+- [Documentation index](README.md)
 - [Execution modes](execution_modes.md)
-- [PowerShell execution policy](powershell_execution_policy.md)
 - [Troubleshooting](troubleshooting.md)
-
-The same bundled assets directory also includes `page_image.png`, which is displayed inside the NiceGUI page.

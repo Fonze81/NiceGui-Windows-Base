@@ -316,10 +316,10 @@ Confirm that the version info file exists:
 Test-Path .\scripts\version_info.txt
 ```
 
-Confirm that `pyi-set_version` is available in the active environment:
+Confirm that PyInstaller is available in the active environment:
 
 ```powershell
-pyi-set_version -h
+pyinstaller --version
 ```
 
 If the command is not recognized, reinstall packaging dependencies:
@@ -344,15 +344,15 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 ---
 
-## ⚖️ Packaging comparison report was not created
+## ⚖️ Packaging report was not created
 
 Expected output:
 
 ```text
-dist\packaging_comparison.md
+dist\packaging_report.md
 ```
 
-If the report is missing, one of the two packaging flows probably failed before the comparison step.
+If the report is missing, the PyInstaller packaging flow probably failed before the reporting step.
 
 Check that these commands are available in the active `.venv`:
 
@@ -368,11 +368,94 @@ Then run the packaging script again:
 .\scripts\package_windows.ps1
 ```
 
-The script should create both executables:
+The script should create:
 
 ```text
-dist\nicegui-hello-world-nicegui-pack.exe
-dist\nicegui-hello-world-pyinstaller.exe
+dist\nicegui-hello-world.exe
+dist\packaging_report.md
+```
+
+---
+
+## ⏱️ Cannot convert `System.Object[]` to `System.TimeSpan`
+
+Error example:
+
+```text
+Cannot convert the "System.Object[]" value of type "System.Object[]" to type "System.TimeSpan".
+```
+
+Cause: a PowerShell function that should return only elapsed time also wrote native command output to the success output pipeline.
+
+Fix: execute native commands through `Invoke-NativeCommand`, which writes command output to the host and keeps the function return clean:
+
+```powershell
+& $Command @Arguments 2>&1 | ForEach-Object {
+    Write-Host $_
+}
+```
+
+Then assign elapsed times with explicit types:
+
+```powershell
+[TimeSpan]$niceGuiPackElapsed = Invoke-NiceGuiPackBuild
+[TimeSpan]$pyInstallerElapsed = Invoke-PyInstallerBuild
+```
+
+---
+
+## 📦 NativeCommandError from PyInstaller log output
+
+Error example:
+
+```text
+nicegui-pack.exe : 204 INFO: PyInstaller: 6.20.0, contrib hooks: 2026.4
+CategoryInfo          : NotSpecified: ... RemoteException
+FullyQualifiedErrorId : NativeCommandError
+```
+
+Cause: PyInstaller and nicegui-pack can write normal progress logs to stderr. The packaging script also uses `$ErrorActionPreference = "Stop"` so real errors stop the build. If stderr is redirected with `2>&1` without temporarily relaxing error handling, PowerShell can treat normal stderr output as `NativeCommandError`.
+
+Fix: `Invoke-NativeCommand` must temporarily set native command error handling to a non-terminating mode and then validate the native command exit code explicitly:
+
+```powershell
+$ErrorActionPreference = "Continue"
+& $Command @Arguments 2>&1 | ForEach-Object {
+    Write-Host $_
+}
+$exitCode = $LASTEXITCODE
+```
+
+The script should then throw only when `$exitCode` is different from zero.
+
+This keeps PyInstaller logs visible while still failing correctly when the build command actually fails.
+
+---
+
+## 📦 nicegui-pack is no longer used
+
+The project previously compared `nicegui-pack` and direct PyInstaller packaging.
+
+Measured results were similar:
+
+| Packager | Size | Time |
+|---|---:|---:|
+| nicegui-pack | 41.26 MB | 80.54 s |
+| PyInstaller | 40.37 MB | 78.36 s |
+
+The project now uses direct PyInstaller only because it supports `--version-file` and keeps future splash screen configuration available without a second post-processing path.
+
+If old documentation or terminal commands mention `nicegui-pack`, use this instead:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+The script now creates:
+
+```text
+dist\nicegui-hello-world.exe
+dist\packaging_report.md
 ```
 
 ---
