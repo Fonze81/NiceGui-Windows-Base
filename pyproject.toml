@@ -13,7 +13,7 @@ authors = [
     { name = "NiceGUI Hello World contributors" }
 ]
 dependencies = [
-    "nicegui",
+    "nicegui>=3.11",
     "pywebview"
 ]
 

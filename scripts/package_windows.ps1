@@ -8,8 +8,7 @@ $ErrorActionPreference = "Stop"
 # - PyInstaller: 40.37 MB in 78.36 seconds
 #
 # Direct PyInstaller also exposes packaging options that nicegui-pack does not
-# currently expose in this project flow, such as --version-file and future splash
-# screen configuration.
+# currently expose in this project flow, such as --version-file.
 $appName = "nicegui-hello-world"
 $entryPoint = "src\nicegui_hello_world\app.py"
 $assetsPath = "src\nicegui_hello_world\assets"
@@ -18,17 +17,6 @@ $assetsData = "$assetsPath;nicegui_hello_world\assets"
 $versionInfoPath = "scripts\version_info.txt"
 $exePath = Join-Path "dist" "$appName.exe"
 $packagingReportPath = Join-Path "dist" "packaging_report.md"
-
-function Test-LastExitCode {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$StepName
-    )
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "$StepName failed with exit code $LASTEXITCODE."
-    }
-}
 
 function Format-Bytes {
     param(
@@ -147,7 +135,7 @@ PyInstaller showed similar results:
 | PyInstaller | 40.37 | 78.36 |
 
 Direct PyInstaller keeps the packaging flow simpler and exposes options needed by
-this project, including `--version-file` and future splash screen configuration.
+this project, including `--version-file`.
 
 ## Notes
 
