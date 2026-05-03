@@ -20,7 +20,6 @@ Direct PyInstaller is now preferred because:
 - the executable size was slightly smaller in the comparison;
 - the packaging time was slightly faster in the comparison;
 - PyInstaller supports Windows version properties directly with `--version-file`;
-- PyInstaller keeps the path open for future splash screen configuration;
 - using one packager keeps the script simpler.
 
 The decision is also documented as a comment in:

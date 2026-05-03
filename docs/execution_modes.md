@@ -199,7 +199,7 @@ This avoids duplicated formatting logic and keeps the terminal diagnostics align
 
 The icon path is resolved by `get_app_icon_path()` so it works in normal execution and in the packaged executable.
 
-On Windows, NiceGUI can use a file-path favicon as the native window icon when the file is an `.ico` file. The executable icon is configured separately in the packaging script with `nicegui-pack --icon`.
+On Windows, NiceGUI can use a file-path favicon as the native window icon when the file is an `.ico` file. The executable icon is configured separately in the packaging script with PyInstaller `--icon`.
 
 ---
 
