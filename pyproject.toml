@@ -22,7 +22,7 @@ dev = [
     "ruff"
 ]
 packaging = [
-    "pyinstaller"
+    "pyinstaller>=6.0"
 ]
 
 [project.scripts]
@@ -57,4 +57,4 @@ line-ending = "auto"
 quote-style = "double"
 
 [tool.setuptools.package-data]
-nicegui_hello_world = ["assets/*.ico", "assets/*.png"]
+nicegui_hello_world = ["assets/*.ico", "assets/*.png", "assets/*.svg"]

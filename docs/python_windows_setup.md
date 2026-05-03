@@ -52,7 +52,7 @@ Before changing the Python rule, confirm that:
 - `pythonnet` supports the new Python version;
 - `pywebview` installs successfully;
 - native execution opens correctly;
-- `nicegui-pack` generates a working executable.
+- PyInstaller generates a working executable through `scripts\package_windows.ps1`.
 
 ---
 

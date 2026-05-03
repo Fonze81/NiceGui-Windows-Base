@@ -10,16 +10,17 @@ The project now uses **direct PyInstaller packaging only**.
 
 The previous comparison produced similar results:
 
-| Packager | Size | Time |
-|---|---:|---:|
+| Packager     |     Size |    Time |
+| ------------ | -------: | ------: |
 | nicegui-pack | 41.26 MB | 80.54 s |
-| PyInstaller | 40.37 MB | 78.36 s |
+| PyInstaller  | 40.37 MB | 78.36 s |
 
 Direct PyInstaller is now preferred because:
 
 - the executable size was slightly smaller in the comparison;
 - the packaging time was slightly faster in the comparison;
 - PyInstaller supports Windows version properties directly with `--version-file`;
+- PyInstaller supports splash screen configuration through `--splash`;
 - using one packager keeps the script simpler.
 
 The decision is also documented as a comment in:
@@ -58,6 +59,7 @@ pyinstaller `
     --noconfirm `
     --icon $iconPath `
     --add-data $assetsData `
+    --splash $splashImagePath `
     --version-file $versionInfoPath `
     --name $appName `
     $entryPoint
@@ -70,6 +72,7 @@ $appName = "nicegui-hello-world"
 $entryPoint = "src\nicegui_hello_world\app.py"
 $assetsPath = "src\nicegui_hello_world\assets"
 $iconPath = Join-Path $assetsPath "app_icon.ico"
+$splashImagePath = Join-Path $assetsPath "splash_light.png"
 $assetsData = "$assetsPath;nicegui_hello_world\assets"
 $versionInfoPath = "scripts\version_info.txt"
 ```
@@ -120,10 +123,11 @@ The executable uses the icon from:
 src\nicegui_hello_world\assets\app_icon.ico
 ```
 
-The same assets directory also includes:
+The same assets directory also includes runtime images such as:
 
 ```text
 src\nicegui_hello_world\assets\page_image.png
+src\nicegui_hello_world\assets\splash_light.png
 ```
 
 The assets directory is bundled with:
@@ -133,6 +137,23 @@ The assets directory is bundled with:
 ```
 
 This is required because `ui.run(favicon=...)` and `ui.image(...)` need the files at runtime, including when the application is running as a one-file executable.
+
+---
+
+## 🖼️ Splash screen
+
+The packaging script uses a dedicated light-background image as the PyInstaller splash screen:
+
+```powershell
+$splashImagePath = Join-Path $assetsPath "splash_light.png"
+pyinstaller --splash $splashImagePath ...
+```
+
+At runtime, `app.py` closes the splash screen on the first NiceGUI client connection through `app.on_connect(...)`. When `sys.frozen` is true, the optional `pyi_splash` module is imported during application startup, when PyInstaller exposes it, and the handler reuses that module reference when the client connects. An internal flag avoids repeated close attempts during reconnects, so normal Python execution and builds without splash support continue to work.
+
+`app.py` uses the standard `if __name__ == "__main__"` entry point and does not use `freeze_support()` or an `__mp_main__` guard in the packaged application flow.
+
+The splash image is intentionally separate from the page image. Use a file with an opaque light background to avoid transparent pixels rendering with an unexpected color in the PyInstaller splash window.
 
 ---
 

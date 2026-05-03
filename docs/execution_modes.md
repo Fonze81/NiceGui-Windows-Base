@@ -162,21 +162,16 @@ src\nicegui_hello_world\app.py
 
 ---
 
-## 🧊 Packaged execution and multiprocessing
+## 🧊 Packaged execution
 
-The packaged executable uses the normal application entry point in `app.py`.
-
-For packaged execution, `app.py` should keep a standard `__main__` guard with `freeze_support()`:
+The packaged executable uses the standard application entry point:
 
 ```python
 if __name__ == "__main__":
-    freeze_support()
     main()
 ```
 
-The `__mp_main__` guard should not be added to `app.py` because packaged execution should not behave like development reload mode.
-
-The `__mp_main__` guard remains only in `dev_run.py`, where it supports NiceGUI reload mode on Windows.
+`app.py` intentionally does not use `freeze_support()` or an `__mp_main__` guard. The current splash flow imports `pyi_splash` only when `sys.frozen` is true and closes it later from the first NiceGUI connection.
 
 ---
 
@@ -213,7 +208,19 @@ src\nicegui_hello_world\assets\page_image.png
 
 The UI uses a centered card layout with the image, the Hello World title, a short description, and the startup status message.
 
-`app.py` resolves the image path through `get_asset_path(...)`, which supports both normal execution and packaged execution.
+`app.py` resolves the image path through `resolve_asset_path(...)`, which supports both normal execution and packaged execution.
+
+---
+
+## 🖼️ Packaged splash screen
+
+The packaged executable uses the dedicated light-background PNG image as a PyInstaller splash screen:
+
+```text
+src\nicegui_hello_world\assets\splash_light.png
+```
+
+The splash screen is configured by [Windows packaging](packaging_windows.md). When `sys.frozen` is true, `app.py` imports the optional `pyi_splash` module during startup and registers a NiceGUI `app.on_connect(...)` handler before `ui.run(...)` starts. The handler closes the already-imported splash module on the first client connection and uses an internal flag to avoid repeated close attempts during reconnects.
 
 ---
 

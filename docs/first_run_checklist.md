@@ -14,6 +14,7 @@ Use this checklist to validate a new clone or a new Windows machine.
 - [ ] The folder contains `scripts\package_windows.ps1`.
 - [ ] The folder contains `src\nicegui_hello_world\assets\app_icon.ico`.
 - [ ] The folder contains `src\nicegui_hello_world\assets\page_image.png`.
+- [ ] The folder contains `src\nicegui_hello_world\assets\splash_light.png`.
 
 ---
 
@@ -179,7 +180,6 @@ dist\nicegui-hello-world.exe
 - [Execution modes](execution_modes.md)
 - [Troubleshooting](troubleshooting.md)
 
-
 ---
 
 ## 📦 Packaging validation
@@ -187,6 +187,7 @@ dist\nicegui-hello-world.exe
 - [ ] `python -m pip install -e ".[dev,packaging]"` completed successfully.
 - [ ] `.\scripts\package_windows.ps1` creates `dist\nicegui-hello-world.exe`.
 - [ ] The executable has the project icon.
+- [ ] The executable shows a splash screen during startup.
 - [ ] The executable opens the NiceGUI native window.
 - [ ] The page displays the PNG image and startup status message.
 - [ ] `dist\packaging_report.md` is created.

@@ -11,7 +11,7 @@ This folder contains the maintenance documentation for the **NiceGUI Hello World
 3. [VS Code setup on Windows](vscode_setup.md) — editor, interpreter, and Ruff integration.
 4. [PowerShell execution policy](powershell_execution_policy.md) — safe fixes for blocked scripts.
 5. [Execution modes](execution_modes.md) — native, web development, module, script, and packaged execution.
-6. [Windows packaging](packaging_windows.md) — PyInstaller executable build, version metadata, and assets.
+6. [Windows packaging](packaging_windows.md) — PyInstaller executable build, version metadata, assets, and splash screen.
 7. [Code quality with Ruff](code_quality.md) — linting, formatting, and pre-commit validation.
 8. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone.
 9. [Troubleshooting](troubleshooting.md) — common issues and fixes.
@@ -36,6 +36,7 @@ flowchart TD
     J --> H
     J --> I
     J --> K[scripts/version_info.txt]
+    J --> L[assets/splash_light.png]
 ```
 
 Key decisions:
@@ -51,7 +52,7 @@ Key decisions:
 
 The project uses **PyInstaller directly** instead of `nicegui-pack`.
 
-Reason: the measured size and build time were similar, while direct PyInstaller provides the required options for Windows version metadata.
+Reason: the measured size and build time were similar, while direct PyInstaller provides the required options for Windows version metadata and splash screen support.
 
 See [Windows packaging](packaging_windows.md) for the full command and maintenance notes.
 

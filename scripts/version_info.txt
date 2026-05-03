@@ -1,6 +1,6 @@
 # UTF-8
 #
-# Windows version resource applied after packaging with pyi-set_version.
+# Windows version resource applied during packaging with PyInstaller --version-file.
 # Keep FileVersion/ProductVersion aligned with pyproject.toml when the
 # application version changes.
 

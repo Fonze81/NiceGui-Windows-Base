@@ -4,6 +4,38 @@ This guide collects common issues for the current **NiceGUI Hello World** projec
 
 ---
 
+## 🖼️ Packaged splash screen does not appear
+
+Confirm that the packaging script includes `--splash` and that the image exists:
+
+```powershell
+Test-Path src\nicegui_hello_world\assets\splash_light.png
+```
+
+Then clean old build outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
+```
+
+During normal Python execution, no splash screen appears. The splash is a packaged-executable behavior.
+
+---
+
+## 🖼️ Packaged splash screen does not close
+
+Confirm that `main(...)` in `src\nicegui_hello_world\app.py` calls:
+
+```python
+register_pyinstaller_splash_handler()
+```
+
+The handler uses `app.on_connect(close_pyinstaller_splash_once)` so the splash closes after the first NiceGUI client connection. `app.py` imports the optional `pyi_splash` module during startup only when `sys.frozen` is true and stores the module reference for the later callback, because importing it only inside the connection callback can run too late in a context where PyInstaller no longer exposes it. The handler calls `close()` only when the module exists and uses an internal `_splash_close_attempted` flag to avoid repeated close attempts during reconnects.
+
+---
+
 ## 🐍 Python 3.13 is not found
 
 Check installed versions:
@@ -211,22 +243,14 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 Likely cause: a frozen multiprocessing child process is re-entering the application startup flow.
 
-Do not solve this by adding `__mp_main__` to `app.py`.
-
-For packaged execution, keep the app guard as:
+For packaged execution, keep the standard entry point in `app.py`:
 
 ```python
 if __name__ == "__main__":
-    freeze_support()
     main()
 ```
 
-Use `__mp_main__` only in `dev_run.py`, where `reload=True` needs it during development on Windows:
-
-```python
-if __name__ in {"__main__", "__mp_main__"}:
-    main(development_mode=True)
-```
+`dev_run.py` keeps the `__mp_main__` guard because `reload=True` can use multiprocessing during development on Windows.
 
 After changing `app.py`, clean old build outputs and package again:
 
@@ -249,12 +273,12 @@ startup_message = build_startup_message(...)
 print(startup_message)
 
 ui.run(
-    partial(create_ui, startup_message=startup_message),
+    partial(build_main_page, startup_message=startup_message),
     ...
 )
 ```
 
-Avoid rebuilding the message separately inside `create_ui(...)`, because that can cause the terminal and page text to drift over time.
+Avoid rebuilding the message separately inside `build_main_page(...)`, because that can cause the terminal and page text to drift over time.
 
 ---
 
@@ -279,7 +303,7 @@ Windows Explorer may cache executable icons. If the file was rebuilt correctly b
 If the NiceGUI favicon does not appear in packaged mode, confirm that the packaging script still includes:
 
 ```powershell
---add-data $iconData
+--add-data $assetsData
 ```
 
 ---
@@ -354,12 +378,10 @@ dist\packaging_report.md
 
 If the report is missing, the PyInstaller packaging flow probably failed before the reporting step.
 
-Check that these commands are available in the active `.venv`:
+Check that PyInstaller is available in the active `.venv`:
 
 ```powershell
-nicegui-pack --help
 pyinstaller --version
-pyi-set_version -h
 ```
 
 Then run the packaging script again:
@@ -395,10 +417,9 @@ Fix: execute native commands through `Invoke-NativeCommand`, which writes comman
 }
 ```
 
-Then assign elapsed times with explicit types:
+Then assign the elapsed time with an explicit type:
 
 ```powershell
-[TimeSpan]$niceGuiPackElapsed = Invoke-NiceGuiPackBuild
 [TimeSpan]$pyInstallerElapsed = Invoke-PyInstallerBuild
 ```
 
@@ -409,12 +430,12 @@ Then assign elapsed times with explicit types:
 Error example:
 
 ```text
-nicegui-pack.exe : 204 INFO: PyInstaller: 6.20.0, contrib hooks: 2026.4
+pyinstaller.exe : 204 INFO: PyInstaller: 6.20.0, contrib hooks: 2026.4
 CategoryInfo          : NotSpecified: ... RemoteException
 FullyQualifiedErrorId : NativeCommandError
 ```
 
-Cause: PyInstaller and nicegui-pack can write normal progress logs to stderr. The packaging script also uses `$ErrorActionPreference = "Stop"` so real errors stop the build. If stderr is redirected with `2>&1` without temporarily relaxing error handling, PowerShell can treat normal stderr output as `NativeCommandError`.
+Cause: PyInstaller can write normal progress logs to stderr. The packaging script also uses `$ErrorActionPreference = "Stop"` so real errors stop the build. If stderr is redirected with `2>&1` without temporarily relaxing error handling, PowerShell can treat normal stderr output as `NativeCommandError`.
 
 Fix: `Invoke-NativeCommand` must temporarily set native command error handling to a non-terminating mode and then validate the native command exit code explicitly:
 
@@ -438,10 +459,10 @@ The project previously compared `nicegui-pack` and direct PyInstaller packaging.
 
 Measured results were similar:
 
-| Packager | Size | Time |
-|---|---:|---:|
+| Packager     |     Size |    Time |
+| ------------ | -------: | ------: |
 | nicegui-pack | 41.26 MB | 80.54 s |
-| PyInstaller | 40.37 MB | 78.36 s |
+| PyInstaller  | 40.37 MB | 78.36 s |
 
 The project now uses direct PyInstaller only because it supports `--version-file` and keeps future splash screen configuration available without a second post-processing path.
 

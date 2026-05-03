@@ -8,11 +8,12 @@ $ErrorActionPreference = "Stop"
 # - PyInstaller: 40.37 MB in 78.36 seconds
 #
 # Direct PyInstaller also exposes packaging options that nicegui-pack does not
-# currently expose in this project flow, such as --version-file.
+# currently expose in this project flow, such as --version-file and --splash.
 $appName = "nicegui-hello-world"
 $entryPoint = "src\nicegui_hello_world\app.py"
 $assetsPath = "src\nicegui_hello_world\assets"
 $iconPath = Join-Path $assetsPath "app_icon.ico"
+$splashImagePath = Join-Path $assetsPath "splash_light.png"
 $assetsData = "$assetsPath;nicegui_hello_world\assets"
 $versionInfoPath = "scripts\version_info.txt"
 $exePath = Join-Path "dist" "$appName.exe"
@@ -89,6 +90,8 @@ function Invoke-PyInstallerBuild {
         $iconPath,
         "--add-data",
         $assetsData,
+        "--splash",
+        $splashImagePath,
         "--version-file",
         $versionInfoPath,
         "--name",
@@ -135,12 +138,12 @@ PyInstaller showed similar results:
 | PyInstaller | 40.37 | 78.36 |
 
 Direct PyInstaller keeps the packaging flow simpler and exposes options needed by
-this project, including `--version-file`.
+this project, including `--version-file` and `--splash`.
 
 ## Notes
 
 - The executable receives Windows version properties during build with `--version-file`.
-- The build uses the project icon, assets directory, entry point, one-file mode, and windowed mode.
+- The build uses the project icon, splash image, assets directory, entry point, one-file mode, and windowed mode.
 - The previous nicegui-pack comparison flow was removed after confirming that file size and build time were similar.
 "@
 
@@ -175,8 +178,8 @@ if (-not (Test-Path $iconPath)) {
     throw "Application icon was not found: $iconPath"
 }
 
-if (-not (Test-Path (Join-Path $assetsPath "page_image.png"))) {
-    throw "Page image was not found: $(Join-Path $assetsPath "page_image.png")"
+if (-not (Test-Path $splashImagePath)) {
+    throw "Splash image was not found: $splashImagePath"
 }
 
 if (-not (Test-Path $versionInfoPath)) {
