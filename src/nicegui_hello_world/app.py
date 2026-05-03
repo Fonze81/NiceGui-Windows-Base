@@ -173,6 +173,8 @@ def main(*, development_mode: bool = False) -> None:
 
     print(startup_message)
 
+    # NiceGUI receives a callable that builds the UI later. partial keeps the
+    # startup message bound without calling create_ui before ui.run starts.
     ui.run(
         partial(create_ui, startup_message=startup_message),
         native=native_mode,
