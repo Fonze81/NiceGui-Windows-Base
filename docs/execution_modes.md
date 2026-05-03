@@ -180,6 +180,19 @@ The `__mp_main__` guard remains only in `dev_run.py`, where it supports NiceGUI 
 
 ---
 
+## 🖨️ Startup message in the page
+
+`app.py` builds the startup message once in `main(...)`.
+
+The same message is used for:
+
+- terminal output through `print(...)`;
+- the NiceGUI page, displayed after `Hello, NiceGUI!`.
+
+This avoids duplicated formatting logic and keeps the terminal diagnostics aligned with the visible UI.
+
+---
+
 ## 🔗 Related documents
 
 - [Development environment](development_environment.md)

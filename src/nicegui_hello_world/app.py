@@ -12,15 +12,21 @@
 # -----------------------------------------------------------------------------
 
 import sys
+from functools import partial
 from multiprocessing import freeze_support
 from pathlib import Path
 
 from nicegui import native, ui
 
 
-def create_ui() -> None:
-    """Build the main NiceGUI interface."""
+def create_ui(*, startup_message: str) -> None:
+    """Build the main NiceGUI interface.
+
+    Args:
+        startup_message: Startup diagnostic message shown in the page.
+    """
     ui.label("Hello, NiceGUI!")
+    ui.label(startup_message)
 
 
 def is_packaged() -> bool:
@@ -57,6 +63,32 @@ def identify_startup_source(*, development_mode: bool) -> str:
     return entry_name or "unknown source"
 
 
+def build_startup_message(
+    *,
+    startup_source: str,
+    native_mode: bool,
+    reload_enabled: bool,
+) -> str:
+    """Build the startup diagnostic message.
+
+    Args:
+        startup_source: Source used to start the application.
+        native_mode: Whether the application is running in native mode.
+        reload_enabled: Whether NiceGUI reload mode is enabled.
+
+    Returns:
+        The startup diagnostic message used by the terminal and UI.
+    """
+    mode_name = "native" if native_mode else "web"
+    reload_status = "active" if reload_enabled else "inactive"
+
+    return (
+        "Initializing NiceGUI Hello World "
+        f"from {startup_source} in {mode_name} mode "
+        f"with reload {reload_status}."
+    )
+
+
 def main(*, development_mode: bool = False) -> None:
     """Run the NiceGUI application.
 
@@ -71,17 +103,16 @@ def main(*, development_mode: bool = False) -> None:
         reload_enabled = False
 
     startup_source = identify_startup_source(development_mode=development_mode)
-    mode_name = "native" if native_mode else "web"
-    reload_status = "active" if reload_enabled else "inactive"
-
-    print(
-        "Initializing NiceGUI Hello World "
-        f"from {startup_source} in {mode_name} mode "
-        f"with reload {reload_status}."
+    startup_message = build_startup_message(
+        startup_source=startup_source,
+        native_mode=native_mode,
+        reload_enabled=reload_enabled,
     )
 
+    print(startup_message)
+
     ui.run(
-        create_ui,
+        partial(create_ui, startup_message=startup_message),
         native=native_mode,
         reload=reload_enabled,
         title="NiceGUI Hello World",

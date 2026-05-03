@@ -238,6 +238,26 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 ---
 
+## 🖨️ Startup message differs between terminal and page
+
+The startup message should be built once in `main(...)` and reused for both terminal output and the NiceGUI page.
+
+Expected pattern:
+
+```python
+startup_message = build_startup_message(...)
+print(startup_message)
+
+ui.run(
+    partial(create_ui, startup_message=startup_message),
+    ...
+)
+```
+
+Avoid rebuilding the message separately inside `create_ui(...)`, because that can cause the terminal and page text to drift over time.
+
+---
+
 ## 🔗 Related documents
 
 - [Python 3.13 setup on Windows](python_windows_setup.md)
