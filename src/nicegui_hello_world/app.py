@@ -75,7 +75,13 @@ def get_asset_path(filename: str) -> str:
         Absolute path to the requested asset file.
     """
     if is_packaged():
-        base_path = Path(sys._MEIPASS)
+        bundled_path = getattr(sys, "_MEIPASS", None)
+
+        if bundled_path is not None:
+            base_path = Path(str(bundled_path))
+        else:
+            base_path = Path(sys.executable).parent
+
         return str(base_path / "nicegui_hello_world" / "assets" / filename)
 
     return str(Path(__file__).parent / "assets" / filename)
