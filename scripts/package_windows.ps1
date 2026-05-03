@@ -42,3 +42,4 @@ if (-not (Test-Path $exePath)) {
 }
 
 Write-Host "Executable created at: $exePath"
+Write-Host "Executable created at: $exePath"
