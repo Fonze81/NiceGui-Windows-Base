@@ -23,6 +23,16 @@ from types import ModuleType
 
 from nicegui import app, native, ui
 
+from desktop_app.constants import (
+    APP_ICON_FILENAME,
+    APPLICATION_TITLE,
+    DEFAULT_WEB_PORT,
+    LOCAL_ASSETS_DIR,
+    LOG_FILE_PATH,
+    PACKAGED_ASSETS_DIR,
+    PAGE_IMAGE_FILENAME,
+    PYINSTALLER_SPLASH_MODULE,
+)
 from desktop_app.core.runtime import (
     build_startup_message,
     detect_startup_source,
@@ -30,15 +40,6 @@ from desktop_app.core.runtime import (
     get_runtime_root,
     is_frozen_executable,
 )
-
-APPLICATION_TITLE = "NiceGui Windows Base"
-APP_ICON_FILENAME = "app_icon.ico"
-PAGE_IMAGE_FILENAME = "page_image.png"
-PYINSTALLER_SPLASH_MODULE = "pyi_splash"
-DEFAULT_WEB_PORT = 8080
-PACKAGED_ASSETS_DIR = Path("desktop_app") / "assets"
-LOCAL_ASSETS_DIR = "assets"
-LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
 
 logger = logging.getLogger(__name__)
 

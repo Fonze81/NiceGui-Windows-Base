@@ -17,10 +17,12 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from desktop_app.constants import (
+    APPLICATION_TITLE,
+    PYPROJECT_COMMAND_NAMES,
+)
 
-APPLICATION_TITLE = "NiceGui Windows Base"
-PYPROJECT_COMMAND_NAMES = ("nicegui-windows-base", "nicegui-windows-base.exe")
+logger = logging.getLogger(__name__)
 
 
 def is_frozen_executable(*, frozen: bool | None = None) -> bool:
