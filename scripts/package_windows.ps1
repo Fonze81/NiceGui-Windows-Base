@@ -9,12 +9,12 @@ $ErrorActionPreference = "Stop"
 #
 # Direct PyInstaller also exposes packaging options that nicegui-pack does not
 # currently expose in this project flow, such as --version-file and --splash.
-$appName = "nicegui-hello-world"
-$entryPoint = "src\nicegui_hello_world\app.py"
-$assetsPath = "src\nicegui_hello_world\assets"
+$appName = "nicegui-windows-base"
+$entryPoint = "src\nicegui_windows_base\app.py"
+$assetsPath = "src\nicegui_windows_base\assets"
 $iconPath = Join-Path $assetsPath "app_icon.ico"
 $splashImagePath = Join-Path $assetsPath "splash_light.png"
-$assetsData = "$assetsPath;nicegui_hello_world\assets"
+$assetsData = "$assetsPath;nicegui_windows_base\assets"
 $versionInfoPath = "scripts\version_info.txt"
 $exePath = Join-Path "dist" "$appName.exe"
 $packagingReportPath = Join-Path "dist" "packaging_report.md"

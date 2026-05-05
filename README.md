@@ -1,9 +1,9 @@
-# NiceGUI Hello World
+# NiceGui Windows Base
 
 [![Python](https://img.shields.io/badge/python-3.13.X-blue)](https://www.python.org/downloads/)
 [![Ruff](https://img.shields.io/badge/lint%20%26%20format-ruff-46aef7)](https://docs.astral.sh/ruff/)
 
-A minimal **NiceGUI Hello World template** for Windows development, native desktop execution, browser-based UI development, code quality with Ruff, and Windows executable packaging with direct PyInstaller.
+A minimal **NiceGui Windows Base template** for Windows development, native desktop execution, browser-based UI development, code quality with Ruff, and Windows executable packaging with direct PyInstaller.
 
 ---
 
@@ -11,7 +11,7 @@ A minimal **NiceGUI Hello World template** for Windows development, native deskt
 
 - Python package using `src` layout;
 - project metadata, dependencies, entry point, package assets, and Ruff configuration in `pyproject.toml`;
-- normal native execution through `nicegui-hello-world`;
+- normal native execution through `nicegui-windows-base`;
 - browser-based development execution through `python dev_run.py`;
 - startup diagnostics shown in the terminal and in the UI;
 - packaged and normal asset resolution for the application icon and page image;
@@ -43,7 +43,7 @@ A minimal **NiceGUI Hello World template** for Windows development, native deskt
 │   ├── package_windows.ps1
 │   └── version_info.txt
 ├── src/
-│   └── nicegui_hello_world/
+│   └── nicegui_windows_base/
 │       ├── assets/
 │       │   ├── app_icon.ico
 │       │   ├── page_image.png
@@ -81,7 +81,7 @@ python -m pip install -e ".[dev,packaging]"
 Run the application normally in native mode:
 
 ```powershell
-nicegui-hello-world
+nicegui-windows-base
 ```
 
 Run the application in browser development mode:
@@ -109,9 +109,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_window
 | Task                     | Command                                       |
 | ------------------------ | --------------------------------------------- |
 | Install project          | `python -m pip install -e ".[dev,packaging]"` |
-| Run native app           | `nicegui-hello-world`                         |
-| Run as module            | `python -m nicegui_hello_world`               |
-| Run app script directly  | `python src\nicegui_hello_world\app.py`       |
+| Run native app           | `nicegui-windows-base`                         |
+| Run as module            | `python -m nicegui_windows_base`               |
+| Run app script directly  | `python src\nicegui_windows_base\app.py`       |
 | Run web development mode | `python dev_run.py`                           |
 | Check code               | `ruff check .`                                |
 | Check formatting         | `ruff format --check .`                       |
@@ -127,11 +127,11 @@ The application prints how it was started, which mode is active, and whether rel
 Examples:
 
 ```text
-Initializing NiceGUI Hello World from pyproject command in native mode with reload inactive.
-Initializing NiceGUI Hello World from module in native mode with reload inactive.
-Initializing NiceGUI Hello World from script in native mode with reload inactive.
-Initializing NiceGUI Hello World from dev_run.py in web mode with reload active.
-Initializing NiceGUI Hello World from package in native mode with reload inactive.
+Initializing NiceGui Windows Base from pyproject command in native mode with reload inactive.
+Initializing NiceGui Windows Base from module in native mode with reload inactive.
+Initializing NiceGui Windows Base from script in native mode with reload inactive.
+Initializing NiceGui Windows Base from dev_run.py in web mode with reload active.
+Initializing NiceGui Windows Base from package in native mode with reload inactive.
 ```
 
 ---
@@ -141,7 +141,7 @@ Initializing NiceGUI Hello World from package in native mode with reload inactiv
 Runtime assets are stored in:
 
 ```text
-src\nicegui_hello_world\assets
+src\nicegui_windows_base\assets
 ```
 
 Current assets:

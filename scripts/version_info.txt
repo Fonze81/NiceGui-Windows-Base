@@ -23,23 +23,23 @@ VSVersionInfo(
                     [
                         StringStruct(
                             "CompanyName",
-                            "NiceGUI Hello World contributors",
+                            "NiceGUI Windows Base contributors",
                         ),
-                        StringStruct("FileDescription", "NiceGUI Hello World"),
+                        StringStruct("FileDescription", "NiceGUI Windows Base"),
                         StringStruct("FileVersion", "0.1.0.0"),
                         StringStruct(
                             "InternalName",
-                            "nicegui-hello-world",
+                            "nicegui-windows-base",
                         ),
                         StringStruct(
                             "LegalCopyright",
-                            "Copyright (c) NiceGUI Hello World contributors",
+                            "Copyright (c) NiceGUI Windows Base contributors",
                         ),
                         StringStruct(
                             "OriginalFilename",
-                            "nicegui-hello-world.exe",
+                            "nicegui-windows-base.exe",
                         ),
-                        StringStruct("ProductName", "NiceGUI Hello World"),
+                        StringStruct("ProductName", "NiceGUI Windows Base"),
                         StringStruct("ProductVersion", "0.1.0.0"),
                     ],
                 )

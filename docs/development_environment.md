@@ -1,6 +1,6 @@
 # 🧰 Development Environment
 
-This guide explains the complete setup path for the current **NiceGUI Hello World** project on Windows.
+This guide explains the complete setup path for the current **NiceGui Windows Base** project on Windows.
 
 Use it as the main setup guide. More detailed explanations are linked from each section.
 
@@ -30,7 +30,7 @@ flowchart TD
     F -- Yes --> G[Use process-level execution policy]
     G --> E
     F -- No --> H[Install project in editable mode]
-    H --> I[Run nicegui-hello-world]
+    H --> I[Run nicegui-windows-base]
     I --> J[Run python dev_run.py]
     J --> K[Run Ruff checks]
     K --> L[Package Windows executable]
@@ -142,13 +142,13 @@ This installs:
 Normal native mode:
 
 ```powershell
-nicegui-hello-world
+nicegui-windows-base
 ```
 
 Alternative module execution:
 
 ```powershell
-python -m nicegui_hello_world
+python -m nicegui_windows_base
 ```
 
 Browser-based development mode:

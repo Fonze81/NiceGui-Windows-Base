@@ -1,6 +1,6 @@
 # 🧯 Troubleshooting
 
-This guide collects common issues for the current **NiceGUI Hello World** project.
+This guide collects common issues for the current **NiceGui Windows Base** project.
 
 ---
 
@@ -9,7 +9,7 @@ This guide collects common issues for the current **NiceGUI Hello World** projec
 Confirm that the packaging script includes `--splash` and that the image exists:
 
 ```powershell
-Test-Path src\nicegui_hello_world\assets\splash_light.png
+Test-Path src\nicegui_windows_base\assets\splash_light.png
 ```
 
 Then clean old build outputs and package again:
@@ -26,7 +26,7 @@ During normal Python execution, no splash screen appears. The splash is a packag
 
 ## 🖼️ Packaged splash screen does not close
 
-Confirm that `main(...)` in `src\nicegui_hello_world\app.py` calls:
+Confirm that `main(...)` in `src\nicegui_windows_base\app.py` calls:
 
 ```python
 register_pyinstaller_splash_handler()
@@ -84,7 +84,7 @@ See [PowerShell execution policy](powershell_execution_policy.md).
 
 ---
 
-## 🚀 `nicegui-hello-world` is not recognized
+## 🚀 `nicegui-windows-base` is not recognized
 
 Possible causes:
 
@@ -98,13 +98,13 @@ Fix:
 ```powershell
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev,packaging]"
-nicegui-hello-world
+nicegui-windows-base
 ```
 
 Diagnostic alternative:
 
 ```powershell
-python -m nicegui_hello_world
+python -m nicegui_windows_base
 ```
 
 ---
@@ -144,7 +144,7 @@ On Windows, reload can create more than one process. Keep reload only in `dev_ru
 Normal execution should use:
 
 ```powershell
-nicegui-hello-world
+nicegui-windows-base
 ```
 
 ---
@@ -287,7 +287,7 @@ Avoid rebuilding the message separately inside `build_main_page(...)`, because t
 Confirm that the icon exists:
 
 ```powershell
-Test-Path .\src\nicegui_hello_world\assets\app_icon.ico
+Test-Path .\src\nicegui_windows_base\assets\app_icon.ico
 ```
 
 If the executable icon did not update, clean old build outputs and package again:
@@ -313,7 +313,7 @@ If the NiceGUI favicon does not appear in packaged mode, confirm that the packag
 Confirm that the PNG exists:
 
 ```powershell
-Test-Path .\src\nicegui_hello_world\assets\page_image.png
+Test-Path .\src\nicegui_windows_base\assets\page_image.png
 ```
 
 If the image does not appear only in packaged mode, confirm that the packaging script includes the full assets directory:
@@ -393,7 +393,7 @@ Then run the packaging script again:
 The script should create:
 
 ```text
-dist\nicegui-hello-world.exe
+dist\nicegui-windows-base.exe
 dist\packaging_report.md
 ```
 
@@ -475,7 +475,7 @@ If old documentation or terminal commands mention `nicegui-pack`, use this inste
 The script now creates:
 
 ```text
-dist\nicegui-hello-world.exe
+dist\nicegui-windows-base.exe
 dist\packaging_report.md
 ```
 

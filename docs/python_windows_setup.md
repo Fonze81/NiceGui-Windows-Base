@@ -1,6 +1,6 @@
 # 🐍 Python 3.13 Setup on Windows
 
-This guide explains how to install, validate, and prepare Python 3.13 for the current **NiceGUI Hello World** project.
+This guide explains how to install, validate, and prepare Python 3.13 for the current **NiceGui Windows Base** project.
 
 ---
 
@@ -135,7 +135,7 @@ pyproject.toml
 Example:
 
 ```powershell
-cd C:\path\to\NiceGUI-Hello-World
+cd C:\path\to\NiceGui Windows Base
 ```
 
 Do not create `.venv` inside `src`, `docs`, or another subfolder.
@@ -163,7 +163,7 @@ Do not commit `.venv` to Git.
 Expected terminal prefix:
 
 ```text
-(.venv) PS C:\path\to\NiceGUI-Hello-World>
+(.venv) PS C:\path\to\NiceGui Windows Base>
 ```
 
 Confirm active Python:

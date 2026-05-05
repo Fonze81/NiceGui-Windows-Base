@@ -1,6 +1,6 @@
 # 🧰 VS Code Setup on Windows
 
-This guide explains how to install and configure Visual Studio Code for the current **NiceGUI Hello World** project.
+This guide explains how to install and configure Visual Studio Code for the current **NiceGui Windows Base** project.
 
 ---
 
@@ -163,7 +163,7 @@ Editable installation is important because this project uses a `src` layout.
 It allows Python, VS Code, and tooling to resolve:
 
 ```text
-src\nicegui_hello_world
+src\nicegui_windows_base
 ```
 
 ---
@@ -276,7 +276,7 @@ ruff format --check .
 Then run the app:
 
 ```powershell
-nicegui-hello-world
+nicegui-windows-base
 ```
 
 For development mode:

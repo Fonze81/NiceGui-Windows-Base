@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
-# File: src/nicegui_hello_world/app.py
+# File: src/nicegui_windows_base/app.py
 # Purpose:
-# Define the NiceGUI Hello World application entry point and runtime helpers.
+# Define the NiceGui Windows Base application entry point and runtime helpers.
 # Behavior:
 # Builds the main UI, resolves bundled assets for normal and PyInstaller
 # execution, starts NiceGUI in native mode by default, and supports browser
@@ -23,13 +23,14 @@ from types import ModuleType
 
 from nicegui import app, native, ui
 
-APPLICATION_TITLE = "NiceGUI Hello World"
+APPLICATION_TITLE = "NiceGui Windows Base"
 APP_ICON_FILENAME = "app_icon.ico"
 PAGE_IMAGE_FILENAME = "page_image.png"
 DEFAULT_WEB_PORT = 8080
-PACKAGED_ASSETS_DIR = Path("nicegui_hello_world") / "assets"
+PACKAGED_ASSETS_DIR = Path("nicegui_windows_base") / "assets"
 LOCAL_ASSETS_DIR = "assets"
-LOG_FILENAME = "nicegui_hello_world.log"
+LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
+LOG_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +54,9 @@ def get_log_file_path() -> Path:
         working directory during normal development.
     """
     if bool(getattr(sys, "frozen", False)):
-        return Path(sys.executable).resolve().parent / LOG_FILENAME
+        return Path(sys.executable).resolve().parent / LOG_FILE_PATH
 
-    return Path.cwd() / LOG_FILENAME
+    return Path.cwd() / LOG_FILE_PATH
 
 
 def configure_logging() -> Path:
@@ -277,7 +278,7 @@ def detect_startup_source(*, development_mode: bool) -> str:
     entry_name = Path(sys.argv[0]).name.lower()
     logger.debug("Startup entry name: %s", entry_name)
 
-    if entry_name in {"nicegui-hello-world", "nicegui-hello-world.exe"}:
+    if entry_name in {"nicegui-windows-base", "nicegui-windows-base.exe"}:
         return "pyproject command"
 
     if entry_name == "__main__.py":
@@ -309,7 +310,7 @@ def format_startup_message(
     reload_status = "active" if reload_enabled else "inactive"
 
     return (
-        "Initializing NiceGUI Hello World "
+        "Initializing NiceGui Windows Base "
         f"from {startup_source} in {mode_name} mode "
         f"with reload {reload_status}."
     )
@@ -372,10 +373,10 @@ def build_main_page(*, startup_message: str) -> None:
 
         ui.image(page_image_path).classes("h-40 w-40 rounded-2xl object-contain")
 
-        ui.label("Hello, NiceGUI!").classes(
+        ui.label("NiceGui Windows Base").classes(
             "text-4xl font-bold tracking-tight text-slate-800"
         )
-        ui.label("A minimal native and web Hello World template.").classes(
+        ui.label("A minimal native and web Windows base template.").classes(
             "text-base text-slate-500"
         )
 

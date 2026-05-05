@@ -3,13 +3,13 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nicegui-hello-world"
+name = "nicegui-windows-base"
 version = "0.1.0"
-description = "A Hello World template for NiceGUI projects."
+description = "A Windows base template for NiceGUI applications."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 license = { file = "LICENSE" }
-authors = [{ name = "NiceGUI Hello World contributors" }]
+authors = [{ name = "NiceGui Windows Base contributors" }]
 dependencies = ["nicegui>=3.11", "pywebview"]
 
 [project.optional-dependencies]
@@ -17,7 +17,7 @@ dev = ["ruff"]
 packaging = ["pyinstaller>=6.0"]
 
 [project.scripts]
-nicegui-hello-world = "nicegui_hello_world.app:main"
+nicegui-windows-base = "nicegui_windows_base.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -37,4 +37,4 @@ line-ending = "auto"
 quote-style = "double"
 
 [tool.setuptools.package-data]
-nicegui_hello_world = ["assets/*.ico", "assets/*.png", "assets/*.svg"]
+nicegui_windows_base = ["assets/*.ico", "assets/*.png", "assets/*.svg"]

@@ -12,9 +12,9 @@ Use this checklist to validate a new clone or a new Windows machine.
 - [ ] The folder contains `docs`.
 - [ ] The folder contains `dev_run.py`.
 - [ ] The folder contains `scripts\package_windows.ps1`.
-- [ ] The folder contains `src\nicegui_hello_world\assets\app_icon.ico`.
-- [ ] The folder contains `src\nicegui_hello_world\assets\page_image.png`.
-- [ ] The folder contains `src\nicegui_hello_world\assets\splash_light.png`.
+- [ ] The folder contains `src\nicegui_windows_base\assets\app_icon.ico`.
+- [ ] The folder contains `src\nicegui_windows_base\assets\page_image.png`.
+- [ ] The folder contains `src\nicegui_windows_base\assets\splash_light.png`.
 
 ---
 
@@ -104,19 +104,19 @@ python -m pip install -e ".[dev,packaging]"
 - [ ] Normal command works:
 
 ```powershell
-nicegui-hello-world
+nicegui-windows-base
 ```
 
 - [ ] Module execution works:
 
 ```powershell
-python -m nicegui_hello_world
+python -m nicegui_windows_base
 ```
 
 - [ ] Direct script execution works:
 
 ```powershell
-python src\nicegui_hello_world\app.py
+python src\nicegui_windows_base\app.py
 ```
 
 - [ ] Development mode works:
@@ -166,7 +166,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_window
 - [ ] The executable exists:
 
 ```text
-dist\nicegui-hello-world.exe
+dist\nicegui-windows-base.exe
 ```
 
 - [ ] The executable opens the native app.
@@ -185,7 +185,7 @@ dist\nicegui-hello-world.exe
 ## 📦 Packaging validation
 
 - [ ] `python -m pip install -e ".[dev,packaging]"` completed successfully.
-- [ ] `.\scripts\package_windows.ps1` creates `dist\nicegui-hello-world.exe`.
+- [ ] `.\scripts\package_windows.ps1` creates `dist\nicegui-windows-base.exe`.
 - [ ] The executable has the project icon.
 - [ ] The executable shows a splash screen during startup.
 - [ ] The executable opens the NiceGUI native window.

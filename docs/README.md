@@ -1,6 +1,6 @@
 # 📚 Documentation Index
 
-This folder contains the maintenance documentation for the **NiceGUI Hello World** template.
+This folder contains the maintenance documentation for the **NiceGui Windows Base** template.
 
 ---
 
@@ -24,10 +24,10 @@ The project intentionally keeps a small and direct architecture:
 
 ```mermaid
 flowchart TD
-    A[dev_run.py] --> B[src/nicegui_hello_world/app.py]
-    C[python -m nicegui_hello_world] --> D[src/nicegui_hello_world/__main__.py]
+    A[dev_run.py] --> B[src/nicegui_windows_base/app.py]
+    C[python -m nicegui_windows_base] --> D[src/nicegui_windows_base/__main__.py]
     D --> B
-    E[nicegui-hello-world command] --> B
+    E[nicegui-windows-base command] --> B
     F[PyInstaller executable] --> B
     B --> G[NiceGUI UI]
     B --> H[assets/app_icon.ico]

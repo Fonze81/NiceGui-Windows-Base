@@ -1,6 +1,6 @@
 # 📦 Windows Packaging
 
-This document explains how the **NiceGUI Hello World** project is packaged as a Windows executable.
+This document explains how the **NiceGui Windows Base** project is packaged as a Windows executable.
 
 ---
 
@@ -68,12 +68,12 @@ pyinstaller `
 The relevant paths are:
 
 ```powershell
-$appName = "nicegui-hello-world"
-$entryPoint = "src\nicegui_hello_world\app.py"
-$assetsPath = "src\nicegui_hello_world\assets"
+$appName = "nicegui-windows-base"
+$entryPoint = "src\nicegui_windows_base\app.py"
+$assetsPath = "src\nicegui_windows_base\assets"
 $iconPath = Join-Path $assetsPath "app_icon.ico"
 $splashImagePath = Join-Path $assetsPath "splash_light.png"
-$assetsData = "$assetsPath;nicegui_hello_world\assets"
+$assetsData = "$assetsPath;nicegui_windows_base\assets"
 $versionInfoPath = "scripts\version_info.txt"
 ```
 
@@ -120,14 +120,14 @@ version_info.txt: FileVersion = "0.1.0.0"
 The executable uses the icon from:
 
 ```text
-src\nicegui_hello_world\assets\app_icon.ico
+src\nicegui_windows_base\assets\app_icon.ico
 ```
 
 The same assets directory also includes runtime images such as:
 
 ```text
-src\nicegui_hello_world\assets\page_image.png
-src\nicegui_hello_world\assets\splash_light.png
+src\nicegui_windows_base\assets\page_image.png
+src\nicegui_windows_base\assets\splash_light.png
 ```
 
 The assets directory is bundled with:
