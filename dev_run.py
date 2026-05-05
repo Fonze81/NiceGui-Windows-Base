@@ -11,7 +11,7 @@
 # NiceGUI reload mode on Windows because reload uses multiprocessing.
 # -----------------------------------------------------------------------------
 
-from nicegui_windows_base.app import main
+from desktop_app.app import main
 
 if __name__ in {"__main__", "__mp_main__"}:
     main(development_mode=True)
