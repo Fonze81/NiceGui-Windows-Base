@@ -32,7 +32,7 @@ Confirm that `main(...)` in `src\nicegui_hello_world\app.py` calls:
 register_pyinstaller_splash_handler()
 ```
 
-The handler uses `app.on_connect(close_pyinstaller_splash_once)` so the splash closes after the first NiceGUI client connection. `app.py` imports the optional `pyi_splash` module during startup only when `sys.frozen` is true and stores the module reference for the later callback, because importing it only inside the connection callback can run too late in a context where PyInstaller no longer exposes it. The handler calls `close()` only when the module exists and uses an internal `_splash_close_attempted` flag to avoid repeated close attempts during reconnects.
+The handler registers `pyinstaller_splash.close_once` with `app.on_connect(...)` only when PyInstaller splash support is available. `app.py` imports the optional `pyi_splash` module dynamically during startup only when `sys.frozen` is true and stores the module reference for the later callback. This avoids importing the module too late, in a context where PyInstaller may no longer expose it. The controller calls `close()` only when the module exists and keeps an internal close-attempt flag to avoid repeated close attempts during reconnects.
 
 ---
 

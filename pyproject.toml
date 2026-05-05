@@ -9,21 +9,12 @@ description = "A Hello World template for NiceGUI projects."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 license = { file = "LICENSE" }
-authors = [
-    { name = "NiceGUI Hello World contributors" }
-]
-dependencies = [
-    "nicegui>=3.11",
-    "pywebview"
-]
+authors = [{ name = "NiceGUI Hello World contributors" }]
+dependencies = ["nicegui>=3.11", "pywebview"]
 
 [project.optional-dependencies]
-dev = [
-    "ruff"
-]
-packaging = [
-    "pyinstaller>=6.0"
-]
+dev = ["ruff"]
+packaging = ["pyinstaller>=6.0"]
 
 [project.scripts]
 nicegui-hello-world = "nicegui_hello_world.app:main"
@@ -35,21 +26,10 @@ where = ["src"]
 line-length = 88
 target-version = "py313"
 src = ["src"]
-extend-exclude = [
-    ".venv",
-    "build",
-    "dist"
-]
+extend-exclude = [".venv", "build", "dist"]
 
 [tool.ruff.lint]
-select = [
-    "B",
-    "E",
-    "F",
-    "I",
-    "SIM",
-    "UP"
-]
+select = ["B", "E", "F", "I", "SIM", "UP"]
 
 [tool.ruff.format]
 docstring-code-format = true

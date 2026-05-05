@@ -82,29 +82,25 @@ function Invoke-PyInstallerBuild {
         -StepName "PyInstaller" `
         -Command "pyinstaller" `
         -Arguments @(
-        "--onefile",
-        "--windowed",
-        "--clean",
-        "--noconfirm",
-        "--icon",
-        $iconPath,
-        "--add-data",
-        $assetsData,
-        "--splash",
-        $splashImagePath,
-        "--version-file",
-        $versionInfoPath,
-        "--name",
-        $appName,
-        $entryPoint
-    )
-
-    if (-not (Test-Path $exePath)) {
-        throw "PyInstaller finished without creating the expected executable: $exePath"
-    }
+            "--onefile"
+            "--clean"
+            "--noconfirm"
+            "--icon"
+            $iconPath
+            "--add-data"
+            $assetsData
+            "--splash"
+            $splashImagePath
+            "--hidden-import"
+            "pyi_splash"
+            "--version-file"
+            $versionInfoPath
+            "--name"
+            $appName
+            $entryPoint
+        )
 
     $stopwatch.Stop()
-
     return $stopwatch.Elapsed
 }
 

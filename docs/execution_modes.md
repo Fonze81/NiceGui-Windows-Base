@@ -140,13 +140,13 @@ Startup source detection is implemented in:
 src\nicegui_hello_world\app.py
 ```
 
-| Source              | How it is identified                                  |
-| ------------------- | ----------------------------------------------------- |
-| `dev_run.py`        | `development_mode=True`                               |
-| `package`           | `is_packaged()` checks PyInstaller runtime state      |
-| `pyproject command` | command created by `[project.scripts]` starts the app |
-| `module`            | `python -m nicegui_hello_world` starts the app        |
-| `script`            | `src\nicegui_hello_world\app.py` starts directly      |
+| Source              | How it is identified                                      |
+| ------------------- | --------------------------------------------------------- |
+| `dev_run.py`        | `development_mode=True`                                   |
+| `package`           | `is_frozen_executable()` checks PyInstaller runtime state |
+| `pyproject command` | command created by `[project.scripts]` starts the app     |
+| `module`            | `python -m nicegui_hello_world` starts the app            |
+| `script`            | `src\nicegui_hello_world\app.py` starts directly          |
 
 ---
 
@@ -171,7 +171,7 @@ if __name__ == "__main__":
     main()
 ```
 
-`app.py` intentionally does not use `freeze_support()` or an `__mp_main__` guard. The current splash flow imports `pyi_splash` only when `sys.frozen` is true and closes it later from the first NiceGUI connection.
+`app.py` intentionally does not use `freeze_support()` or an `__mp_main__` guard. The current splash flow uses `PyInstallerSplashController` to import `pyi_splash` dynamically only when `sys.frozen` is true, then closes it later from the first NiceGUI connection.
 
 ---
 

@@ -12,6 +12,7 @@
         "donjayamanne.githistory",
         "Gruntfuggly.todo-tree",
         "shardulm94.trailing-spaces",
-        "seyyedkhandon.firacode"
+        "seyyedkhandon.firacode",
+        "tamasfe.even-better-toml"
     ]
 }
