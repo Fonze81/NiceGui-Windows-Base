@@ -24,8 +24,8 @@ The project intentionally keeps a small and direct architecture:
 
 ```mermaid
 flowchart TD
-    A[dev_run.py] --> B[src/nicegui_windows_base/app.py]
-    C[python -m nicegui_windows_base] --> D[src/nicegui_windows_base/__main__.py]
+    A[dev_run.py] --> B[src/desktop_app/app.py]
+    C[python -m desktop_app] --> D[src/desktop_app/__main__.py]
     D --> B
     E[nicegui-windows-base command] --> B
     F[PyInstaller executable] --> B

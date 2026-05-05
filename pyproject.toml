@@ -17,7 +17,7 @@ dev = ["ruff"]
 packaging = ["pyinstaller>=6.0"]
 
 [project.scripts]
-nicegui-windows-base = "nicegui_windows_base.app:main"
+nicegui-windows-base = "desktop_app.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -37,4 +37,4 @@ line-ending = "auto"
 quote-style = "double"
 
 [tool.setuptools.package-data]
-nicegui_windows_base = ["assets/*.ico", "assets/*.png", "assets/*.svg"]
+desktop_app = ["assets/*.ico", "assets/*.png", "assets/*.svg"]

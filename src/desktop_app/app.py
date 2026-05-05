@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# File: src/nicegui_windows_base/app.py
+# File: src/desktop_app/app.py
 # Purpose:
 # Define the NiceGui Windows Base application entry point and runtime helpers.
 # Behavior:
@@ -27,9 +27,9 @@ APPLICATION_TITLE = "NiceGui Windows Base"
 APP_ICON_FILENAME = "app_icon.ico"
 PAGE_IMAGE_FILENAME = "page_image.png"
 DEFAULT_WEB_PORT = 8080
-PACKAGED_ASSETS_DIR = Path("nicegui_windows_base") / "assets"
+PACKAGED_ASSETS_DIR = Path("desktop_app") / "assets"
 LOCAL_ASSETS_DIR = "assets"
-LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
+LOG_FILE_PATH = Path("logs") / "desktop_app.log"
 LOG_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 logger = logging.getLogger(__name__)

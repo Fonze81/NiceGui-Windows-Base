@@ -43,7 +43,7 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │   ├── package_windows.ps1
 │   └── version_info.txt
 ├── src/
-│   └── nicegui_windows_base/
+│   └── desktop_app/
 │       ├── assets/
 │       │   ├── app_icon.ico
 │       │   ├── page_image.png
@@ -110,8 +110,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_window
 | ------------------------ | --------------------------------------------- |
 | Install project          | `python -m pip install -e ".[dev,packaging]"` |
 | Run native app           | `nicegui-windows-base`                         |
-| Run as module            | `python -m nicegui_windows_base`               |
-| Run app script directly  | `python src\nicegui_windows_base\app.py`       |
+| Run as module            | `python -m desktop_app`               |
+| Run app script directly  | `python src\desktop_app\app.py`       |
 | Run web development mode | `python dev_run.py`                           |
 | Check code               | `ruff check .`                                |
 | Check formatting         | `ruff format --check .`                       |
@@ -141,7 +141,7 @@ Initializing NiceGui Windows Base from package in native mode with reload inacti
 Runtime assets are stored in:
 
 ```text
-src\nicegui_windows_base\assets
+src\desktop_app\assets
 ```
 
 Current assets:

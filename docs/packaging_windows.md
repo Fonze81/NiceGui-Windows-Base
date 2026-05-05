@@ -69,11 +69,11 @@ The relevant paths are:
 
 ```powershell
 $appName = "nicegui-windows-base"
-$entryPoint = "src\nicegui_windows_base\app.py"
-$assetsPath = "src\nicegui_windows_base\assets"
+$entryPoint = "src\desktop_app\app.py"
+$assetsPath = "src\desktop_app\assets"
 $iconPath = Join-Path $assetsPath "app_icon.ico"
 $splashImagePath = Join-Path $assetsPath "splash_light.png"
-$assetsData = "$assetsPath;nicegui_windows_base\assets"
+$assetsData = "$assetsPath;desktop_app\assets"
 $versionInfoPath = "scripts\version_info.txt"
 ```
 
@@ -120,14 +120,14 @@ version_info.txt: FileVersion = "0.1.0.0"
 The executable uses the icon from:
 
 ```text
-src\nicegui_windows_base\assets\app_icon.ico
+src\desktop_app\assets\app_icon.ico
 ```
 
 The same assets directory also includes runtime images such as:
 
 ```text
-src\nicegui_windows_base\assets\page_image.png
-src\nicegui_windows_base\assets\splash_light.png
+src\desktop_app\assets\page_image.png
+src\desktop_app\assets\splash_light.png
 ```
 
 The assets directory is bundled with:

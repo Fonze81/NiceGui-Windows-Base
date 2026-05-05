@@ -163,7 +163,7 @@ Editable installation is important because this project uses a `src` layout.
 It allows Python, VS Code, and tooling to resolve:
 
 ```text
-src\nicegui_windows_base
+src\desktop_app
 ```
 
 ---

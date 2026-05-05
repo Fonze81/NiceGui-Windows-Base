@@ -9,7 +9,7 @@ This guide collects common issues for the current **NiceGui Windows Base** proje
 Confirm that the packaging script includes `--splash` and that the image exists:
 
 ```powershell
-Test-Path src\nicegui_windows_base\assets\splash_light.png
+Test-Path src\desktop_app\assets\splash_light.png
 ```
 
 Then clean old build outputs and package again:
@@ -26,7 +26,7 @@ During normal Python execution, no splash screen appears. The splash is a packag
 
 ## 🖼️ Packaged splash screen does not close
 
-Confirm that `main(...)` in `src\nicegui_windows_base\app.py` calls:
+Confirm that `main(...)` in `src\desktop_app\app.py` calls:
 
 ```python
 register_pyinstaller_splash_handler()
@@ -104,7 +104,7 @@ nicegui-windows-base
 Diagnostic alternative:
 
 ```powershell
-python -m nicegui_windows_base
+python -m desktop_app
 ```
 
 ---
@@ -287,7 +287,7 @@ Avoid rebuilding the message separately inside `build_main_page(...)`, because t
 Confirm that the icon exists:
 
 ```powershell
-Test-Path .\src\nicegui_windows_base\assets\app_icon.ico
+Test-Path .\src\desktop_app\assets\app_icon.ico
 ```
 
 If the executable icon did not update, clean old build outputs and package again:
@@ -313,7 +313,7 @@ If the NiceGUI favicon does not appear in packaged mode, confirm that the packag
 Confirm that the PNG exists:
 
 ```powershell
-Test-Path .\src\nicegui_windows_base\assets\page_image.png
+Test-Path .\src\desktop_app\assets\page_image.png
 ```
 
 If the image does not appear only in packaged mode, confirm that the packaging script includes the full assets directory:

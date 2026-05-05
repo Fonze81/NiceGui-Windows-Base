@@ -12,9 +12,9 @@ Use this checklist to validate a new clone or a new Windows machine.
 - [ ] The folder contains `docs`.
 - [ ] The folder contains `dev_run.py`.
 - [ ] The folder contains `scripts\package_windows.ps1`.
-- [ ] The folder contains `src\nicegui_windows_base\assets\app_icon.ico`.
-- [ ] The folder contains `src\nicegui_windows_base\assets\page_image.png`.
-- [ ] The folder contains `src\nicegui_windows_base\assets\splash_light.png`.
+- [ ] The folder contains `src\desktop_app\assets\app_icon.ico`.
+- [ ] The folder contains `src\desktop_app\assets\page_image.png`.
+- [ ] The folder contains `src\desktop_app\assets\splash_light.png`.
 
 ---
 
@@ -110,13 +110,13 @@ nicegui-windows-base
 - [ ] Module execution works:
 
 ```powershell
-python -m nicegui_windows_base
+python -m desktop_app
 ```
 
 - [ ] Direct script execution works:
 
 ```powershell
-python src\nicegui_windows_base\app.py
+python src\desktop_app\app.py
 ```
 
 - [ ] Development mode works:

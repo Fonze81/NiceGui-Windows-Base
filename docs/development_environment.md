@@ -148,7 +148,7 @@ nicegui-windows-base
 Alternative module execution:
 
 ```powershell
-python -m nicegui_windows_base
+python -m desktop_app
 ```
 
 Browser-based development mode:
