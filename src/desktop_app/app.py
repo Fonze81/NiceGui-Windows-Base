@@ -22,20 +22,20 @@ from pathlib import Path
 from nicegui import native, ui
 
 from desktop_app.constants import (
-    APP_ICON_FILENAME,
     APPLICATION_TITLE,
     DEFAULT_WEB_PORT,
-    LOCAL_ASSETS_DIR,
     LOG_FILE_PATH,
-    PACKAGED_ASSETS_DIR,
     PAGE_IMAGE_FILENAME,
 )
 from desktop_app.core.runtime import (
     build_startup_message,
     detect_startup_source,
     get_nicegui_modes,
-    get_runtime_root,
     is_frozen_executable,
+)
+from desktop_app.infrastructure.asset_paths import (
+    get_application_icon_path,
+    resolve_asset_path,
 )
 from desktop_app.infrastructure.lifecycle import register_lifecycle_handlers
 
@@ -84,39 +84,6 @@ def configure_logging() -> Path:
     logger.debug("Process ID: %s", os.getpid())
 
     return log_file_path
-
-
-def resolve_asset_path(filename: str) -> str:
-    """Return an absolute path for an application asset.
-
-    Args:
-        filename: Asset filename stored in the application assets directory.
-
-    Returns:
-        Absolute path to the requested asset file as a string.
-    """
-    runtime_root = get_runtime_root()
-
-    if is_frozen_executable():
-        asset_path = runtime_root / PACKAGED_ASSETS_DIR / filename
-    else:
-        asset_path = runtime_root / LOCAL_ASSETS_DIR / filename
-
-    logger.debug("Resolved asset path for %s: %s", filename, asset_path)
-    logger.debug("Asset exists: %s", asset_path.exists())
-
-    return str(asset_path)
-
-
-def get_application_icon_path() -> str:
-    """Return the application icon path.
-
-    Returns:
-        Absolute path to the application icon file as a string.
-    """
-    icon_path = resolve_asset_path(APP_ICON_FILENAME)
-    logger.debug("Application icon path resolved: %s", icon_path)
-    return icon_path
 
 
 def get_runtime_port(*, native_mode: bool) -> int:
