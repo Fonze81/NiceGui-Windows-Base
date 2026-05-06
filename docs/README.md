@@ -18,9 +18,25 @@ This folder contains the maintenance documentation for the **NiceGui Windows Bas
 
 ---
 
+## 🧭 Naming model
+
+The source package is intentionally named `desktop_app`.
+
+This is a stable, generic internal package name for the template. Public names such as the repository name, CLI command, executable name, and visual application title can be changed for each project without renaming the Python package.
+
+Use these names consistently:
+
+- `desktop_app` for Python imports, module execution, package data, and internal source paths;
+- `nicegui-windows-base` for the default console script and Windows executable;
+- `NiceGui Windows Base` for the default visible application title.
+
+See the root [README](../README.md#-naming-model) for the complete naming model and the list of public metadata that should be changed when the template is reused.
+
+---
+
 ## 🏗️ Architecture overview
 
-The project intentionally keeps a small and direct architecture:
+The project intentionally keeps a small and direct architecture. The application entry point orchestrates startup while runtime detection, asset paths, lifecycle events, and splash handling remain in focused modules.
 
 ```mermaid
 flowchart TD
@@ -29,22 +45,58 @@ flowchart TD
     D --> B
     E[nicegui-windows-base command] --> B
     F[PyInstaller executable] --> B
+
     B --> G[NiceGUI UI]
-    B --> H[assets/app_icon.ico]
-    B --> I[assets/page_image.png]
-    J[scripts/package_windows.ps1] --> F
-    J --> H
-    J --> I
-    J --> K[scripts/version_info.txt]
-    J --> L[assets/splash_light.png]
+    B --> H[src/desktop_app/core/runtime.py]
+    B --> I[src/desktop_app/infrastructure/asset_paths.py]
+    B --> J[src/desktop_app/infrastructure/lifecycle.py]
+    J --> K[src/desktop_app/infrastructure/splash.py]
+
+    I --> L[assets/app_icon.ico]
+    I --> M[assets/page_image.png]
+    K --> N[pyi_splash]
+
+    O[scripts/package_windows.ps1] --> F
+    O --> L
+    O --> M
+    O --> P[assets/splash_light.png]
+    O --> Q[scripts/version_info.txt]
 ```
 
 Key decisions:
 
-- `app.py` owns UI composition, startup diagnostics, asset resolution, and NiceGUI startup.
+- `app.py` owns application startup orchestration, UI composition, logging setup, and the `ui.run(...)` call.
+- `core/runtime.py` owns startup source detection, runtime root detection, NiceGUI mode selection, and startup status message formatting.
+- `infrastructure/asset_paths.py` owns asset path resolution for normal Python execution and PyInstaller execution.
+- `infrastructure/lifecycle.py` owns NiceGUI lifecycle handler registration and lifecycle log messages.
+- `infrastructure/splash.py` owns optional PyInstaller splash loading and one-time splash closing.
 - `dev_run.py` exists only to request browser reload mode during development.
 - `__main__.py` only delegates module execution to the application entry point.
 - `package_windows.ps1` uses direct PyInstaller because it supports the project requirements without adding a second packaging path.
+
+---
+
+## 🖨️ Runtime log narrative
+
+The application log is intended to tell the operational story of each run:
+
+```text
+Logging initialized for NiceGui Windows Base.
+Starting NiceGui Windows Base startup sequence.
+Startup source resolved: the packaged executable.
+Runtime mode resolved: native mode with reload disabled.
+Starting NiceGUI runtime in native mode on port 8000.
+NiceGUI runtime started.
+Native window opened.
+Building the main page for the connected client.
+Main page built successfully.
+Native window finished loading.
+The native window was closed by the user.
+Client disconnected from the application.
+Application shutdown completed.
+```
+
+Detailed runtime evidence, such as `sys._MEIPASS`, asset paths, port selection, splash handling, and repeated resize or move events, is kept at `DEBUG` level.
 
 ---
 
@@ -52,7 +104,7 @@ Key decisions:
 
 The project uses **PyInstaller directly** instead of `nicegui-pack`.
 
-Reason: the measured size and build time were similar, while direct PyInstaller provides the required options for Windows version metadata and splash screen support.
+Reason: the measured size and build time were similar, while direct PyInstaller provides the required options for Windows version metadata, hidden splash imports, windowed execution, and splash screen support.
 
 See [Windows packaging](packaging_windows.md) for the full command and maintenance notes.
 

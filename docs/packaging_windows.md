@@ -21,12 +21,14 @@ Direct PyInstaller is now preferred because:
 - the packaging time was slightly faster in the comparison;
 - PyInstaller supports Windows version properties directly with `--version-file`;
 - PyInstaller supports splash screen configuration through `--splash`;
+- PyInstaller supports windowed desktop execution through `--windowed`;
+- PyInstaller allows the splash module to be preserved with `--hidden-import pyi_splash`;
 - using one packager keeps the script simpler.
 
 The decision is also documented as a comment in:
 
 ```text
-scripts/package_windows.ps1
+scripts\package_windows.ps1
 ```
 
 ---
@@ -60,6 +62,7 @@ pyinstaller `
     --icon $iconPath `
     --add-data $assetsData `
     --splash $splashImagePath `
+    --hidden-import pyi_splash `
     --version-file $versionInfoPath `
     --name $appName `
     $entryPoint
@@ -79,6 +82,36 @@ $versionInfoPath = "scripts\version_info.txt"
 
 ---
 
+## 🧭 Package path and executable name
+
+The PyInstaller entry point uses the stable internal package path:
+
+```powershell
+$entryPoint = "src\desktop_app\app.py"
+```
+
+The executable name can be changed independently through:
+
+```powershell
+$appName = "nicegui-windows-base"
+```
+
+When this template is reused, the internal package name should usually remain `desktop_app`. Change the public executable name, project metadata, application title, and assets instead of renaming the package. See the root [README](../README.md#-naming-model) for the complete naming model.
+
+---
+
+## 🪟 Windowed mode
+
+The build uses:
+
+```powershell
+--windowed
+```
+
+This prevents a console window from opening next to the native desktop window. Keep this option enabled for end-user desktop builds. If you need console output for packaging diagnostics, run the Python source directly or inspect the generated log file instead of removing `--windowed` permanently.
+
+---
+
 ## 🏷️ Windows executable properties
 
 Windows executable properties are applied during the PyInstaller build with:
@@ -90,7 +123,7 @@ Windows executable properties are applied during the PyInstaller build with:
 The version resource file is:
 
 ```text
-scripts/version_info.txt
+scripts\version_info.txt
 ```
 
 This file controls Windows details such as:
@@ -103,7 +136,7 @@ This file controls Windows details such as:
 - `ProductName`;
 - `ProductVersion`.
 
-When the project version changes in `pyproject.toml`, update both the numeric tuples and string values in `scripts/version_info.txt`.
+When the project version changes in `pyproject.toml`, update both the numeric tuples and string values in `scripts\version_info.txt`.
 
 Example:
 
@@ -149,9 +182,21 @@ $splashImagePath = Join-Path $assetsPath "splash_light.png"
 pyinstaller --splash $splashImagePath ...
 ```
 
-At runtime, `app.py` closes the splash screen on the first NiceGUI client connection through `app.on_connect(...)`. When `sys.frozen` is true, the optional `pyi_splash` module is imported during application startup, when PyInstaller exposes it, and the handler reuses that module reference when the client connects. An internal flag avoids repeated close attempts during reconnects, so normal Python execution and builds without splash support continue to work.
+The build also keeps the optional PyInstaller splash module available with:
 
-`app.py` uses the standard `if __name__ == "__main__"` entry point and does not use `freeze_support()` or an `__mp_main__` guard in the packaged application flow.
+```powershell
+--hidden-import pyi_splash
+```
+
+At runtime, `register_splash_handler()` imports `pyi_splash` only when `sys.frozen` is true. If the module is available, it registers `close_splash_once()` with `app.on_connect(...)` before `ui.run(...)` starts. The handler closes the splash screen after the first NiceGUI client connects and avoids repeated close attempts during reconnects.
+
+`app.py` uses the standard Windows-safe packaged entry point:
+
+```python
+if __name__ == "__main__":
+    freeze_support()
+    main()
+```
 
 The splash image is intentionally separate from the page image. Use a file with an opaque light background to avoid transparent pixels rendering with an unexpected color in the PyInstaller splash window.
 

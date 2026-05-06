@@ -59,17 +59,17 @@ def _handle_native_window_loaded(*_args: Any) -> None:
 
 def _handle_native_window_minimized(*_args: Any) -> None:
     """Handle the native window minimized event."""
-    logger.debug("The native window was minimized by the user.")
+    logger.info("The native window was minimized by the user.")
 
 
 def _handle_native_window_maximized(*_args: Any) -> None:
     """Handle the native window maximized event."""
-    logger.debug("The native window was maximized by the user.")
+    logger.info("The native window was maximized by the user.")
 
 
 def _handle_native_window_restored(*_args: Any) -> None:
     """Handle the native window restored event."""
-    logger.debug("The native window was restored by the user.")
+    logger.info("The native window was restored by the user.")
 
 
 def _handle_native_window_resized(*_args: Any) -> None:

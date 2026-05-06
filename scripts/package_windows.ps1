@@ -135,12 +135,13 @@ PyInstaller showed similar results:
 | PyInstaller | 40.37 | 78.36 |
 
 Direct PyInstaller keeps the packaging flow simpler and exposes options needed by
-this project, including `--version-file` and `--splash`.
+this project, including `--windowed`, `--version-file`, `--splash`, and
+`--hidden-import pyi_splash`.
 
 ## Notes
 
 - The executable receives Windows version properties during build with `--version-file`.
-- The build uses the project icon, splash image, assets directory, entry point, one-file mode, and windowed mode.
+- The build uses the project icon, splash image, assets directory, entry point, one-file mode, windowed mode, and hidden `pyi_splash` import.
 - The previous nicegui-pack comparison flow was removed after confirming that file size and build time were similar.
 "@
 

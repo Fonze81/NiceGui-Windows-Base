@@ -24,10 +24,13 @@ from nicegui import native, ui
 from desktop_app.constants import (
     APPLICATION_TITLE,
     DEFAULT_WEB_PORT,
+    LOG_FILE_PATH,
     PAGE_IMAGE_FILENAME,
 )
 from desktop_app.core.runtime import (
     build_startup_message,
+    describe_runtime_mode,
+    describe_startup_source,
     detect_startup_source,
     get_nicegui_modes,
     is_frozen_executable,
@@ -38,16 +41,8 @@ from desktop_app.infrastructure.asset_paths import (
 )
 from desktop_app.infrastructure.lifecycle import register_lifecycle_handlers
 
-LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
 LOG_LEVEL = logging.DEBUG
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
-STARTUP_SOURCE_DESCRIPTIONS = {
-    "dev_run.py": "development runner",
-    "package": "packaged executable",
-    "pyproject command": "pyproject command",
-    "module": "module execution",
-    "script": "direct script execution",
-}
 
 logger = logging.getLogger("desktop_app.app")
 
@@ -113,33 +108,6 @@ def configure_logging() -> Path:
     logger.debug("Operating system process ID: %s", os.getpid())
 
     return log_file_path
-
-
-def describe_startup_source(startup_source: str) -> str:
-    """Return a readable startup source description for logs.
-
-    Args:
-        startup_source: Source returned by runtime startup detection.
-
-    Returns:
-        Human-readable startup source description.
-    """
-    return STARTUP_SOURCE_DESCRIPTIONS.get(startup_source, startup_source)
-
-
-def describe_runtime_mode(*, native_mode: bool, reload_enabled: bool) -> str:
-    """Return a readable runtime mode description for logs.
-
-    Args:
-        native_mode: Whether the application runs in NiceGUI native mode.
-        reload_enabled: Whether NiceGUI reload mode is enabled.
-
-    Returns:
-        Human-readable runtime mode description.
-    """
-    mode_name = "native mode" if native_mode else "web mode"
-    reload_status = "enabled" if reload_enabled else "disabled"
-    return f"{mode_name} with reload {reload_status}"
 
 
 def get_runtime_port(*, native_mode: bool) -> int:

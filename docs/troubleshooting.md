@@ -22,17 +22,25 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 During normal Python execution, no splash screen appears. The splash is a packaged-executable behavior.
 
+If the splash still does not appear after packaging, confirm that the PyInstaller command includes both `--splash` and `--hidden-import pyi_splash`.
+
 ---
 
 ## 🖼️ Packaged splash screen does not close
 
-Confirm that `main(...)` in `src\desktop_app\app.py` calls:
+Confirm that `register_lifecycle_handlers()` in `src\desktop_app\app.py` is called before `ui.run(...)`. It delegates splash setup through `register_splash_handler()` in `src\desktop_app\infrastructure\splash.py`:
 
 ```python
-register_pyinstaller_splash_handler()
+register_lifecycle_handlers()
 ```
 
-The handler registers `pyinstaller_splash.close_once` with `app.on_connect(...)` only when PyInstaller splash support is available. `app.py` imports the optional `pyi_splash` module dynamically during startup only when `sys.frozen` is true and stores the module reference for the later callback. This avoids importing the module too late, in a context where PyInstaller may no longer expose it. The controller calls `close()` only when the module exists and keeps an internal close-attempt flag to avoid repeated close attempts during reconnects.
+The splash handler imports the optional `pyi_splash` module only when `sys.frozen` is true, stores the module reference, and registers `close_splash_once()` with `app.on_connect(...)`. This avoids importing the module too late, closes the splash after the first NiceGUI client connects, and prevents repeated close attempts during reconnects.
+
+Also confirm that the packaging script keeps the hidden import:
+
+```powershell
+--hidden-import pyi_splash
+```
 
 ---
 
@@ -243,10 +251,11 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 Likely cause: a frozen multiprocessing child process is re-entering the application startup flow.
 
-For packaged execution, keep the standard entry point in `app.py`:
+For packaged execution, keep the Windows-safe entry point in `app.py`:
 
 ```python
 if __name__ == "__main__":
+    freeze_support()
     main()
 ```
 
@@ -329,6 +338,26 @@ Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
 Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 .\scripts\package_windows.ps1
 ```
+
+---
+
+## 🪟 Packaged executable opens a console window
+
+Confirm that the PyInstaller arguments include:
+
+```powershell
+--windowed
+```
+
+Then clean old build outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
+```
+
+`--windowed` is required for the expected desktop behavior because the native NiceGUI window should open without an additional console window.
 
 ---
 
@@ -464,7 +493,7 @@ Measured results were similar:
 | nicegui-pack | 41.26 MB | 80.54 s |
 | PyInstaller  | 40.37 MB | 78.36 s |
 
-The project now uses direct PyInstaller only because it supports `--version-file` and keeps future splash screen configuration available without a second post-processing path.
+The project now uses direct PyInstaller only because it supports `--version-file`, `--windowed`, `--splash`, and `--hidden-import pyi_splash` without a second post-processing path.
 
 If old documentation or terminal commands mention `nicegui-pack`, use this instead:
 

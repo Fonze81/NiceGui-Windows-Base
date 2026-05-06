@@ -12,10 +12,13 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 - Python package using `src` layout;
 - project metadata, dependencies, entry point, package assets, and Ruff configuration in `pyproject.toml`;
 - normal native execution through `nicegui-windows-base`;
+- module execution through `python -m desktop_app`;
 - browser-based development execution through `python dev_run.py`;
-- startup diagnostics shown in the terminal and in the UI;
+- narrative startup diagnostics shown in the terminal, log file, and UI;
 - packaged and normal asset resolution for the application icon and page image;
-- PyInstaller packaging with executable icon, bundled assets, Windows version metadata, and splash screen;
+- lifecycle logging for NiceGUI, native window events, client disconnects, exceptions, and shutdown;
+- optional PyInstaller splash screen support that closes after the first client connects;
+- PyInstaller packaging with windowed mode, executable icon, bundled assets, Windows version metadata, hidden splash import, and splash screen;
 - VS Code recommendations and Ruff-on-save workspace settings;
 - maintenance documentation in [`docs`](docs/README.md).
 
@@ -46,17 +49,54 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │   └── desktop_app/
 │       ├── assets/
 │       │   ├── app_icon.ico
+│       │   ├── logo.png
 │       │   ├── page_image.png
 │       │   ├── splash.svg
 │       │   ├── splash_dark.png
 │       │   └── splash_light.png
+│       ├── core/
+│       │   ├── __init__.py
+│       │   └── runtime.py
+│       ├── infrastructure/
+│       │   ├── __init__.py
+│       │   ├── asset_paths.py
+│       │   ├── lifecycle.py
+│       │   └── splash.py
 │       ├── __init__.py
 │       ├── __main__.py
-│       └── app.py
+│       ├── app.py
+│       └── constants.py
 ├── dev_run.py
 ├── pyproject.toml
 └── README.md
 ```
+
+---
+
+## 🧭 Naming model
+
+This repository is a template, so it intentionally separates the public project names from the internal Python package name.
+
+| Element                 | Current value              | Purpose                                                                                 |
+| ----------------------- | -------------------------- | --------------------------------------------------------------------------------------- |
+| Repository              | `nicegui-windows-base`     | Git repository and template identity.                                                   |
+| Python package          | `desktop_app`              | Stable internal package used by imports, module execution, assets, and packaging paths. |
+| CLI command             | `nicegui-windows-base`     | User-facing command configured in `pyproject.toml`.                                     |
+| Windows executable      | `nicegui-windows-base.exe` | Packaged desktop application artifact.                                                  |
+| Visual application name | `NiceGui Windows Base`     | Name shown in the UI, logs, and application metadata.                                   |
+
+The internal package is intentionally named `desktop_app`.
+
+When this template is reused for a new project, the package usually does **not** need to be renamed. Prefer changing public project metadata instead, such as:
+
+- project name, description, authors, and script command in `pyproject.toml`;
+- `APPLICATION_TITLE`, log file name, and command detection constants in `src/desktop_app/constants.py`;
+- executable name and version metadata in `scripts/package_windows.ps1` and `scripts/version_info.txt`;
+- README text, documentation titles, and visual assets.
+
+Keeping `desktop_app` stable avoids unnecessary changes to imports, module paths, entry points, asset packaging, tests, and documentation links.
+
+Rename the package only when the new project has a strong technical reason to expose a domain-specific Python package name. If that happens, update all imports, `pyproject.toml`, PyInstaller paths, documentation, and tests together.
 
 ---
 
@@ -84,6 +124,12 @@ Run the application normally in native mode:
 nicegui-windows-base
 ```
 
+Run the application as a Python module:
+
+```powershell
+python -m desktop_app
+```
+
 Run the application in browser development mode:
 
 ```powershell
@@ -109,30 +155,34 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_window
 | Task                     | Command                                       |
 | ------------------------ | --------------------------------------------- |
 | Install project          | `python -m pip install -e ".[dev,packaging]"` |
-| Run native app           | `nicegui-windows-base`                         |
-| Run as module            | `python -m desktop_app`               |
-| Run app script directly  | `python src\desktop_app\app.py`       |
+| Run native app           | `nicegui-windows-base`                        |
+| Run as module            | `python -m desktop_app`                       |
+| Run app script directly  | `python src\desktop_app\app.py`               |
 | Run web development mode | `python dev_run.py`                           |
 | Check code               | `ruff check .`                                |
 | Check formatting         | `ruff format --check .`                       |
 | Format code              | `ruff format .`                               |
 | Package for Windows      | `.\scripts\package_windows.ps1`               |
 
+All runtime commands assume the virtual environment is active and the editable install has already been completed.
+
 ---
 
 ## 🖨️ Startup diagnostics
 
-The application prints how it was started, which mode is active, and whether reload is enabled. The same message is shown in the page.
+The application prints a narrative startup message that explains how it was started, which mode is active, and whether reload is enabled. The same message is shown in the page.
 
 Examples:
 
 ```text
-Initializing NiceGui Windows Base from pyproject command in native mode with reload inactive.
-Initializing NiceGui Windows Base from module in native mode with reload inactive.
-Initializing NiceGui Windows Base from script in native mode with reload inactive.
-Initializing NiceGui Windows Base from dev_run.py in web mode with reload active.
-Initializing NiceGui Windows Base from package in native mode with reload inactive.
+NiceGui Windows Base is starting from the pyproject command in native mode with reload disabled.
+NiceGui Windows Base is starting from module execution in native mode with reload disabled.
+NiceGui Windows Base is starting from direct script execution in native mode with reload disabled.
+NiceGui Windows Base is starting from the development runner in web mode with reload enabled.
+NiceGui Windows Base is starting from the packaged executable in native mode with reload disabled.
 ```
+
+The log file also tells the operational story of the run: logging initialization, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, native window events, client disconnects, exceptions, and shutdown.
 
 ---
 
@@ -151,7 +201,7 @@ Current assets:
 - `splash_light.png` — used by PyInstaller `--splash` and intended to have an opaque light background;
 - `splash_dark.png` and `splash.svg` — optional source/reference assets for future splash design changes.
 
-`app.py` resolves asset paths for both normal Python execution and packaged execution.
+`asset_paths.py` resolves asset paths for both normal Python execution and packaged execution.
 
 ---
 

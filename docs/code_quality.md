@@ -68,21 +68,10 @@ Current configuration:
 line-length = 88
 target-version = "py313"
 src = ["src"]
-extend-exclude = [
-    ".venv",
-    "build",
-    "dist"
-]
+extend-exclude = [".venv", "build", "dist"]
 
 [tool.ruff.lint]
-select = [
-    "B",
-    "E",
-    "F",
-    "I",
-    "SIM",
-    "UP"
-]
+select = ["B", "E", "F", "I", "SIM", "UP"]
 
 [tool.ruff.format]
 docstring-code-format = true

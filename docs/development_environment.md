@@ -131,9 +131,12 @@ python -m pip install -e ".[dev,packaging]"
 This installs:
 
 - the project in editable mode;
+- the internal `desktop_app` package from the `src` layout;
 - runtime dependencies from `pyproject.toml`;
 - Ruff through the `dev` extra;
 - PyInstaller through the `packaging` extra.
+
+The editable install exposes the internal `desktop_app` package. The public command name is configured separately in `pyproject.toml`. This separation is intentional for template reuse; see the root [README](../README.md#-naming-model).
 
 ---
 

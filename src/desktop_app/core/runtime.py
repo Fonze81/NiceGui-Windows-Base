@@ -24,6 +24,14 @@ from desktop_app.constants import (
 
 logger = logging.getLogger(__name__)
 
+STARTUP_SOURCE_DESCRIPTIONS = {
+    "dev_run.py": "the development runner",
+    "package": "the packaged executable",
+    "pyproject command": "the pyproject command",
+    "module": "module execution",
+    "script": "direct script execution",
+}
+
 
 def is_frozen_executable(*, frozen: bool | None = None) -> bool:
     """Return whether the application is running from a frozen executable.
@@ -35,9 +43,7 @@ def is_frozen_executable(*, frozen: bool | None = None) -> bool:
     Returns:
         True when PyInstaller marks the process as frozen; otherwise False.
     """
-    result = frozen if frozen is not None else bool(getattr(sys, "frozen", False))
-
-    return result
+    return frozen if frozen is not None else bool(getattr(sys, "frozen", False))
 
 
 def get_runtime_root(
@@ -177,23 +183,31 @@ def detect_startup_source(
     return entry_name or "unknown source"
 
 
-def _describe_startup_source(startup_source: str) -> str:
+def describe_startup_source(startup_source: str) -> str:
     """Return a readable startup source description.
 
     Args:
         startup_source: Source used to start the application.
 
     Returns:
-        Human-readable startup source description for status messages.
+        Human-readable startup source description for logs and status messages.
     """
-    descriptions = {
-        "dev_run.py": "the development runner",
-        "package": "the packaged executable",
-        "pyproject command": "the pyproject command",
-        "module": "module execution",
-        "script": "direct script execution",
-    }
-    return descriptions.get(startup_source, startup_source)
+    return STARTUP_SOURCE_DESCRIPTIONS.get(startup_source, startup_source)
+
+
+def describe_runtime_mode(*, native_mode: bool, reload_enabled: bool) -> str:
+    """Return a readable runtime mode description.
+
+    Args:
+        native_mode: Whether the application runs in NiceGUI native mode.
+        reload_enabled: Whether NiceGUI reload mode is enabled.
+
+    Returns:
+        Human-readable runtime mode description for logs.
+    """
+    mode_name = "native mode" if native_mode else "web mode"
+    reload_status = "enabled" if reload_enabled else "disabled"
+    return f"{mode_name} with reload {reload_status}"
 
 
 def build_startup_message(
@@ -216,7 +230,7 @@ def build_startup_message(
     """
     mode_name = "native" if native_mode else "web"
     reload_status = "enabled" if reload_enabled else "disabled"
-    source_description = _describe_startup_source(startup_source)
+    source_description = describe_startup_source(startup_source)
 
     message = (
         f"{application_title} is starting from {source_description} "

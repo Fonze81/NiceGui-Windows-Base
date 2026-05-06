@@ -13,6 +13,7 @@ Use this checklist to validate a new clone or a new Windows machine.
 - [ ] The folder contains `dev_run.py`.
 - [ ] The folder contains `scripts\package_windows.ps1`.
 - [ ] The folder contains `src\desktop_app\assets\app_icon.ico`.
+- [ ] The folder contains `src\desktop_app\assets\logo.png`.
 - [ ] The folder contains `src\desktop_app\assets\page_image.png`.
 - [ ] The folder contains `src\desktop_app\assets\splash_light.png`.
 
@@ -188,6 +189,6 @@ dist\nicegui-windows-base.exe
 - [ ] `.\scripts\package_windows.ps1` creates `dist\nicegui-windows-base.exe`.
 - [ ] The executable has the project icon.
 - [ ] The executable shows a splash screen during startup.
-- [ ] The executable opens the NiceGUI native window.
+- [ ] The executable opens the NiceGUI native window without an extra console window.
 - [ ] The page displays the PNG image and startup status message.
 - [ ] `dist\packaging_report.md` is created.

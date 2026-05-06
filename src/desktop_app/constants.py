@@ -20,5 +20,5 @@ PYINSTALLER_SPLASH_MODULE = "pyi_splash"
 DEFAULT_WEB_PORT = 8080
 PACKAGED_ASSETS_DIR = Path("desktop_app") / "assets"
 LOCAL_ASSETS_DIR = "assets"
-LOG_FILE_PATH = Path("logs") / "desktop_app.log"
+LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
 PYPROJECT_COMMAND_NAMES = ("nicegui-windows-base", "nicegui-windows-base.exe")
