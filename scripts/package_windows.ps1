@@ -83,6 +83,7 @@ function Invoke-PyInstallerBuild {
         -Command "pyinstaller" `
         -Arguments @(
             "--onefile"
+            "--windowed"
             "--clean"
             "--noconfirm"
             "--icon"
