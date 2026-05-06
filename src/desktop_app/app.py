@@ -3,13 +3,13 @@
 # Purpose:
 # Define the NiceGUI Windows Base application entry point.
 # Behavior:
-# Configures logging, resolves application assets, handles the optional
-# PyInstaller splash screen, builds the main NiceGUI page, and starts NiceGUI in
-# native mode by default or browser reload mode during development.
+# Configures logging, builds the main NiceGUI page, registers lifecycle handlers,
+# and starts NiceGUI in native mode by default or browser reload mode during
+# development.
 # Notes:
-# Runtime detection is delegated to desktop_app.core.runtime. Application
-# constants and splash handling still live in this module until dedicated
-# modules are introduced.
+# Runtime detection, asset path resolution, splash handling, and lifecycle
+# handlers are delegated to dedicated modules to keep this entry point focused
+# on application startup orchestration.
 # -----------------------------------------------------------------------------
 
 import logging
@@ -24,7 +24,6 @@ from nicegui import native, ui
 from desktop_app.constants import (
     APPLICATION_TITLE,
     DEFAULT_WEB_PORT,
-    LOG_FILE_PATH,
     PAGE_IMAGE_FILENAME,
 )
 from desktop_app.core.runtime import (
@@ -39,10 +38,14 @@ from desktop_app.infrastructure.asset_paths import (
 )
 from desktop_app.infrastructure.lifecycle import register_lifecycle_handlers
 
+LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
+LOG_LEVEL = logging.DEBUG
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+
 logger = logging.getLogger(__name__)
 
 
-def get_log_file_path() -> Path:
+def resolve_log_file_path() -> Path:
     """Return the log file path for the current runtime.
 
     Returns:
@@ -55,22 +58,38 @@ def get_log_file_path() -> Path:
     return Path.cwd() / LOG_FILE_PATH
 
 
+def create_log_handlers(log_file_path: Path) -> list[logging.Handler]:
+    """Create application log handlers.
+
+    Args:
+        log_file_path: File path where logs should be written.
+
+    Returns:
+        Configured logging handlers for file and terminal output.
+    """
+    formatter = logging.Formatter(LOG_FORMAT)
+
+    file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+
+    return [file_handler, stream_handler]
+
+
 def configure_logging() -> Path:
     """Configure application logging for terminal and file diagnostics.
 
     Returns:
         The configured log file path.
     """
-    log_file_path = get_log_file_path()
+    log_file_path = resolve_log_file_path()
     log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        handlers=[
-            logging.FileHandler(log_file_path, encoding="utf-8"),
-            logging.StreamHandler(),
-        ],
+        level=LOG_LEVEL,
+        handlers=create_log_handlers(log_file_path),
         force=True,
     )
 
