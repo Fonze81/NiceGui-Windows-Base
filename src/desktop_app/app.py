@@ -217,20 +217,31 @@ def main(*, development_mode: bool = False) -> None:
         runtime_port,
     )
 
-    # NiceGUI receives a callable that builds the UI later. partial keeps the
-    # startup message bound without calling build_main_page before ui.run starts.
+    ui_run_options = {
+        "native": native_mode,
+        "reload": reload_enabled,
+        "title": APPLICATION_TITLE,
+        "favicon": icon_path,
+        "port": runtime_port,
+    }
+
+    if reload_enabled:
+        ui_run_options.update(
+            {
+                "uvicorn_reload_dirs": "src",
+                "uvicorn_reload_includes": "*.py",
+                "uvicorn_reload_excludes": (
+                    "logs/*,logs/**/*,*.log,build/*,dist/*,.venv/*,.venv/**/*"
+                ),
+            }
+        )
+        logger.debug("NiceGUI reload file watching configured for development mode.")
+
+    # NiceGUI expects a callable that builds the UI when a client connects.
+    # partial binds the startup message without calling build_main_page now.
     ui.run(
         partial(build_main_page, startup_message=startup_message),
-        native=native_mode,
-        reload=reload_enabled,
-        title=APPLICATION_TITLE,
-        favicon=icon_path,
-        port=runtime_port,
-        uvicorn_reload_dirs="src",
-        uvicorn_reload_includes="*.py",
-        uvicorn_reload_excludes=(
-            "logs/*,logs/**/*,*.log,build/*,dist/*,.venv/*,.venv/**/*"
-        ),
+        **ui_run_options,
     )
 
 
