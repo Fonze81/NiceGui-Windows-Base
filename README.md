@@ -66,6 +66,7 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       ├── __main__.py
 │       ├── app.py
 │       └── constants.py
+├── CHANGELOG.md
 ├── dev_run.py
 ├── pyproject.toml
 └── README.md
@@ -216,3 +217,9 @@ Main guides:
 - [Windows packaging](docs/packaging_windows.md)
 - [Code quality with Ruff](docs/code_quality.md)
 - [Troubleshooting](docs/troubleshooting.md)
+
+---
+
+## 📝 Release notes
+
+See [CHANGELOG.md](CHANGELOG.md) for version history, release notes, and migration notes.

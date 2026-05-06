@@ -15,6 +15,7 @@ This folder contains the maintenance documentation for the **NiceGui Windows Bas
 7. [Code quality with Ruff](code_quality.md) — linting, formatting, and pre-commit validation.
 8. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone.
 9. [Troubleshooting](troubleshooting.md) — common issues and fixes.
+10. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
 
 ---
 
