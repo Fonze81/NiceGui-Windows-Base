@@ -45,11 +45,12 @@ function Invoke-NativeCommand {
         -Name PSNativeCommandUseErrorActionPreference `
         -ErrorAction SilentlyContinue
     $previousNativeErrorPreference = $null
+    $exitCode = $null
 
     try {
         $ErrorActionPreference = "Continue"
 
-        if ($nativeErrorPreferenceVariable) {
+        if ($null -ne $nativeErrorPreferenceVariable) {
             $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
             $PSNativeCommandUseErrorActionPreference = $false
         }
@@ -63,9 +64,13 @@ function Invoke-NativeCommand {
     finally {
         $ErrorActionPreference = $previousErrorActionPreference
 
-        if ($nativeErrorPreferenceVariable) {
+        if ($null -ne $nativeErrorPreferenceVariable) {
             $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
         }
+    }
+
+    if ($null -eq $exitCode) {
+        throw "$StepName did not return an exit code."
     }
 
     if ($exitCode -ne 0) {
@@ -158,12 +163,12 @@ Invoke-NativeCommand `
     -StepName "Editable installation" `
     -Command "python" `
     -Arguments @(
-    "-m",
-    "pip",
-    "install",
-    "-e",
-    ".[packaging]"
-)
+        "-m",
+        "pip",
+        "install",
+        "-e",
+        ".[packaging]"
+    )
 
 Write-Host "Checking PyInstaller availability..."
 $pyInstallerCommand = Get-Command pyinstaller -ErrorAction SilentlyContinue

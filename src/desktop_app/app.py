@@ -205,7 +205,7 @@ def main(*, development_mode: bool = False) -> None:
     print(startup_message, flush=True)
     logger.debug("Startup status message sent to the terminal: %s", startup_message)
 
-    register_lifecycle_handlers()
+    register_lifecycle_handlers(native_mode=native_mode)
 
     icon_path = get_application_icon_path()
     logger.debug("Application icon prepared for NiceGUI: %s", icon_path)
@@ -228,11 +228,17 @@ def main(*, development_mode: bool = False) -> None:
     if reload_enabled:
         ui_run_options.update(
             {
-                "uvicorn_reload_dirs": "src",
-                "uvicorn_reload_includes": "*.py",
-                "uvicorn_reload_excludes": (
-                    "logs/*,logs/**/*,*.log,build/*,dist/*,.venv/*,.venv/**/*"
-                ),
+                "uvicorn_reload_dirs": ["src"],
+                "uvicorn_reload_includes": ["*.py"],
+                "uvicorn_reload_excludes": [
+                    "logs/*",
+                    "logs/**/*",
+                    "*.log",
+                    "build/*",
+                    "dist/*",
+                    ".venv/*",
+                    ".venv/**/*",
+                ],
             }
         )
         logger.debug("NiceGUI reload file watching configured for development mode.")

@@ -28,10 +28,10 @@ If the splash still does not appear after packaging, confirm that the PyInstalle
 
 ## 🖼️ Packaged splash screen does not close
 
-Confirm that `register_lifecycle_handlers()` in `src\desktop_app\app.py` is called before `ui.run(...)`. It delegates splash setup through `register_splash_handler()` in `src\desktop_app\infrastructure\splash.py`:
+Confirm that `register_lifecycle_handlers(native_mode=native_mode)` in `src\desktop_app\app.py` is called before `ui.run(...)`. It delegates splash setup through `register_splash_handler()` in `src\desktop_app\infrastructure\splash.py`:
 
 ```python
-register_lifecycle_handlers()
+register_lifecycle_handlers(native_mode=native_mode)
 ```
 
 The splash handler imports the optional `pyi_splash` module only when `sys.frozen` is true, stores the module reference, and registers `close_splash_once()` with `app.on_connect(...)`. This avoids importing the module too late, closes the splash after the first NiceGUI client connects, and prevents repeated close attempts during reconnects.

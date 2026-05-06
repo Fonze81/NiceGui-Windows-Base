@@ -22,7 +22,7 @@ from desktop_app.infrastructure.splash import register_splash_handler
 logger = logging.getLogger(__name__)
 
 
-def _log_exception_event(message: str, args: tuple[Any, ...]) -> None:
+def _log_nicegui_exception_event(message: str, args: tuple[Any, ...]) -> None:
     """Log a NiceGUI exception event with traceback when available.
 
     Args:
@@ -61,7 +61,7 @@ def _handle_client_disconnected(*_args: Any) -> None:
 
 def _handle_application_exception(*args: Any) -> None:
     """Handle a general NiceGUI application exception event."""
-    _log_exception_event(
+    _log_nicegui_exception_event(
         "NiceGUI reported an application-level exception.",
         args,
     )
@@ -69,7 +69,7 @@ def _handle_application_exception(*args: Any) -> None:
 
 def _handle_page_exception(*args: Any) -> None:
     """Handle a NiceGUI page exception event."""
-    _log_exception_event(
+    _log_nicegui_exception_event(
         "NiceGUI reported a page-level exception.",
         args,
     )
@@ -142,12 +142,21 @@ def _register_native_window_handlers() -> None:
     app.native.on("drop", _handle_native_file_drop)
 
 
-def register_lifecycle_handlers() -> None:
-    """Register application lifecycle handlers."""
+def register_lifecycle_handlers(*, native_mode: bool = True) -> None:
+    """Register application lifecycle handlers.
+
+    Args:
+        native_mode: Whether native window handlers should be registered.
+    """
     logger.debug("Registering lifecycle handlers.")
 
     _register_application_handlers()
-    _register_native_window_handlers()
+
+    if native_mode:
+        _register_native_window_handlers()
+    else:
+        logger.debug("Native window handlers skipped because web mode is active.")
+
     register_splash_handler()
 
     logger.debug("Lifecycle handlers registered.")
