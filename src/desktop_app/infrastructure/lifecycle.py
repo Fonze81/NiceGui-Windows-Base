@@ -22,6 +22,28 @@ from desktop_app.infrastructure.splash import register_splash_handler
 logger = logging.getLogger(__name__)
 
 
+def _log_exception_event(message: str, args: tuple[Any, ...]) -> None:
+    """Log a NiceGUI exception event with traceback when available.
+
+    Args:
+        message: Human-readable event message.
+        args: Event arguments that may contain an exception instance.
+    """
+    exception = next((arg for arg in args if isinstance(arg, BaseException)), None)
+
+    if exception is None:
+        logger.error("%s No exception object was provided by NiceGUI.", message)
+        return
+
+    logger.error(
+        "%s %s: %s",
+        message,
+        type(exception).__name__,
+        exception,
+        exc_info=(type(exception), exception, exception.__traceback__),
+    )
+
+
 def _handle_application_started(*_args: Any) -> None:
     """Handle the NiceGUI application startup event."""
     logger.info("NiceGUI runtime started.")
@@ -37,14 +59,20 @@ def _handle_client_disconnected(*_args: Any) -> None:
     logger.info("Client disconnected from the application.")
 
 
-def _handle_application_exception(*_args: Any) -> None:
+def _handle_application_exception(*args: Any) -> None:
     """Handle a general NiceGUI application exception event."""
-    logger.error("NiceGUI reported an application-level exception.")
+    _log_exception_event(
+        "NiceGUI reported an application-level exception.",
+        args,
+    )
 
 
-def _handle_page_exception(*_args: Any) -> None:
+def _handle_page_exception(*args: Any) -> None:
     """Handle a NiceGUI page exception event."""
-    logger.error("NiceGUI reported a page-level exception.")
+    _log_exception_event(
+        "NiceGUI reported a page-level exception.",
+        args,
+    )
 
 
 def _handle_native_window_shown(*_args: Any) -> None:
