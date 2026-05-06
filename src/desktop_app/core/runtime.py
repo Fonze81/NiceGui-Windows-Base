@@ -67,25 +67,31 @@ def get_runtime_root(
     if runtime_meipass is None:
         runtime_meipass = getattr(sys, "_MEIPASS", None)
 
-    logger.debug("Detected sys._MEIPASS: %s", runtime_meipass)
+    logger.debug("Runtime root check: sys._MEIPASS=%s", runtime_meipass)
 
     if runtime_meipass:
         runtime_root = Path(runtime_meipass).resolve()
-        logger.debug("Runtime root resolved from sys._MEIPASS: %s", runtime_root)
+        logger.debug(
+            "Runtime root selected from PyInstaller extraction directory: %s",
+            runtime_root,
+        )
         return runtime_root
 
     runtime_executable = executable or sys.executable
 
     if is_frozen_executable(frozen=frozen):
         runtime_root = Path(runtime_executable).resolve().parent
-        logger.debug("Runtime root resolved from executable parent: %s", runtime_root)
+        logger.debug(
+            "Runtime root selected from frozen executable folder: %s",
+            runtime_root,
+        )
         return runtime_root
 
     runtime_module_file = (
         Path(module_file) if module_file is not None else Path(__file__)
     )
     runtime_root = runtime_module_file.resolve().parent.parent
-    logger.debug("Runtime root resolved from package root: %s", runtime_root)
+    logger.debug("Runtime root selected from package root: %s", runtime_root)
     return runtime_root
 
 
@@ -99,10 +105,14 @@ def get_nicegui_modes(*, development_mode: bool) -> tuple[bool, bool]:
         A tuple containing native mode and reload status.
     """
     if development_mode:
-        logger.debug("NiceGUI mode resolved: native=False, reload=True")
+        logger.debug(
+            "Runtime mode selected for development: web mode with reload enabled."
+        )
         return False, True
 
-    logger.debug("NiceGUI mode resolved: native=True, reload=False")
+    logger.debug(
+        "Runtime mode selected for normal use: native mode with reload disabled."
+    )
     return True, False
 
 
@@ -126,12 +136,17 @@ def detect_startup_source(
     Returns:
         A readable startup source name for diagnostic output.
     """
-    logger.debug("Detecting startup source: development_mode=%s", development_mode)
+    logger.debug(
+        "Startup source detection started: development_mode=%s",
+        development_mode,
+    )
 
     if development_mode:
+        logger.debug("Startup source classified as development runner.")
         return "dev_run.py"
 
     if is_frozen_executable(frozen=frozen):
+        logger.debug("Startup source classified as packaged executable.")
         return "package"
 
     runtime_argv = argv if argv is not None else sys.argv
@@ -143,19 +158,42 @@ def detect_startup_source(
     entry_name = Path(runtime_argv[0]).name.lower()
     normalized_command_names = {name.lower() for name in pyproject_command_names}
 
-    logger.debug("Startup entry name: %s", entry_name)
+    logger.debug("Startup entry point detected: %s", entry_name)
     logger.debug("Known pyproject command names: %s", sorted(normalized_command_names))
 
     if entry_name in normalized_command_names:
+        logger.debug("Startup source classified as pyproject command.")
         return "pyproject command"
 
     if entry_name == "__main__.py":
+        logger.debug("Startup source classified as module execution.")
         return "module"
 
     if entry_name == "app.py":
+        logger.debug("Startup source classified as direct script execution.")
         return "script"
 
+    logger.debug("Startup source classified from entry point name: %s", entry_name)
     return entry_name or "unknown source"
+
+
+def _describe_startup_source(startup_source: str) -> str:
+    """Return a readable startup source description.
+
+    Args:
+        startup_source: Source used to start the application.
+
+    Returns:
+        Human-readable startup source description for status messages.
+    """
+    descriptions = {
+        "dev_run.py": "the development runner",
+        "package": "the packaged executable",
+        "pyproject command": "the pyproject command",
+        "module": "module execution",
+        "script": "direct script execution",
+    }
+    return descriptions.get(startup_source, startup_source)
 
 
 def build_startup_message(
@@ -177,15 +215,15 @@ def build_startup_message(
         The startup diagnostic message used by the terminal and UI.
     """
     mode_name = "native" if native_mode else "web"
-    reload_status = "active" if reload_enabled else "inactive"
+    reload_status = "enabled" if reload_enabled else "disabled"
+    source_description = _describe_startup_source(startup_source)
 
     message = (
-        f"Initializing {application_title} "
-        f"from {startup_source} in {mode_name} mode "
-        f"with reload {reload_status}."
+        f"{application_title} is starting from {source_description} "
+        f"in {mode_name} mode with reload {reload_status}."
     )
 
-    logger.debug("Startup message built: %s", message)
+    logger.debug("Startup status message prepared: %s", message)
     return message
 
 

@@ -24,52 +24,52 @@ logger = logging.getLogger(__name__)
 
 def _handle_application_started(*_args: Any) -> None:
     """Handle the NiceGUI application startup event."""
-    logger.info("Application started.")
+    logger.info("NiceGUI runtime started.")
 
 
 def _handle_application_shutdown(*_args: Any) -> None:
     """Handle the NiceGUI application shutdown event."""
-    logger.info("Application shutdown.")
+    logger.info("Application shutdown completed.")
 
 
 def _handle_client_disconnected(*_args: Any) -> None:
     """Handle the NiceGUI client disconnect event."""
-    logger.info("Client disconnected.")
+    logger.info("Client disconnected from the application.")
 
 
 def _handle_application_exception(*_args: Any) -> None:
     """Handle a general NiceGUI application exception event."""
-    logger.error("Application exception occurred.")
+    logger.error("NiceGUI reported an application-level exception.")
 
 
 def _handle_page_exception(*_args: Any) -> None:
     """Handle a NiceGUI page exception event."""
-    logger.error("Page exception occurred.")
+    logger.error("NiceGUI reported a page-level exception.")
 
 
 def _handle_native_window_shown(*_args: Any) -> None:
     """Handle the native window shown event."""
-    logger.info("Native window shown.")
+    logger.info("Native window opened.")
 
 
 def _handle_native_window_loaded(*_args: Any) -> None:
     """Handle the native window loaded event."""
-    logger.info("Native window loaded.")
+    logger.info("Native window finished loading.")
 
 
 def _handle_native_window_minimized(*_args: Any) -> None:
     """Handle the native window minimized event."""
-    logger.info("Native window minimized.")
+    logger.info("Native window minimized by the user.")
 
 
 def _handle_native_window_maximized(*_args: Any) -> None:
     """Handle the native window maximized event."""
-    logger.info("Native window maximized.")
+    logger.info("Native window maximized by the user.")
 
 
 def _handle_native_window_restored(*_args: Any) -> None:
     """Handle the native window restored event."""
-    logger.info("Native window restored.")
+    logger.info("Native window restored by the user.")
 
 
 def _handle_native_window_resized(*_args: Any) -> None:
@@ -84,12 +84,12 @@ def _handle_native_window_moved(*_args: Any) -> None:
 
 def _handle_native_window_closed(*_args: Any) -> None:
     """Handle the native window closed event."""
-    logger.info("Native window closed.")
+    logger.info("Native window closed by the user.")
 
 
 def _handle_native_file_drop(*_args: Any) -> None:
     """Handle files dropped on the native window."""
-    logger.info("File dropped on native window.")
+    logger.info("Files were dropped on the native window.")
 
 
 def _register_application_handlers() -> None:
@@ -116,10 +116,10 @@ def _register_native_window_handlers() -> None:
 
 def register_lifecycle_handlers() -> None:
     """Register application lifecycle handlers."""
-    logger.debug("Registering application lifecycle handlers.")
+    logger.debug("Registering lifecycle handlers.")
 
     _register_application_handlers()
     _register_native_window_handlers()
     register_splash_handler()
 
-    logger.debug("Application lifecycle handlers registered.")
+    logger.debug("Lifecycle handlers registered.")

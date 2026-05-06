@@ -41,8 +41,15 @@ from desktop_app.infrastructure.lifecycle import register_lifecycle_handlers
 LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
 LOG_LEVEL = logging.DEBUG
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+STARTUP_SOURCE_DESCRIPTIONS = {
+    "dev_run.py": "development runner",
+    "package": "packaged executable",
+    "pyproject command": "pyproject command",
+    "module": "module execution",
+    "script": "direct script execution",
+}
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("desktop_app.app")
 
 
 def resolve_log_file_path() -> Path:
@@ -93,16 +100,46 @@ def configure_logging() -> Path:
         force=True,
     )
 
-    logger.info("Application logging is ready.")
-    logger.debug("Log file path: %s", log_file_path)
-    logger.debug("Current working directory: %s", Path.cwd())
-    logger.debug("sys.executable: %s", sys.executable)
-    logger.debug("sys.argv: %s", sys.argv)
-    logger.debug("sys.frozen: %s", getattr(sys, "frozen", None))
-    logger.debug("sys._MEIPASS: %s", getattr(sys, "_MEIPASS", None))
-    logger.debug("Process ID: %s", os.getpid())
+    logger.info("Logging initialized for %s.", APPLICATION_TITLE)
+    logger.debug("Log file ready at: %s", log_file_path)
+    logger.debug("Application working directory: %s", Path.cwd())
+    logger.debug("Python executable in use: %s", sys.executable)
+    logger.debug("Command-line arguments received: %s", sys.argv)
+    logger.debug("Frozen executable marker: %s", getattr(sys, "frozen", None))
+    logger.debug(
+        "PyInstaller extraction directory marker: %s",
+        getattr(sys, "_MEIPASS", None),
+    )
+    logger.debug("Operating system process ID: %s", os.getpid())
 
     return log_file_path
+
+
+def describe_startup_source(startup_source: str) -> str:
+    """Return a readable startup source description for logs.
+
+    Args:
+        startup_source: Source returned by runtime startup detection.
+
+    Returns:
+        Human-readable startup source description.
+    """
+    return STARTUP_SOURCE_DESCRIPTIONS.get(startup_source, startup_source)
+
+
+def describe_runtime_mode(*, native_mode: bool, reload_enabled: bool) -> str:
+    """Return a readable runtime mode description for logs.
+
+    Args:
+        native_mode: Whether the application runs in NiceGUI native mode.
+        reload_enabled: Whether NiceGUI reload mode is enabled.
+
+    Returns:
+        Human-readable runtime mode description.
+    """
+    mode_name = "native mode" if native_mode else "web mode"
+    reload_status = "enabled" if reload_enabled else "disabled"
+    return f"{mode_name} with reload {reload_status}"
 
 
 def get_runtime_port(*, native_mode: bool) -> int:
@@ -116,10 +153,10 @@ def get_runtime_port(*, native_mode: bool) -> int:
     """
     if native_mode:
         port = native.find_open_port()
-        logger.debug("Native runtime port resolved: %s", port)
+        logger.debug("Runtime port selected for native mode: %s", port)
         return port
 
-    logger.debug("Web development runtime port resolved: %s", DEFAULT_WEB_PORT)
+    logger.debug("Runtime port selected for web development mode: %s", DEFAULT_WEB_PORT)
     return DEFAULT_WEB_PORT
 
 
@@ -129,7 +166,7 @@ def build_main_page(*, startup_message: str) -> None:
     Args:
         startup_message: Startup diagnostic message shown in the page.
     """
-    logger.info("Building the main page.")
+    logger.info("Building the main page for the connected client.")
 
     ui.query("body").classes("bg-slate-100")
 
@@ -143,7 +180,7 @@ def build_main_page(*, startup_message: str) -> None:
         ),
     ):
         page_image_path = resolve_asset_path(PAGE_IMAGE_FILENAME)
-        logger.debug("Adding page image to UI: %s", page_image_path)
+        logger.debug("Page image resolved for the main page: %s", page_image_path)
 
         ui.image(page_image_path).classes("h-40 w-40 rounded-2xl object-contain")
 
@@ -164,7 +201,7 @@ def build_main_page(*, startup_message: str) -> None:
                 "mt-1 text-sm leading-relaxed text-slate-700"
             )
 
-    logger.info("Main page is ready.")
+    logger.info("Main page built successfully.")
 
 
 def main(*, development_mode: bool = False) -> None:
@@ -174,7 +211,7 @@ def main(*, development_mode: bool = False) -> None:
         development_mode: Whether to run in web development mode with reload.
     """
     configure_logging()
-    logger.info("Application startup begins.")
+    logger.info("Starting %s startup sequence.", APPLICATION_TITLE)
 
     native_mode, reload_enabled = get_nicegui_modes(development_mode=development_mode)
     startup_source = detect_startup_source(development_mode=development_mode)
@@ -185,24 +222,30 @@ def main(*, development_mode: bool = False) -> None:
         application_title=APPLICATION_TITLE,
     )
 
-    if startup_source == "package":
-        logger.info("Running as packaged executable.")
-    elif development_mode:
-        logger.info("Running in browser development mode.")
-    else:
-        logger.info("Running from %s.", startup_source)
+    logger.info(
+        "Startup source resolved: %s.",
+        describe_startup_source(startup_source),
+    )
+    logger.info(
+        "Runtime mode resolved: %s.",
+        describe_runtime_mode(
+            native_mode=native_mode,
+            reload_enabled=reload_enabled,
+        ),
+    )
 
     print(startup_message, flush=True)
-    logger.debug("Startup message printed to terminal: %s", startup_message)
+    logger.debug("Startup status message sent to the terminal: %s", startup_message)
 
     register_lifecycle_handlers()
 
     icon_path = get_application_icon_path()
-    runtime_port = get_runtime_port(native_mode=native_mode)
+    logger.debug("Application icon prepared for NiceGUI: %s", icon_path)
 
+    runtime_port = get_runtime_port(native_mode=native_mode)
     logger.info(
-        "Starting NiceGUI in %s mode on port %s.",
-        "native" if native_mode else "web",
+        "Starting NiceGUI runtime in %s on port %s.",
+        "native mode" if native_mode else "web mode",
         runtime_port,
     )
 

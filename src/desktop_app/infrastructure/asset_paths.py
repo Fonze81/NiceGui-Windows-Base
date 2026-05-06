@@ -38,10 +38,10 @@ def resolve_asset_path(filename: str) -> str:
     else:
         asset_path = runtime_root / LOCAL_ASSETS_DIR / filename
 
-    logger.debug("Resolved asset path for %s: %s", filename, asset_path)
+    logger.debug("Asset path resolved for %s: %s", filename, asset_path)
 
     if not asset_path.exists():
-        logger.warning("Asset file was not found: %s", asset_path)
+        logger.warning("Asset file is missing and may not render: %s", asset_path)
 
     return str(asset_path)
 
@@ -53,5 +53,5 @@ def get_application_icon_path() -> str:
         Absolute path to the application icon file as a string.
     """
     icon_path = resolve_asset_path(APP_ICON_FILENAME)
-    logger.debug("Application icon path resolved: %s", icon_path)
+    logger.debug("Application icon resolved: %s", icon_path)
     return icon_path
