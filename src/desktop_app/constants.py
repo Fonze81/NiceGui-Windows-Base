@@ -16,9 +16,43 @@ from pathlib import Path
 APPLICATION_TITLE = "NiceGui Windows Base"
 APP_ICON_FILENAME = "app_icon.ico"
 PAGE_IMAGE_FILENAME = "page_image.png"
-PYINSTALLER_SPLASH_MODULE = "pyi_splash"
+
 DEFAULT_WEB_PORT = 8080
+
+LOCAL_ASSETS_DIR = Path("assets")
 PACKAGED_ASSETS_DIR = Path("desktop_app") / "assets"
-LOCAL_ASSETS_DIR = "assets"
+
+LOGGER_NAME = "desktop_app"
+LOG_LEVEL = "DEBUG"
 LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
-PYPROJECT_COMMAND_NAMES = ("nicegui-windows-base", "nicegui-windows-base.exe")
+
+DEFAULT_LOGGER_NAME = LOGGER_NAME
+DEFAULT_LOG_LEVEL = LOG_LEVEL
+DEFAULT_LOG_FILE_PATH = LOG_FILE_PATH
+
+DEFAULT_BUFFER_CAPACITY = 500
+DEFAULT_ROTATE_MAX_BYTES = 5 * 1024 * 1024
+DEFAULT_ROTATE_BACKUP_COUNT = 3
+
+MIN_BUFFER_CAPACITY = 1
+MAX_BUFFER_CAPACITY = 100_000
+
+MIN_ROTATE_MAX_BYTES = 1 * 1024 * 1024
+MAX_ROTATE_MAX_BYTES = 1 * 1024 * 1024 * 1024
+
+MIN_ROTATE_BACKUP_COUNT = 0
+MAX_ROTATE_BACKUP_COUNT = 100
+
+CONSOLE_LOG_FORMAT = "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(message)s"
+FILE_LOG_FORMAT = (
+    "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(filename)s:%(lineno)d | %(message)s"
+)
+CONSOLE_DATE_FORMAT = "%H:%M:%S"
+FILE_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+PYINSTALLER_SPLASH_MODULE = "pyi_splash"
+
+PYPROJECT_COMMAND_NAMES = (
+    "nicegui-windows-base",
+    "nicegui-windows-base.exe",
+)
