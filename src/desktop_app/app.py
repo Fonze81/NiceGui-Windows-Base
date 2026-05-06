@@ -12,16 +12,14 @@
 # modules are introduced.
 # -----------------------------------------------------------------------------
 
-import importlib
 import logging
 import os
 import sys
 from functools import partial
 from multiprocessing import freeze_support
 from pathlib import Path
-from types import ModuleType
 
-from nicegui import app, native, ui
+from nicegui import native, ui
 
 from desktop_app.constants import (
     APP_ICON_FILENAME,
@@ -31,7 +29,6 @@ from desktop_app.constants import (
     LOG_FILE_PATH,
     PACKAGED_ASSETS_DIR,
     PAGE_IMAGE_FILENAME,
-    PYINSTALLER_SPLASH_MODULE,
 )
 from desktop_app.core.runtime import (
     build_startup_message,
@@ -40,11 +37,9 @@ from desktop_app.core.runtime import (
     get_runtime_root,
     is_frozen_executable,
 )
+from desktop_app.infrastructure.splash import register_splash_handler
 
 logger = logging.getLogger(__name__)
-
-_pyinstaller_splash_module: ModuleType | None = None
-_pyinstaller_splash_close_attempted = False
 
 
 def get_log_file_path() -> Path:
@@ -142,63 +137,6 @@ def get_runtime_port(*, native_mode: bool) -> int:
     return DEFAULT_WEB_PORT
 
 
-def load_pyinstaller_splash_module() -> ModuleType | None:
-    """Load the optional PyInstaller splash module when available.
-
-    Returns:
-        The imported PyInstaller splash module, or None when unavailable.
-    """
-    if not is_frozen_executable():
-        logger.debug("Skipping splash import because runtime is not frozen.")
-        return None
-
-    try:
-        splash_module = importlib.import_module(PYINSTALLER_SPLASH_MODULE)
-    except ImportError:
-        logger.debug("PyInstaller splash module is not available.")
-        return None
-
-    logger.debug("PyInstaller splash module loaded.")
-    return splash_module
-
-
-def close_pyinstaller_splash_once() -> None:
-    """Close the PyInstaller splash screen at most once."""
-    global _pyinstaller_splash_close_attempted
-
-    if _pyinstaller_splash_close_attempted:
-        logger.debug("Skipping splash close because it was already attempted.")
-        return
-
-    _pyinstaller_splash_close_attempted = True
-
-    if _pyinstaller_splash_module is None:
-        logger.debug("Skipping splash close because no splash module was loaded.")
-        return
-
-    try:
-        _pyinstaller_splash_module.close()
-    except Exception:
-        logger.exception("Failed to close PyInstaller splash screen.")
-        return
-
-    logger.debug("PyInstaller splash screen closed.")
-
-
-def register_pyinstaller_splash_handler() -> None:
-    """Register a handler to close the PyInstaller splash on first client connect."""
-    global _pyinstaller_splash_module
-
-    _pyinstaller_splash_module = load_pyinstaller_splash_module()
-
-    if _pyinstaller_splash_module is None:
-        logger.debug("PyInstaller splash handler was not registered.")
-        return
-
-    app.on_connect(close_pyinstaller_splash_once)
-    logger.debug("PyInstaller splash handler registered.")
-
-
 def build_main_page(*, startup_message: str) -> None:
     """Build the main NiceGUI interface.
 
@@ -271,7 +209,7 @@ def main(*, development_mode: bool = False) -> None:
     print(startup_message, flush=True)
     logger.debug("Startup message printed to terminal: %s", startup_message)
 
-    register_pyinstaller_splash_handler()
+    register_splash_handler()
 
     icon_path = get_application_icon_path()
     runtime_port = get_runtime_port(native_mode=native_mode)

@@ -1,0 +1,84 @@
+# -----------------------------------------------------------------------------
+# File: src/desktop_app/infrastructure/splash.py
+# Purpose:
+# Manage the optional PyInstaller splash screen integration.
+# Behavior:
+# Dynamically imports the PyInstaller pyi_splash module only when the application
+# is running as a frozen executable, then registers a NiceGUI connection handler
+# to close the splash screen once the first client connects.
+# Notes:
+# The pyi_splash module does not exist during normal Python execution. Import
+# failures are expected outside compatible packaged builds and must not stop the
+# application.
+# -----------------------------------------------------------------------------
+
+import importlib
+import logging
+from types import ModuleType
+
+from nicegui import app
+
+from desktop_app.constants import PYINSTALLER_SPLASH_MODULE
+from desktop_app.core.runtime import is_frozen_executable
+
+logger = logging.getLogger(__name__)
+
+_splash_module: ModuleType | None = None
+_splash_close_attempted = False
+
+
+def load_splash_module() -> ModuleType | None:
+    """Load the optional PyInstaller splash module when available.
+
+    Returns:
+        The imported PyInstaller splash module, or None when unavailable.
+    """
+    if not is_frozen_executable():
+        logger.debug("Skipping splash import because runtime is not frozen.")
+        return None
+
+    try:
+        splash_module = importlib.import_module(PYINSTALLER_SPLASH_MODULE)
+    except ImportError:
+        logger.debug("PyInstaller splash module is not available.")
+        return None
+
+    logger.debug("PyInstaller splash module loaded.")
+    return splash_module
+
+
+def close_splash_once() -> None:
+    """Close the PyInstaller splash screen at most once."""
+    global _splash_close_attempted
+
+    if _splash_close_attempted:
+        logger.debug("Skipping splash close because it was already attempted.")
+        return
+
+    _splash_close_attempted = True
+
+    if _splash_module is None:
+        logger.debug("Skipping splash close because no splash module was loaded.")
+        return
+
+    try:
+        _splash_module.close()
+    except Exception:
+        logger.exception("Failed to close PyInstaller splash screen.")
+        return
+
+    logger.debug("PyInstaller splash screen closed.")
+
+
+def register_splash_handler() -> None:
+    """Register a handler to close the PyInstaller splash on first client connect."""
+    global _splash_module
+
+    _splash_module = load_splash_module()
+
+    if _splash_module is None:
+        logger.debug("PyInstaller splash handler was not registered.")
+        return
+
+    app.on_connect(close_splash_once)
+    logger.debug("PyInstaller splash handler registered.")
