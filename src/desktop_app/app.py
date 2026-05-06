@@ -215,6 +215,11 @@ def main(*, development_mode: bool = False) -> None:
         title=APPLICATION_TITLE,
         favicon=icon_path,
         port=runtime_port,
+        uvicorn_reload_dirs="src",
+        uvicorn_reload_includes="*.py",
+        uvicorn_reload_excludes=(
+            "logs/*,logs/**/*,*.log,build/*,dist/*,.venv/*,.venv/**/*"
+        ),
     )
 
 
