@@ -141,9 +141,9 @@ When the project version changes in `pyproject.toml`, update both the numeric tu
 Example:
 
 ```text
-pyproject.toml: version = "0.1.0"
-version_info.txt: filevers=(0, 1, 0, 0)
-version_info.txt: FileVersion = "0.1.0.0"
+pyproject.toml: version = "0.2.0"
+version_info.txt: filevers=(0, 2, 0, 0)
+version_info.txt: FileVersion = "0.2.0.0"
 ```
 
 ---
