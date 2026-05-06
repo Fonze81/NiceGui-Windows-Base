@@ -37,7 +37,7 @@ from desktop_app.core.runtime import (
     get_runtime_root,
     is_frozen_executable,
 )
-from desktop_app.infrastructure.splash import register_splash_handler
+from desktop_app.infrastructure.lifecycle import register_lifecycle_handlers
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +209,7 @@ def main(*, development_mode: bool = False) -> None:
     print(startup_message, flush=True)
     logger.debug("Startup message printed to terminal: %s", startup_message)
 
-    register_splash_handler()
+    register_lifecycle_handlers()
 
     icon_path = get_application_icon_path()
     runtime_port = get_runtime_port(native_mode=native_mode)

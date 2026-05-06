@@ -1,3 +1,3 @@
-"""Infrastructure integrations for external runtime services."""
+"""Infrastructure integrations and application lifecycle wiring."""
 
 __all__: list[str] = []
