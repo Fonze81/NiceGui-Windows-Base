@@ -46,7 +46,7 @@ def _log_exception_event(message: str, args: tuple[Any, ...]) -> None:
 
 def _handle_application_started(*_args: Any) -> None:
     """Handle the NiceGUI application startup event."""
-    logger.info("NiceGUI runtime started.")
+    logger.debug("NiceGUI runtime started.")
 
 
 def _handle_application_shutdown(*_args: Any) -> None:

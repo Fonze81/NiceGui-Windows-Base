@@ -23,8 +23,8 @@ LOCAL_ASSETS_DIR = Path("assets")
 PACKAGED_ASSETS_DIR = Path("desktop_app") / "assets"
 
 LOGGER_NAME = "desktop_app"
-LOG_LEVEL = "DEBUG"
-LOG_FILE_PATH = Path("logs") / "nicegui_windows_base.log"
+LOG_LEVEL = "INFO"
+LOG_FILE_PATH = Path("logs") / "app.log"
 
 DEFAULT_LOGGER_NAME = LOGGER_NAME
 DEFAULT_LOG_LEVEL = LOG_LEVEL
@@ -45,7 +45,7 @@ MAX_ROTATE_BACKUP_COUNT = 100
 
 CONSOLE_LOG_FORMAT = "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(message)s"
 FILE_LOG_FORMAT = (
-    "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(filename)s:%(lineno)d | %(message)s"
+    "%(asctime)s.%(msecs)03d | %(levelname)s | %(filename)s:%(lineno)d | %(message)s"
 )
 CONSOLE_DATE_FORMAT = "%H:%M:%S"
 FILE_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"

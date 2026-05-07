@@ -84,7 +84,7 @@ def configure_logging() -> Path:
             "File logging could not be enabled. Continuing without log file."
         )
 
-    logger.info("Logging initialized for %s.", APPLICATION_TITLE)
+    logger.debug("Logging initialized for %s.", APPLICATION_TITLE)
     logger.debug("Log file ready at: %s", log_file_path)
     logger.debug("Application working directory: %s", Path.cwd())
     logger.debug("Python executable in use: %s", sys.executable)
@@ -123,7 +123,7 @@ def build_main_page(*, startup_message: str) -> None:
     Args:
         startup_message: Startup diagnostic message shown in the page.
     """
-    logger.info("Building the main page for the connected client.")
+    logger.debug("Building the main page for the connected client.")
 
     ui.query("body").classes("bg-slate-100")
 
@@ -158,7 +158,7 @@ def build_main_page(*, startup_message: str) -> None:
                 "mt-1 text-sm leading-relaxed text-slate-700"
             )
 
-    logger.info("Main page built successfully.")
+    logger.debug("Main page built successfully.")
 
 
 def main(*, development_mode: bool = False) -> None:
@@ -179,11 +179,11 @@ def main(*, development_mode: bool = False) -> None:
         application_title=APPLICATION_TITLE,
     )
 
-    logger.info(
+    logger.debug(
         "Startup source resolved: %s.",
         describe_startup_source(startup_source),
     )
-    logger.info(
+    logger.debug(
         "Runtime mode resolved: %s.",
         describe_runtime_mode(
             native_mode=native_mode,
