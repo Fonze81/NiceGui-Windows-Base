@@ -6,6 +6,44 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
+## [0.3.0] - 2026-05-07
+
+### ✨ Added
+
+- Added a dedicated logger package with configuration, validation, bounded startup buffering, rotating file handlers, safe shutdown, and a public logger API.
+- Added `docs/logging.md` to explain logger architecture, startup buffering, file rotation, placeholder formatting, and maintenance checks.
+- Added explicit runtime log path resolution inside the logger package so `app.py` only orchestrates logging startup.
+- Added VS Code markdownlint as a recommended documentation-quality extension.
+
+### 🔄 Changed
+
+- Changed the project version from `0.2.0` to `0.3.0`.
+- Updated Windows version metadata in `scripts/version_info.txt` to `0.3.0.0`.
+- Updated documentation indexes and project structure references to include the logger package and logging guide.
+- Updated packaging documentation examples to use the current `0.3.0` release metadata.
+- Made the runtime log directory explicit in `.gitignore` so generated logs are not included in release artifacts.
+
+### 🐞 Fixed
+
+- Removed the generated runtime log file from the release source tree.
+- Reduced application entry-point responsibility by moving log path resolution out of `app.py`.
+
+### 🧭 Migration notes
+
+- Reinstall the project after upgrading:
+
+```powershell
+python -m pip install -e ".[dev,packaging]"
+```
+
+- Rebuild the executable so Windows file properties show version `0.3.0.0`:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+---
+
 ## [0.2.0] - 2026-05-06
 
 ### ✨ Added
