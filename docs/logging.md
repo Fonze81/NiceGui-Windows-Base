@@ -51,6 +51,7 @@ Important public symbols:
 | `logger_get_logger(...)`          | Returns the application root logger or child logger.         |
 | `logger_bootstrap(...)`           | Initializes or updates the global logger.                    |
 | `logger_enable_file_logging(...)` | Activates rotating file logging and flushes early records.   |
+| `resolve_log_file_path(...)`      | Resolves the log path for normal and packaged execution.     |
 | `logger_shutdown()`               | Releases handlers during application shutdown.               |
 
 Most application code should only need `logger_get_logger(...)`.
@@ -81,6 +82,7 @@ flowchart TD
 | [`config.py`](../src/desktop_app/infrastructure/logger/config.py)             | Defines the `LoggerConfig` data container.                                  |
 | [`validators.py`](../src/desktop_app/infrastructure/logger/validators.py)     | Normalizes levels, paths, buffer sizes, rotation sizes, and backup counts.  |
 | [`handlers.py`](../src/desktop_app/infrastructure/logger/handlers.py)         | Creates console, memory, and rotating file handlers.                        |
+| [`paths.py`](../src/desktop_app/infrastructure/logger/paths.py)               | Resolves the runtime log file path for normal and packaged execution.       |
 | [`exceptions.py`](../src/desktop_app/infrastructure/logger/exceptions.py)     | Declares `LoggerValidationError`.                                           |
 
 ---
@@ -131,14 +133,16 @@ Current default:
 LOG_FILE_PATH = Path("logs") / "app.log"
 ```
 
-`app.py` resolves the final location as follows:
+The logger package resolves the final location through [`paths.py`](../src/desktop_app/infrastructure/logger/paths.py). `app.py` calls that resolver during `configure_logging()` and then passes the resulting path to `LoggerConfig`.
+
+The final location is resolved as follows:
 
 | Runtime                 | Log location                               |
 | ----------------------- | ------------------------------------------ |
 | Normal Python execution | `<current-working-directory>\logs\app.log` |
 | PyInstaller executable  | `<executable-directory>\logs\app.log`      |
 
-The packaged executable uses a log directory next to the executable so users and maintainers can inspect runtime diagnostics without opening a console window.
+The packaged executable uses a log directory next to the executable so users and maintainers can inspect runtime diagnostics without opening a console window. Absolute log paths are preserved as provided; relative paths are anchored to the working directory during normal Python execution and to the executable directory during packaged execution.
 
 ---
 

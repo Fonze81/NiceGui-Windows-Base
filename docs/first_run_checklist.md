@@ -193,5 +193,5 @@ dist\nicegui-windows-base.exe
 - [ ] The executable opens the NiceGUI native window without an extra console window.
 - [ ] The page displays the PNG image and startup status message.
 - [ ] `dist\packaging_report.md` is created.
-- [ ] `dist\logspp.log` is created after the packaged executable starts.
+- [ ] `dist\logs\app.log` is created after the packaged executable starts.
 - [ ] The log contains the startup source, runtime mode, NiceGUI startup, page build, and shutdown narrative.

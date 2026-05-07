@@ -14,9 +14,9 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 - normal native execution through `nicegui-windows-base`;
 - module execution through `python -m desktop_app`;
 - browser-based development execution through `python dev_run.py`;
-- narrative startup diagnostics shown in the terminal, log file, and UI;
+- narrative startup diagnostics shown in the terminal, rotating log file, and UI;
 - packaged and normal asset resolution for the application icon and page image;
-- lifecycle logging for NiceGUI, native window events, client disconnects, exceptions, and shutdown;
+- structured logger package with startup buffering, rotating file logs, lifecycle logging, and safe shutdown;
 - optional PyInstaller splash screen support that closes after the first client connects;
 - PyInstaller packaging with windowed mode, executable icon, bundled assets, Windows version metadata, hidden splash import, and splash screen;
 - VS Code recommendations and Ruff-on-save workspace settings;
@@ -65,6 +65,7 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       │   │   ├── config.py
 │       │   │   ├── exceptions.py
 │       │   │   ├── handlers.py
+│       │   │   ├── paths.py
 │       │   │   ├── service.py
 │       │   │   └── validators.py
 │       │   ├── __init__.py

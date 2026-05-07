@@ -12,10 +12,11 @@ This folder contains the maintenance documentation for the **NiceGui Windows Bas
 4. [PowerShell execution policy](powershell_execution_policy.md) — safe fixes for blocked scripts.
 5. [Execution modes](execution_modes.md) — native, web development, module, script, and packaged execution.
 6. [Windows packaging](packaging_windows.md) — PyInstaller executable build, version metadata, assets, and splash screen.
-7. [Code quality](code_quality.md) — Python linting and formatting with Ruff, plus Markdown validation with markdownlint.
-8. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone.
-9. [Troubleshooting](troubleshooting.md) — common issues and fixes.
-10. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
+7. [Logging subsystem](logging.md) — logger architecture, startup buffering, file rotation, and maintenance rules.
+8. [Code quality](code_quality.md) — Python linting and formatting with Ruff, plus Markdown validation with markdownlint.
+9. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone.
+10. [Troubleshooting](troubleshooting.md) — common issues and fixes.
+11. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
 
 ---
 
@@ -51,7 +52,9 @@ flowchart TD
     B --> H[src/desktop_app/core/runtime.py]
     B --> I[src/desktop_app/infrastructure/asset_paths.py]
     B --> J[src/desktop_app/infrastructure/lifecycle.py]
+    B --> R[src/desktop_app/infrastructure/logger]
     J --> K[src/desktop_app/infrastructure/splash.py]
+    R --> S[logs/app.log]
 
     I --> L[assets/app_icon.ico]
     I --> M[assets/page_image.png]
@@ -66,10 +69,11 @@ flowchart TD
 
 Key decisions:
 
-- `app.py` owns application startup orchestration, UI composition, logging setup, and the `ui.run(...)` call.
+- `app.py` owns application startup orchestration, UI composition, logging setup orchestration, and the `ui.run(...)` call.
 - `core/runtime.py` owns startup source detection, runtime root detection, NiceGUI mode selection, and startup status message formatting.
 - `infrastructure/asset_paths.py` owns asset path resolution for normal Python execution and PyInstaller execution.
 - `infrastructure/lifecycle.py` owns NiceGUI lifecycle handler registration and lifecycle log messages.
+- `infrastructure/logger/` owns logger configuration, startup buffering, rotating file handlers, runtime log path resolution, and shutdown cleanup.
 - `infrastructure/splash.py` owns optional PyInstaller splash loading and one-time splash closing.
 - `dev_run.py` exists only to request browser reload mode during development.
 - `__main__.py` only delegates module execution to the application entry point.
@@ -97,7 +101,7 @@ Client disconnected from the application.
 Application shutdown completed.
 ```
 
-Detailed runtime evidence, such as `sys._MEIPASS`, asset paths, port selection, splash handling, and repeated resize or move events, is kept at `DEBUG` level.
+Detailed runtime evidence, such as `sys._MEIPASS`, asset paths, log paths, port selection, splash handling, and repeated resize or move events, is kept at `DEBUG` level. See [Logging subsystem](logging.md) for logger internals.
 
 ---
 
