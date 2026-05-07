@@ -10,9 +10,15 @@
 # should stay in their own modules, such as desktop_app.infrastructure.splash.
 # The generic and native window handlers are intentionally simple because this
 # project is also used as a template for future applications.
+# The asyncio exception handler suppresses only the known benign Windows
+# connection reset raised during native window shutdown.
 # -----------------------------------------------------------------------------
 
-from typing import Any
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Mapping
+from typing import Any, Final
 
 from nicegui import app
 
@@ -20,6 +26,66 @@ from desktop_app.infrastructure.logger import logger_get_logger, logger_shutdown
 from desktop_app.infrastructure.splash import register_splash_handler
 
 logger = logger_get_logger(__name__)
+
+WINDOWS_CONNECTION_RESET_ERROR: Final[int] = 10054
+
+
+def _is_expected_windows_connection_reset(
+    context: Mapping[str, object],
+) -> bool:
+    """Return whether an asyncio exception is expected Windows shutdown noise.
+
+    Args:
+        context: Exception context received from the asyncio event loop.
+
+    Returns:
+        True when the context represents the known benign Windows connection
+        reset raised while the native window connection is being closed.
+    """
+    exception = context.get("exception")
+
+    if not isinstance(exception, ConnectionResetError):
+        return False
+
+    if getattr(exception, "winerror", None) != WINDOWS_CONNECTION_RESET_ERROR:
+        return False
+
+    message = str(context.get("message", ""))
+    handle = context.get("handle")
+
+    return "_call_connection_lost" in message or "_call_connection_lost" in repr(handle)
+
+
+def _handle_asyncio_exception(
+    loop: asyncio.AbstractEventLoop,
+    context: dict[str, object],
+) -> None:
+    """Handle selected asyncio exceptions without hiding unexpected failures.
+
+    Args:
+        loop: Running asyncio event loop.
+        context: Exception context received from asyncio.
+    """
+    if _is_expected_windows_connection_reset(context):
+        logger.debug(
+            "Suppressed expected Windows connection reset during native "
+            "window shutdown."
+        )
+        return
+
+    loop.default_exception_handler(context)
+
+
+def _configure_asyncio_exception_handler() -> None:
+    """Configure the asyncio exception handler for the running event loop."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        logger.debug("Asyncio exception handler was not installed; no loop is running.")
+        return
+
+    loop.set_exception_handler(_handle_asyncio_exception)
+    logger.debug("Asyncio exception handler installed.")
 
 
 def _log_exception_event(message: str, args: tuple[Any, ...]) -> None:
@@ -46,6 +112,7 @@ def _log_exception_event(message: str, args: tuple[Any, ...]) -> None:
 
 def _handle_application_started(*_args: Any) -> None:
     """Handle the NiceGUI application startup event."""
+    _configure_asyncio_exception_handler()
     logger.debug("NiceGUI runtime started.")
 
 
