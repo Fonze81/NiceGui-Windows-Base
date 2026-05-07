@@ -107,4 +107,5 @@ See:
 ## 🔗 Related documents
 
 - [VS Code setup](vscode_setup.md)
+- [Logging subsystem](logging.md)
 - [Troubleshooting](troubleshooting.md)

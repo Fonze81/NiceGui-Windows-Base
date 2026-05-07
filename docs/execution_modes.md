@@ -239,6 +239,8 @@ Application shutdown completed.
 
 Repeated native window events such as resize and move are logged at `DEBUG` to keep the main story readable. In browser development mode, native window handlers are skipped because no native desktop window is active.
 
+For the internal logger architecture, early startup buffering, and file rotation behavior, see [Logging subsystem](logging.md).
+
 ---
 
 ## 🖼️ Application icon

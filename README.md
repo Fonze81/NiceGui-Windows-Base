@@ -37,6 +37,7 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │   ├── development_environment.md
 │   ├── execution_modes.md
 │   ├── first_run_checklist.md
+│   ├── logging.md
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
 │   ├── python_windows_setup.md
@@ -58,6 +59,14 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       │   ├── __init__.py
 │       │   └── runtime.py
 │       ├── infrastructure/
+│       │   ├── logger/
+│       │   │   ├── __init__.py
+│       │   │   ├── bootstrapper.py
+│       │   │   ├── config.py
+│       │   │   ├── exceptions.py
+│       │   │   ├── handlers.py
+│       │   │   ├── service.py
+│       │   │   └── validators.py
 │       │   ├── __init__.py
 │       │   ├── asset_paths.py
 │       │   ├── lifecycle.py
@@ -183,7 +192,7 @@ NiceGui Windows Base is starting from the development runner in web mode with re
 NiceGui Windows Base is starting from the packaged executable in native mode with reload disabled.
 ```
 
-The log file also tells the operational story of the run: logging initialization, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, native window events, client disconnects, exceptions, and shutdown.
+The log file also tells the operational story of the run: logging initialization, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, native window events, client disconnects, exceptions, and shutdown. See [Logging subsystem](docs/logging.md) for the logger architecture, buffering model, and rotation behavior.
 
 ---
 
@@ -215,6 +224,7 @@ Main guides:
 - [Development environment](docs/development_environment.md)
 - [Execution modes](docs/execution_modes.md)
 - [Windows packaging](docs/packaging_windows.md)
+- [Logging subsystem](docs/logging.md)
 - [Code quality with Ruff](docs/code_quality.md)
 - [Troubleshooting](docs/troubleshooting.md)
 

@@ -15,7 +15,7 @@ The previous comparison produced similar results:
 | nicegui-pack | 41.26 MB | 80.54 s |
 | PyInstaller  | 40.37 MB | 78.36 s |
 
-Direct PyInstaller is now preferred because:
+Direct PyInstaller is now preferred and invoked through `python -m PyInstaller` because:
 
 - the executable size was slightly smaller in the comparison;
 - the packaging time was slightly faster in the comparison;
@@ -51,10 +51,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_window
 
 ## 🧱 PyInstaller command
 
-The script uses direct PyInstaller packaging:
+The script invokes PyInstaller through the active Python environment:
 
 ```powershell
-pyinstaller `
+python -m PyInstaller `
     --onefile `
     --windowed `
     --clean `
@@ -181,7 +181,7 @@ The packaging script uses a dedicated light-background image as the PyInstaller 
 
 ```powershell
 $splashImagePath = Join-Path $assetsPath "splash_light.png"
-pyinstaller --splash $splashImagePath ...
+python -m PyInstaller --splash $splashImagePath ...
 ```
 
 The build also keeps the optional PyInstaller splash module available with:

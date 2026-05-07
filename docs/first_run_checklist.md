@@ -149,7 +149,7 @@ ruff format --check .
 - [ ] PyInstaller is available:
 
 ```powershell
-pyinstaller --version
+python -m PyInstaller --version
 ```
 
 - [ ] Packaging script runs:
@@ -179,6 +179,7 @@ dist\nicegui-windows-base.exe
 - [Development environment](development_environment.md)
 - [VS Code setup](vscode_setup.md)
 - [Execution modes](execution_modes.md)
+- [Logging subsystem](logging.md)
 - [Troubleshooting](troubleshooting.md)
 
 ---
@@ -192,3 +193,5 @@ dist\nicegui-windows-base.exe
 - [ ] The executable opens the NiceGUI native window without an extra console window.
 - [ ] The page displays the PNG image and startup status message.
 - [ ] `dist\packaging_report.md` is created.
+- [ ] `dist\logspp.log` is created after the packaged executable starts.
+- [ ] The log contains the startup source, runtime mode, NiceGUI startup, page build, and shutdown narrative.

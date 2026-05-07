@@ -208,7 +208,7 @@ ruff check .
 Check:
 
 ```powershell
-pyinstaller --version
+python -m PyInstaller --version
 ```
 
 If missing:
@@ -372,7 +372,7 @@ Test-Path .\scripts\version_info.txt
 Confirm that PyInstaller is available in the active environment:
 
 ```powershell
-pyinstaller --version
+python -m PyInstaller --version
 ```
 
 If the command is not recognized, reinstall packaging dependencies:
@@ -410,7 +410,7 @@ If the report is missing, the PyInstaller packaging flow probably failed before 
 Check that PyInstaller is available in the active `.venv`:
 
 ```powershell
-pyinstaller --version
+python -m PyInstaller --version
 ```
 
 Then run the packaging script again:
@@ -515,4 +515,5 @@ dist\packaging_report.md
 - [Python 3.13 setup on Windows](python_windows_setup.md)
 - [VS Code setup](vscode_setup.md)
 - [Execution modes](execution_modes.md)
+- [Logging subsystem](logging.md)
 - [Windows packaging](packaging_windows.md)
