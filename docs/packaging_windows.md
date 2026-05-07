@@ -141,9 +141,9 @@ When the project version changes in `pyproject.toml`, update both the numeric tu
 Example:
 
 ```text
-pyproject.toml: version = "0.2.0"
-version_info.txt: filevers=(0, 2, 0, 0)
-version_info.txt: FileVersion = "0.2.0.0"
+pyproject.toml: version = "0.3.0"
+version_info.txt: filevers=(0, 3, 0, 0)
+version_info.txt: FileVersion = "0.3.0.0"
 ```
 
 When preparing a new release, also update the root [CHANGELOG](../CHANGELOG.md) with the relevant user-facing and maintenance changes.
