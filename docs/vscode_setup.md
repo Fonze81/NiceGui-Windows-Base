@@ -192,6 +192,7 @@ You can also install them manually:
 | Pylance             | `ms-python.vscode-pylance`   | Python analysis and IntelliSense             |
 | Ruff                | `charliermarsh.ruff`         | Linting, formatting, and import organization |
 | Markdown All in One | `yzhang.markdown-all-in-one` | Markdown editing support                     |
+| markdownlint        | `DavidAnson.vscode-markdownlint` | Markdown linting and style validation     |
 | EditorConfig        | `editorconfig.editorconfig`  | Consistent editor behavior                   |
 
 ### Optional visual and productivity recommendations
@@ -328,6 +329,21 @@ Manual check:
 ```powershell
 ruff check .
 ruff format --check .
+```
+
+### Markdown linting does not run in VS Code
+
+Confirm that:
+
+- the markdownlint extension is installed;
+- VS Code opened the repository root;
+- the active file is a Markdown file;
+- the extension is enabled in the current workspace.
+
+Recommended extension identifier:
+
+```text
+DavidAnson.vscode-markdownlint
 ```
 
 ### Terminal uses the wrong Python

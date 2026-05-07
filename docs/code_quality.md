@@ -1,6 +1,8 @@
-# 🧹 Code Quality with Ruff
+# 🧹 Code Quality
 
-Ruff is the current linting, import organization, and formatting tool for this project.
+Ruff is the current linting, import organization, and formatting tool for Python code in this project.
+
+Markdown documentation is validated with the recommended VS Code extension `DavidAnson.vscode-markdownlint`.
 
 ---
 
@@ -104,8 +106,37 @@ See:
 
 ---
 
+## 📝 Markdown linting
+
+Markdown quality is supported in VS Code through:
+
+```text
+DavidAnson.vscode-markdownlint
+```
+
+Use this extension to catch common Markdown issues such as:
+
+- inconsistent heading levels;
+- missing blank lines around lists or code blocks;
+- malformed tables;
+- repeated headings;
+- trailing spaces.
+
+Markdown documentation in this project may use emojis in headings to improve readability. Python code, comments, and docstrings must not use emojis.
+
+The extension is recommended through:
+
+```text
+.vscode\extensions.json
+```
+
+See:
+
+- [VS Code setup](vscode_setup.md)
+
+---
+
 ## 🔗 Related documents
 
 - [VS Code setup](vscode_setup.md)
-- [Logging subsystem](logging.md)
 - [Troubleshooting](troubleshooting.md)

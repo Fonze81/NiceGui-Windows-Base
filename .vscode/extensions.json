@@ -4,6 +4,7 @@
         "ms-python.vscode-pylance",
         "charliermarsh.ruff",
         "yzhang.markdown-all-in-one",
+        "DavidAnson.vscode-markdownlint",
         "editorconfig.editorconfig",
         "dracula-theme.theme-dracula",
         "PKief.material-icon-theme",
