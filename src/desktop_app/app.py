@@ -45,6 +45,7 @@ from desktop_app.infrastructure.logger import (
     logger_bootstrap,
     logger_enable_file_logging,
     logger_get_logger,
+    resolve_log_file_path,
 )
 
 logger = logger_get_logger(__name__)
@@ -57,11 +58,10 @@ def configure_logging() -> Path:
         The configured log file path.
     """
     frozen_executable = is_frozen_executable()
-
-    if frozen_executable:
-        log_file_path = Path(sys.executable).resolve().parent / LOG_FILE_PATH
-    else:
-        log_file_path = Path.cwd() / LOG_FILE_PATH
+    log_file_path = resolve_log_file_path(
+        LOG_FILE_PATH,
+        frozen_executable=frozen_executable,
+    )
 
     logger_bootstrap(
         LoggerConfig(

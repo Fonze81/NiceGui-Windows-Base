@@ -12,6 +12,7 @@
 from desktop_app.infrastructure.logger.bootstrapper import LoggerBootstrapper
 from desktop_app.infrastructure.logger.config import LoggerConfig
 from desktop_app.infrastructure.logger.exceptions import LoggerValidationError
+from desktop_app.infrastructure.logger.paths import resolve_log_file_path
 from desktop_app.infrastructure.logger.service import (
     logger_bootstrap,
     logger_create_bootstrapper,
@@ -31,6 +32,7 @@ __all__ = [
     "logger_enable_file_logging",
     "logger_get_bootstrapper",
     "logger_get_logger",
+    "resolve_log_file_path",
     "logger_shutdown",
     "logger_update_config",
 ]
