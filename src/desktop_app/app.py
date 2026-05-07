@@ -212,6 +212,7 @@ def main(*, development_mode: bool = False) -> None:
         "title": APPLICATION_TITLE,
         "favicon": icon_path,
         "port": runtime_port,
+        "host": "127.0.0.1",
     }
 
     if reload_enabled:
