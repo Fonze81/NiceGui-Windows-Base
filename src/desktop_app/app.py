@@ -3,16 +3,15 @@
 # Purpose:
 # Define the NiceGUI Windows Base application entry point.
 # Behavior:
-# Configures logging, builds the main NiceGUI page, registers lifecycle handlers,
-# and starts NiceGUI in native mode by default or browser reload mode during
-# development.
+# Configures the official logging subsystem, builds the main NiceGUI page,
+# registers lifecycle handlers, and starts NiceGUI in native mode by default or
+# browser reload mode during development.
 # Notes:
-# Runtime detection, asset path resolution, splash handling, and lifecycle
-# handlers are delegated to dedicated modules to keep this entry point focused
-# on application startup orchestration.
+# Runtime detection, asset path resolution, splash handling, lifecycle handlers,
+# and logger internals are delegated to dedicated modules to keep this entry
+# point focused on application startup orchestration.
 # -----------------------------------------------------------------------------
 
-import logging
 import os
 import sys
 from functools import partial
@@ -25,6 +24,7 @@ from desktop_app.constants import (
     APPLICATION_TITLE,
     DEFAULT_WEB_PORT,
     LOG_FILE_PATH,
+    LOG_LEVEL,
     PAGE_IMAGE_FILENAME,
 )
 from desktop_app.core.runtime import (
@@ -40,11 +40,14 @@ from desktop_app.infrastructure.asset_paths import (
     resolve_asset_path,
 )
 from desktop_app.infrastructure.lifecycle import register_lifecycle_handlers
+from desktop_app.infrastructure.logger import (
+    LoggerConfig,
+    logger_bootstrap,
+    logger_enable_file_logging,
+    logger_get_logger,
+)
 
-LOG_LEVEL = logging.DEBUG
-LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
-
-logger = logging.getLogger("desktop_app.app")
+logger = logger_get_logger(__name__)
 
 
 def resolve_log_file_path() -> Path:
@@ -60,40 +63,26 @@ def resolve_log_file_path() -> Path:
     return Path.cwd() / LOG_FILE_PATH
 
 
-def create_log_handlers(log_file_path: Path) -> list[logging.Handler]:
-    """Create application log handlers.
-
-    Args:
-        log_file_path: File path where logs should be written.
-
-    Returns:
-        Configured logging handlers for file and terminal output.
-    """
-    formatter = logging.Formatter(LOG_FORMAT)
-
-    file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
-    file_handler.setFormatter(formatter)
-
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-
-    return [file_handler, stream_handler]
-
-
 def configure_logging() -> Path:
-    """Configure application logging for terminal and file diagnostics.
+    """Configure the official application logging subsystem.
 
     Returns:
         The configured log file path.
     """
     log_file_path = resolve_log_file_path()
-    log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    logging.basicConfig(
-        level=LOG_LEVEL,
-        handlers=create_log_handlers(log_file_path),
-        force=True,
+    logger_bootstrap(
+        LoggerConfig(
+            level=LOG_LEVEL,
+            enable_console=not is_frozen_executable(),
+            file_path=log_file_path,
+        )
     )
+
+    if not logger_enable_file_logging():
+        logger.warning(
+            "File logging could not be enabled. Continuing without log file."
+        )
 
     logger.info("Logging initialized for %s.", APPLICATION_TITLE)
     logger.debug("Log file ready at: %s", log_file_path)
@@ -205,7 +194,7 @@ def main(*, development_mode: bool = False) -> None:
     print(startup_message, flush=True)
     logger.debug("Startup status message sent to the terminal: %s", startup_message)
 
-    register_lifecycle_handlers(native_mode=native_mode)
+    register_lifecycle_handlers()
 
     icon_path = get_application_icon_path()
     logger.debug("Application icon prepared for NiceGUI: %s", icon_path)
@@ -228,17 +217,11 @@ def main(*, development_mode: bool = False) -> None:
     if reload_enabled:
         ui_run_options.update(
             {
-                "uvicorn_reload_dirs": ["src"],
-                "uvicorn_reload_includes": ["*.py"],
-                "uvicorn_reload_excludes": [
-                    "logs/*",
-                    "logs/**/*",
-                    "*.log",
-                    "build/*",
-                    "dist/*",
-                    ".venv/*",
-                    ".venv/**/*",
-                ],
+                "uvicorn_reload_dirs": "src",
+                "uvicorn_reload_includes": "*.py",
+                "uvicorn_reload_excludes": (
+                    "logs/*,logs/**/*,*.log,build/*,dist/*,.venv/*,.venv/**/*"
+                ),
             }
         )
         logger.debug("NiceGUI reload file watching configured for development mode.")

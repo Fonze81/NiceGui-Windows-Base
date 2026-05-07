@@ -13,15 +13,15 @@
 # -----------------------------------------------------------------------------
 
 import importlib
-import logging
 from types import ModuleType
 
 from nicegui import app
 
 from desktop_app.constants import PYINSTALLER_SPLASH_MODULE
 from desktop_app.core.runtime import is_frozen_executable
+from desktop_app.infrastructure.logger import logger_get_logger
 
-logger = logging.getLogger(__name__)
+logger = logger_get_logger(__name__)
 
 _splash_module: ModuleType | None = None
 _splash_close_attempted = False

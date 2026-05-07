@@ -10,16 +10,15 @@
 # the application favicon, so this module returns string paths.
 # -----------------------------------------------------------------------------
 
-import logging
-
 from desktop_app.constants import (
     APP_ICON_FILENAME,
     LOCAL_ASSETS_DIR,
     PACKAGED_ASSETS_DIR,
 )
 from desktop_app.core.runtime import get_runtime_root, is_frozen_executable
+from desktop_app.infrastructure.logger import logger_get_logger
 
-logger = logging.getLogger(__name__)
+logger = logger_get_logger(__name__)
 
 
 def resolve_asset_path(filename: str) -> str:

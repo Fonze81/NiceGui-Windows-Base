@@ -12,7 +12,6 @@
 # process state.
 # -----------------------------------------------------------------------------
 
-import logging
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -21,8 +20,9 @@ from desktop_app.constants import (
     APPLICATION_TITLE,
     PYPROJECT_COMMAND_NAMES,
 )
+from desktop_app.infrastructure.logger import logger_get_logger
 
-logger = logging.getLogger(__name__)
+logger = logger_get_logger(__name__)
 
 STARTUP_SOURCE_DESCRIPTIONS = {
     "dev_run.py": "the development runner",
@@ -239,3 +239,41 @@ def build_startup_message(
 
     logger.debug("Startup status message prepared: %s", message)
     return message
+
+
+def get_startup_message(
+    *,
+    development_mode: bool,
+    argv: Sequence[str] | None = None,
+    frozen: bool | None = None,
+    application_title: str = APPLICATION_TITLE,
+    pyproject_command_names: Sequence[str] = PYPROJECT_COMMAND_NAMES,
+) -> str:
+    """Return the complete startup diagnostic message.
+
+    Args:
+        development_mode: Whether startup was requested by the development
+            runner.
+        argv: Optional argument list used by tests. When omitted, sys.argv is
+            used.
+        frozen: Optional explicit frozen state used by tests.
+        application_title: Human-readable application title.
+        pyproject_command_names: Command names created by pyproject.toml.
+
+    Returns:
+        The startup diagnostic message already formatted for terminal and UI.
+    """
+    native_mode, reload_enabled = get_nicegui_modes(development_mode=development_mode)
+    startup_source = detect_startup_source(
+        development_mode=development_mode,
+        argv=argv,
+        frozen=frozen,
+        pyproject_command_names=pyproject_command_names,
+    )
+
+    return build_startup_message(
+        startup_source=startup_source,
+        native_mode=native_mode,
+        reload_enabled=reload_enabled,
+        application_title=application_title,
+    )
