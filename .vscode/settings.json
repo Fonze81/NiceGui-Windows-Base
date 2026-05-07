@@ -7,5 +7,32 @@
             "source.organizeImports.ruff": "explicit"
         }
     },
-    "python.analysis.typeCheckingMode": "standard"
+    "python.analysis.typeCheckingMode": "standard",
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        ".pytest_cache": true,
+        ".ruff_cache": true,
+        ".venv": true,
+        "build": true,
+        "*.spec": true,
+        ".gitattributes": true,
+        ".gitignore": true,
+        "LICENSE": true,
+        "NiceGui Windows Base.code-workspace": true,
+        "docs/vscode_setup.md": true,
+        "src/desktop_app/__init__.py": true,
+        "src/desktop_app/__main__.py": true,
+        "src/desktop_app/infrastructure/logger": true,
+        "src/nicegui_windows_base.egg-info": true,
+        "scripts/package_windows.ps1": true,
+    },
+    "search.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        ".pytest_cache": true,
+        ".ruff_cache": true,
+        ".venv": true,
+        "dist": true,
+    }
 }

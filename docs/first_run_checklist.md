@@ -97,6 +97,7 @@ python -m pip install -e ".[dev,packaging]"
 - [ ] The selected interpreter is `.venv\Scripts\python.exe`.
 - [ ] Recommended extensions were reviewed.
 - [ ] Ruff runs on save for Python files.
+- [ ] The VS Code Explorer hides generated files, build artifacts, and stable files configured through `.vscode\settings.json`.
 
 ---
 

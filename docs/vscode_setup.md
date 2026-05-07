@@ -262,7 +262,25 @@ Ruff-specific code actions are used instead of generic `source.fixAll` and `sour
 
 ---
 
-## ✅ 10. Validate VS Code setup
+## 🗂️ 10. Workspace file visibility
+
+The project uses VS Code `files.exclude` to keep the Explorer focused on files that are more relevant during daily development.
+
+Some generated files, cache folders, build artifacts, metadata files, and stable infrastructure files are hidden from the Explorer because they are not expected to change frequently.
+
+This does not remove files from the project and does not affect Git tracking. It only changes the VS Code Explorer view.
+
+If a hidden file needs to be opened, use one of these options:
+
+- `Ctrl + P` and type the file path;
+- temporarily disable the related entry in `.vscode\settings.json`;
+- open the file directly from the terminal.
+
+Search exclusions are more conservative and mainly hide generated artifacts such as virtual environments, cache folders, compiled Python files, and distribution outputs.
+
+---
+
+## ✅ 11. Validate VS Code setup
 
 Run these commands in the VS Code integrated terminal:
 
