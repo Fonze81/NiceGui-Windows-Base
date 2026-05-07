@@ -85,8 +85,10 @@ function Invoke-PyInstallerBuild {
 
     Invoke-NativeCommand `
         -StepName "PyInstaller" `
-        -Command "pyinstaller" `
+        -Command "python" `
         -Arguments @(
+            "-m"
+            "PyInstaller"
             "--onefile"
             "--windowed"
             "--clean"
@@ -171,11 +173,14 @@ Invoke-NativeCommand `
     )
 
 Write-Host "Checking PyInstaller availability..."
-$pyInstallerCommand = Get-Command pyinstaller -ErrorAction SilentlyContinue
-
-if (-not $pyInstallerCommand) {
-    throw 'PyInstaller was not found in the active environment. Activate .venv and run: python -m pip install -e ".[packaging]"'
-}
+Invoke-NativeCommand `
+    -StepName "PyInstaller availability check" `
+    -Command "python" `
+    -Arguments @(
+        "-m"
+        "PyInstaller"
+        "--version"
+    )
 
 if (-not (Test-Path $iconPath)) {
     throw "Application icon was not found: $iconPath"

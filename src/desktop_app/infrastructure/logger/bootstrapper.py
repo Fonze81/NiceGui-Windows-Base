@@ -13,6 +13,7 @@
 # -----------------------------------------------------------------------------
 
 import logging
+from contextlib import suppress
 from dataclasses import replace
 from logging import Handler, Logger
 from logging.handlers import MemoryHandler, RotatingFileHandler
@@ -194,11 +195,9 @@ class LoggerBootstrapper:
         if self._is_shutdown:
             return
 
-        try:
+        with suppress(Exception):
             self._root_logger.debug("Logger shutdown started.")
             self._root_logger.debug("Logger shutdown completed.")
-        except Exception:
-            pass
 
         remove_and_close_handler_safely(self._root_logger, self._memory_handler)
         remove_and_close_handler_safely(self._root_logger, self._console_handler)

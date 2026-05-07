@@ -48,6 +48,12 @@ def load_splash_module() -> ModuleType | None:
             "without a splash close handler."
         )
         return None
+    except Exception:
+        logger.exception(
+            "PyInstaller splash module import failed; startup will continue "
+            "without a splash close handler."
+        )
+        return None
 
     logger.debug(
         "PyInstaller splash module loaded; it will be closed after the first "

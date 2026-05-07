@@ -84,7 +84,7 @@ def configure_logging() -> Path:
             "File logging could not be enabled. Continuing without log file."
         )
 
-    logger.debug("Logging initialized for %s.", APPLICATION_TITLE)
+    logger.info("Logging initialized for %s.", APPLICATION_TITLE)
     logger.debug("Log file ready at: %s", log_file_path)
     logger.debug("Application working directory: %s", Path.cwd())
     logger.debug("Python executable in use: %s", sys.executable)
@@ -123,7 +123,7 @@ def build_main_page(*, startup_message: str) -> None:
     Args:
         startup_message: Startup diagnostic message shown in the page.
     """
-    logger.debug("Building the main page for the connected client.")
+    logger.info("Building the main page for the connected client.")
 
     ui.query("body").classes("bg-slate-100")
 
@@ -158,7 +158,7 @@ def build_main_page(*, startup_message: str) -> None:
                 "mt-1 text-sm leading-relaxed text-slate-700"
             )
 
-    logger.debug("Main page built successfully.")
+    logger.info("Main page built successfully.")
 
 
 def main(*, development_mode: bool = False) -> None:
@@ -179,11 +179,11 @@ def main(*, development_mode: bool = False) -> None:
         application_title=APPLICATION_TITLE,
     )
 
-    logger.debug(
+    logger.info(
         "Startup source resolved: %s.",
         describe_startup_source(startup_source),
     )
-    logger.debug(
+    logger.info(
         "Runtime mode resolved: %s.",
         describe_runtime_mode(
             native_mode=native_mode,
@@ -194,7 +194,7 @@ def main(*, development_mode: bool = False) -> None:
     print(startup_message, flush=True)
     logger.debug("Startup status message sent to the terminal: %s", startup_message)
 
-    register_lifecycle_handlers()
+    register_lifecycle_handlers(native_mode=native_mode)
 
     icon_path = get_application_icon_path()
     logger.debug("Application icon prepared for NiceGUI: %s", icon_path)

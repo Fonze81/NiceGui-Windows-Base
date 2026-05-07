@@ -8,8 +8,7 @@
 # Notes:
 # Keep this module focused on lifecycle wiring. Handler implementation details
 # should stay in their own modules, such as desktop_app.infrastructure.splash.
-# The generic and native window handlers are intentionally simple because this
-# project is also used as a template for future applications.
+# Native window handlers are registered only when NiceGUI native mode is active.
 # The asyncio exception handler suppresses only the known benign Windows
 # connection reset raised during native window shutdown.
 # -----------------------------------------------------------------------------
@@ -113,7 +112,7 @@ def _log_exception_event(message: str, args: tuple[Any, ...]) -> None:
 def _handle_application_started(*_args: Any) -> None:
     """Handle the NiceGUI application startup event."""
     _configure_asyncio_exception_handler()
-    logger.debug("NiceGUI runtime started.")
+    logger.info("NiceGUI runtime started.")
 
 
 def _handle_application_shutdown(*_args: Any) -> None:
@@ -210,12 +209,24 @@ def _register_native_window_handlers() -> None:
     app.native.on("drop", _handle_native_file_drop)
 
 
-def register_lifecycle_handlers() -> None:
-    """Register application lifecycle handlers."""
+def register_lifecycle_handlers(*, native_mode: bool) -> None:
+    """Register application lifecycle handlers.
+
+    Args:
+        native_mode: Whether NiceGUI will run with a native desktop window.
+    """
     logger.debug("Registering lifecycle handlers.")
 
     _register_application_handlers()
-    _register_native_window_handlers()
+
+    if native_mode:
+        _register_native_window_handlers()
+        logger.debug("Native window lifecycle handlers registered.")
+    else:
+        logger.debug(
+            "Native window lifecycle handlers skipped because web mode is active."
+        )
+
     register_splash_handler()
 
     logger.debug("Lifecycle handlers registered.")
