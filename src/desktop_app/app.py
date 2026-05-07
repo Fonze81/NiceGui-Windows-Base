@@ -50,31 +50,23 @@ from desktop_app.infrastructure.logger import (
 logger = logger_get_logger(__name__)
 
 
-def resolve_log_file_path() -> Path:
-    """Return the log file path for the current runtime.
-
-    Returns:
-        A writable log path near the executable in frozen mode or in the current
-        working directory during normal Python execution.
-    """
-    if is_frozen_executable():
-        return Path(sys.executable).resolve().parent / LOG_FILE_PATH
-
-    return Path.cwd() / LOG_FILE_PATH
-
-
 def configure_logging() -> Path:
     """Configure the official application logging subsystem.
 
     Returns:
         The configured log file path.
     """
-    log_file_path = resolve_log_file_path()
+    frozen_executable = is_frozen_executable()
+
+    if frozen_executable:
+        log_file_path = Path(sys.executable).resolve().parent / LOG_FILE_PATH
+    else:
+        log_file_path = Path.cwd() / LOG_FILE_PATH
 
     logger_bootstrap(
         LoggerConfig(
             level=LOG_LEVEL,
-            enable_console=not is_frozen_executable(),
+            enable_console=not frozen_executable,
             file_path=log_file_path,
         )
     )
