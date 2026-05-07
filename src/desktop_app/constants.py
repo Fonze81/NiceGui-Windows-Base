@@ -43,7 +43,7 @@ MAX_ROTATE_MAX_BYTES = 1 * 1024 * 1024 * 1024
 MIN_ROTATE_BACKUP_COUNT = 0
 MAX_ROTATE_BACKUP_COUNT = 100
 
-CONSOLE_LOG_FORMAT = "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(message)s"
+CONSOLE_LOG_FORMAT = "%(asctime)s.%(msecs)03d | %(levelname)s | %(message)s"
 FILE_LOG_FORMAT = (
     "%(asctime)s.%(msecs)03d | %(levelname)s | %(filename)s:%(lineno)d | %(message)s"
 )
