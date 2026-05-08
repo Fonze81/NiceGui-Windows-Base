@@ -12,22 +12,25 @@
 # -----------------------------------------------------------------------------
 
 import sys
+from os import PathLike
 from pathlib import Path
 
 from desktop_app.constants import DEFAULT_LOG_FILE_PATH
 
+type _PathInput = str | PathLike[str]
+
 
 def resolve_log_file_path(
-    file_path: str | Path = DEFAULT_LOG_FILE_PATH,
+    log_file_path: _PathInput = DEFAULT_LOG_FILE_PATH,
     *,
     frozen_executable: bool | None = None,
-    executable_path: str | Path | None = None,
-    working_directory: str | Path | None = None,
+    executable_path: _PathInput | None = None,
+    working_directory: _PathInput | None = None,
 ) -> Path:
     """Return the runtime log file path.
 
     Args:
-        file_path: Relative or absolute log file path.
+        log_file_path: Relative or absolute log file path.
         frozen_executable: Optional explicit frozen state. When omitted, the
             value is read from sys.frozen.
         executable_path: Optional executable path. When omitted, sys.executable
@@ -38,17 +41,17 @@ def resolve_log_file_path(
     Returns:
         Absolute log file path for the current runtime.
     """
-    normalized_file_path = Path(file_path)
+    requested_path = Path(log_file_path)
 
-    if normalized_file_path.is_absolute():
-        return normalized_file_path
+    if requested_path.is_absolute():
+        return requested_path
 
     if _is_frozen_executable(frozen_executable):
         runtime_executable = Path(executable_path or sys.executable).resolve()
-        return runtime_executable.parent / normalized_file_path
+        return runtime_executable.parent / requested_path
 
     runtime_working_directory = Path(working_directory or Path.cwd()).resolve()
-    return runtime_working_directory / normalized_file_path
+    return runtime_working_directory / requested_path
 
 
 def _is_frozen_executable(frozen_executable: bool | None) -> bool:
