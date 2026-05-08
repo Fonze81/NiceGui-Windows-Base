@@ -16,6 +16,7 @@ Use this checklist to validate a new clone or a new Windows machine.
 - [ ] The folder contains `src\desktop_app\assets\logo.png`.
 - [ ] The folder contains `src\desktop_app\assets\page_image.png`.
 - [ ] The folder contains `src\desktop_app\assets\splash_light.png`.
+- [ ] The folder contains `src\desktop_app\settings.toml`.
 
 ---
 
@@ -97,7 +98,6 @@ python -m pip install -e ".[dev,packaging]"
 - [ ] The selected interpreter is `.venv\Scripts\python.exe`.
 - [ ] Recommended extensions were reviewed.
 - [ ] Ruff runs on save for Python files.
-- [ ] The VS Code Explorer hides generated files, build artifacts, and stable files configured through `.vscode\settings.json`.
 
 ---
 
@@ -193,6 +193,7 @@ dist\nicegui-windows-base.exe
 - [ ] The executable shows a splash screen during startup.
 - [ ] The executable opens the NiceGUI native window without an extra console window.
 - [ ] The page displays the PNG image and startup status message.
+- [ ] Persistent `settings.toml` is created next to the executable when missing.
 - [ ] `dist\packaging_report.md` is created.
 - [ ] `dist\logs\app.log` is created after the packaged executable starts.
 - [ ] The log contains the startup source, runtime mode, NiceGUI startup, page build, and shutdown narrative.

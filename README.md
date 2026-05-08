@@ -17,6 +17,7 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 - narrative startup diagnostics shown in the terminal, rotating log file, and UI;
 - packaged and normal asset resolution for the application icon and page image;
 - structured logger package with startup buffering, rotating file logs, lifecycle logging, and safe shutdown;
+- typed runtime state model and persistent `settings.toml` support with first-run creation;
 - optional PyInstaller splash screen support that closes after the first client connects;
 - PyInstaller packaging with windowed mode, executable icon, bundled assets, Windows version metadata, hidden splash import, and splash screen;
 - VS Code recommendations and Ruff-on-save workspace settings;
@@ -38,6 +39,7 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │   ├── execution_modes.md
 │   ├── first_run_checklist.md
 │   ├── logging.md
+│   ├── settings.md
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
 │   ├── python_windows_setup.md
@@ -57,7 +59,8 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       │   └── splash_light.png
 │       ├── core/
 │       │   ├── __init__.py
-│       │   └── runtime.py
+│       │   ├── runtime.py
+│       │   └── state.py
 │       ├── infrastructure/
 │       │   ├── logger/
 │       │   │   ├── __init__.py
@@ -68,6 +71,15 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       │   │   ├── paths.py
 │       │   │   ├── service.py
 │       │   │   └── validators.py
+│       │   ├── settings/
+│       │   │   ├── __init__.py
+│       │   │   ├── constants.py
+│       │   │   ├── conversion.py
+│       │   │   ├── diagnostics.py
+│       │   │   ├── document.py
+│       │   │   ├── mapper.py
+│       │   │   ├── paths.py
+│       │   │   └── service.py
 │       │   ├── __init__.py
 │       │   ├── asset_paths.py
 │       │   ├── lifecycle.py
@@ -75,7 +87,8 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       ├── __init__.py
 │       ├── __main__.py
 │       ├── app.py
-│       └── constants.py
+│       ├── constants.py
+│       └── settings.toml
 ├── CHANGELOG.md
 ├── dev_run.py
 ├── pyproject.toml
@@ -226,6 +239,7 @@ Main guides:
 - [Execution modes](docs/execution_modes.md)
 - [Windows packaging](docs/packaging_windows.md)
 - [Logging subsystem](docs/logging.md)
+- [Settings and application state](docs/settings.md)
 - [Code quality with Ruff](docs/code_quality.md)
 - [Troubleshooting](docs/troubleshooting.md)
 

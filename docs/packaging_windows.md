@@ -22,6 +22,7 @@ Direct PyInstaller is now preferred and invoked through `python -m PyInstaller` 
 - PyInstaller supports Windows version properties directly with `--version-file`;
 - PyInstaller supports splash screen configuration through `--splash`;
 - PyInstaller supports windowed desktop execution through `--windowed`;
+- PyInstaller can bundle the default `settings.toml` template with `--add-data`;
 - PyInstaller allows the splash module to be preserved with `--hidden-import pyi_splash`;
 - using one packager keeps the script simpler.
 
@@ -61,6 +62,7 @@ python -m PyInstaller `
     --noconfirm `
     --icon $iconPath `
     --add-data $assetsData `
+    --add-data $settingsData `
     --splash $splashImagePath `
     --hidden-import pyi_splash `
     --version-file $versionInfoPath `
@@ -77,6 +79,8 @@ $assetsPath = "src\desktop_app\assets"
 $iconPath = Join-Path $assetsPath "app_icon.ico"
 $splashImagePath = Join-Path $assetsPath "splash_light.png"
 $assetsData = "$assetsPath;desktop_app\assets"
+$settingsTemplatePath = "src\desktop_app\settings.toml"
+$settingsData = "$settingsTemplatePath;desktop_app"
 $versionInfoPath = "scripts\version_info.txt"
 ```
 
@@ -172,6 +176,22 @@ The assets directory is bundled with:
 ```
 
 This is required because `ui.run(favicon=...)` and `ui.image(...)` need the files at runtime, including when the application is running as a one-file executable.
+
+## ⚙️ Settings template
+
+The default settings template is bundled from:
+
+```text
+src\desktop_app\settings.toml
+```
+
+The script passes it to PyInstaller with:
+
+```powershell
+--add-data $settingsData
+```
+
+At runtime, the application copies this bundled template to a persistent `settings.toml` when no editable settings file exists yet. In packaged execution, the persistent file is created next to `dist\nicegui-windows-base.exe`, not inside the temporary PyInstaller extraction directory. See [Settings and application state](settings.md).
 
 ---
 

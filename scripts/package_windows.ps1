@@ -15,6 +15,8 @@ $assetsPath = "src\desktop_app\assets"
 $iconPath = Join-Path $assetsPath "app_icon.ico"
 $splashImagePath = Join-Path $assetsPath "splash_light.png"
 $assetsData = "$assetsPath;desktop_app\assets"
+$settingsTemplatePath = "src\desktop_app\settings.toml"
+$settingsData = "$settingsTemplatePath;desktop_app"
 $versionInfoPath = "scripts\version_info.txt"
 $exePath = Join-Path "dist" "$appName.exe"
 $packagingReportPath = Join-Path "dist" "packaging_report.md"
@@ -97,6 +99,8 @@ function Invoke-PyInstallerBuild {
             $iconPath
             "--add-data"
             $assetsData
+            "--add-data"
+            $settingsData
             "--splash"
             $splashImagePath
             "--hidden-import"
@@ -148,7 +152,7 @@ this project, including `--windowed`, `--version-file`, `--splash`, and
 ## Notes
 
 - The executable receives Windows version properties during build with `--version-file`.
-- The build uses the project icon, splash image, assets directory, entry point, one-file mode, windowed mode, and hidden `pyi_splash` import.
+- The build uses the project icon, splash image, assets directory, bundled settings template, entry point, one-file mode, windowed mode, and hidden `pyi_splash` import.
 - The previous nicegui-pack comparison flow was removed after confirming that file size and build time were similar.
 "@
 
@@ -188,6 +192,10 @@ if (-not (Test-Path $iconPath)) {
 
 if (-not (Test-Path $splashImagePath)) {
     throw "Splash image was not found: $splashImagePath"
+}
+
+if (-not (Test-Path $settingsTemplatePath)) {
+    throw "Settings template was not found: $settingsTemplatePath"
 }
 
 if (-not (Test-Path $versionInfoPath)) {
