@@ -23,7 +23,7 @@ from desktop_app.infrastructure.logger.service import (
     logger_update_config,
 )
 
-__all__ = [
+__all__: tuple[str, ...] = (
     "LoggerBootstrapper",
     "LoggerConfig",
     "LoggerValidationError",
@@ -35,4 +35,4 @@ __all__ = [
     "resolve_log_file_path",
     "logger_shutdown",
     "logger_update_config",
-]
+)
