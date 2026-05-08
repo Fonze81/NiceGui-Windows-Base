@@ -14,6 +14,7 @@
 
 import os
 import sys
+from datetime import datetime
 from functools import partial
 from multiprocessing import freeze_support
 from pathlib import Path
@@ -24,6 +25,7 @@ from desktop_app.constants import (
     APPLICATION_TITLE,
     DEFAULT_WEB_PORT,
     PAGE_IMAGE_FILENAME,
+    SPLASH_IMAGE_FILENAME,
 )
 from desktop_app.core.runtime import (
     build_startup_message,
@@ -49,6 +51,7 @@ from desktop_app.infrastructure.settings import (
     build_logger_config_from_state,
     load_settings,
 )
+from desktop_app.infrastructure.settings.paths import get_pyinstaller_temp_dir
 
 logger = logger_get_logger(__name__)
 
@@ -63,13 +66,21 @@ def configure_logging(*, state: AppState | None = None) -> Path:
         The configured log file path.
     """
     current_state = state if state is not None else get_app_state()
+    current_state.paths.working_directory = Path.cwd()
+    current_state.paths.executable_path = Path(sys.executable).resolve()
+    current_state.paths.pyinstaller_temp_dir = get_pyinstaller_temp_dir()
+
     load_settings(state=current_state)
+    current_state.paths.settings_file_path = current_state.settings.file_path
 
     frozen_executable = is_frozen_executable()
     log_file_path = resolve_log_file_path(
         current_state.log.file_path,
         frozen_executable=frozen_executable,
     )
+
+    current_state.log.effective_file_path = log_file_path
+    current_state.paths.log_file_path = log_file_path
 
     logger_bootstrap(
         build_logger_config_from_state(
@@ -80,6 +91,9 @@ def configure_logging(*, state: AppState | None = None) -> Path:
     )
 
     current_state.log.file_logging_enabled = logger_enable_file_logging()
+    current_state.log.early_buffering_enabled = (
+        not current_state.log.file_logging_enabled
+    )
     if not current_state.log.file_logging_enabled:
         logger.warning(
             "File logging could not be enabled. Continuing without log file."
@@ -126,6 +140,12 @@ def build_main_page(*, application_name: str, startup_message: str) -> None:
         application_name: Application name shown in the page.
         startup_message: Startup diagnostic message shown in the page.
     """
+    state = get_app_state()
+    state.ui_session.active_view = "home"
+    state.ui_session.last_page_built_at = datetime.now()
+    state.ui_session.is_busy = False
+    state.ui_session.busy_message = None
+
     logger.info("Building the main page for the connected client.")
 
     ui.query("body").classes("bg-slate-100")
@@ -140,6 +160,7 @@ def build_main_page(*, application_name: str, startup_message: str) -> None:
         ),
     ):
         page_image_path = resolve_asset_path(PAGE_IMAGE_FILENAME)
+        state.assets.page_image_path = Path(page_image_path)
         logger.debug("Page image resolved for the main page: %s", page_image_path)
 
         ui.image(page_image_path).classes("h-40 w-40 rounded-2xl object-contain")
@@ -182,6 +203,7 @@ def main(*, development_mode: bool = False) -> None:
         reload_enabled=reload_enabled,
         application_title=state.meta.name or APPLICATION_TITLE,
     )
+    state.runtime.startup_message = startup_message
 
     logger.info(
         "Startup source resolved: %s.",
@@ -201,7 +223,11 @@ def main(*, development_mode: bool = False) -> None:
     register_lifecycle_handlers(native_mode=native_mode)
 
     icon_path = get_application_icon_path()
+    splash_image_path = resolve_asset_path(SPLASH_IMAGE_FILENAME)
+    state.assets.icon_path = Path(icon_path)
+    state.assets.splash_image_path = Path(splash_image_path)
     logger.debug("Application icon prepared for NiceGUI: %s", icon_path)
+    logger.debug("Splash image path prepared for diagnostics: %s", splash_image_path)
 
     runtime_port = get_runtime_port(native_mode=native_mode)
     state.runtime.startup_source = startup_source

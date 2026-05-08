@@ -13,11 +13,12 @@ This folder contains the maintenance documentation for the **NiceGui Windows Bas
 5. [Execution modes](execution_modes.md) — native, web development, module, script, and packaged execution.
 6. [Windows packaging](packaging_windows.md) — PyInstaller executable build, version metadata, assets, and splash screen.
 7. [Logging subsystem](logging.md) — logger architecture, startup buffering, file rotation, and maintenance rules.
-8. [Settings and application state](settings.md) — persistent settings, runtime state, and first-run settings creation.
-9. [Code quality](code_quality.md) — Python linting and formatting with Ruff, plus Markdown validation with markdownlint.
-10. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone.
-11. [Troubleshooting](troubleshooting.md) — common issues and fixes.
-12. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
+8. [Settings and application state](settings.md) — persistent settings, runtime state, and scoped persistence.
+9. [Application state](state.md) — complete AppState model, runtime metadata, lifecycle flags, and binding guidance.
+10. [Code quality](code_quality.md) — Python linting and formatting with Ruff, plus Markdown validation with markdownlint.
+11. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone.
+12. [Troubleshooting](troubleshooting.md) — common issues and fixes.
+13. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
 
 ---
 
@@ -52,6 +53,7 @@ flowchart TD
     B --> G[NiceGUI UI]
     B --> H[src/desktop_app/core/runtime.py]
     B --> T[src/desktop_app/core/state.py]
+    T --> X[Runtime paths, lifecycle, assets, UI session]
     B --> U[src/desktop_app/infrastructure/settings]
     B --> I[src/desktop_app/infrastructure/asset_paths.py]
     B --> J[src/desktop_app/infrastructure/lifecycle.py]
@@ -76,8 +78,8 @@ Key decisions:
 
 - `app.py` owns application startup orchestration, UI composition, settings loading, logging setup orchestration, and the `ui.run(...)` call.
 - `core/runtime.py` owns startup source detection, runtime root detection, NiceGUI mode selection, and startup status message formatting.
-- `core/state.py` owns the typed in-memory application state.
-- `infrastructure/settings/` owns persistent `settings.toml` loading, creation, saving, TOML mapping, and bundled template lookup.
+- `core/state.py` owns the typed in-memory application state, including persisted preferences and runtime-only diagnostics.
+- `infrastructure/settings/` owns read-only settings loading, scoped saving, TOML mapping, and bundled template lookup for first save.
 - `infrastructure/asset_paths.py` owns asset path resolution for normal Python execution and PyInstaller execution.
 - `infrastructure/lifecycle.py` owns NiceGUI lifecycle handler registration and lifecycle log messages.
 - `infrastructure/logger/` owns logger configuration, startup buffering, rotating file handlers, runtime log path resolution, and shutdown cleanup.

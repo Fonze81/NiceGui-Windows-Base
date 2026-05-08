@@ -193,7 +193,8 @@ dist\nicegui-windows-base.exe
 - [ ] The executable shows a splash screen during startup.
 - [ ] The executable opens the NiceGUI native window without an extra console window.
 - [ ] The page displays the PNG image and startup status message.
-- [ ] Persistent `settings.toml` is created next to the executable when missing.
+- [ ] Starting the executable without `settings.toml` uses in-memory defaults and does not create the file automatically.
+- [ ] A settings save operation creates persistent `settings.toml` next to the executable when missing.
 - [ ] `dist\packaging_report.md` is created.
 - [ ] `dist\logs\app.log` is created after the packaged executable starts.
 - [ ] The log contains the startup source, runtime mode, NiceGUI startup, page build, and shutdown narrative.

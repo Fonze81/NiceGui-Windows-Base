@@ -9,7 +9,7 @@
 # Notes:
 # The pyi_splash module does not exist during normal Python execution. Import
 # failures are expected outside compatible packaged builds and must not stop the
-# application.
+# application. High-level splash state is mirrored in AppState for diagnostics.
 # -----------------------------------------------------------------------------
 
 import importlib
@@ -19,6 +19,7 @@ from nicegui import app
 
 from desktop_app.constants import PYINSTALLER_SPLASH_MODULE
 from desktop_app.core.runtime import is_frozen_executable
+from desktop_app.core.state import get_app_state
 from desktop_app.infrastructure.logger import logger_get_logger
 
 logger = logger_get_logger(__name__)
@@ -66,11 +67,14 @@ def close_splash_once() -> None:
     """Close the PyInstaller splash screen at most once."""
     global _splash_close_attempted
 
+    state = get_app_state()
+
     if _splash_close_attempted:
         logger.debug("Splash close skipped because it was already attempted.")
         return
 
     _splash_close_attempted = True
+    state.lifecycle.splash_close_attempted = True
 
     if _splash_module is None:
         logger.debug("Splash close skipped because no splash module was loaded.")
@@ -84,6 +88,7 @@ def close_splash_once() -> None:
         logger.exception("Failed to close the PyInstaller splash screen.")
         return
 
+    state.lifecycle.splash_closed = True
     logger.debug("PyInstaller splash screen closed.")
 
 
@@ -91,15 +96,18 @@ def register_splash_handler() -> None:
     """Register a handler to close the PyInstaller splash on first client connect."""
     global _splash_module
 
+    state = get_app_state()
     _splash_module = load_splash_module()
 
     if _splash_module is None:
+        state.lifecycle.splash_registered = False
         logger.debug(
             "Splash close handler not registered because no splash module was loaded."
         )
         return
 
     app.on_connect(close_splash_once)
+    state.lifecycle.splash_registered = True
     logger.debug(
         "PyInstaller splash close handler registered for the first client connection."
     )

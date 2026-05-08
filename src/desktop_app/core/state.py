@@ -8,7 +8,9 @@
 # state.
 # Notes:
 # This module must not read files, write files, configure logging, or access the
-# NiceGUI UI. Settings persistence belongs to infrastructure/settings.
+# NiceGUI UI. Settings persistence belongs to infrastructure/settings. NiceGUI
+# binding is intentionally kept outside this module so core state remains a
+# plain Python data model.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
@@ -55,15 +57,36 @@ class RuntimeState:
 
     Attributes:
         startup_source: Resolved startup source, such as package or module.
+        startup_message: Startup message shared by terminal, logs, and UI.
         native_mode: Whether the current process runs in NiceGUI native mode.
         reload_enabled: Whether NiceGUI reload mode is enabled.
         port: HTTP port selected for the current NiceGUI runtime.
     """
 
     startup_source: str | None = None
+    startup_message: str | None = None
     native_mode: bool = True
     reload_enabled: bool = False
     port: int = DEFAULT_WEB_PORT
+
+
+@dataclass(slots=True)
+class RuntimePathsState:
+    """Store effective runtime paths resolved during startup.
+
+    Attributes:
+        settings_file_path: Effective settings.toml path used by this process.
+        log_file_path: Effective log file path used by this process.
+        executable_path: Python executable or packaged executable path.
+        working_directory: Current working directory during startup.
+        pyinstaller_temp_dir: PyInstaller extraction directory when available.
+    """
+
+    settings_file_path: Path | None = None
+    log_file_path: Path | None = None
+    executable_path: Path | None = None
+    working_directory: Path | None = None
+    pyinstaller_temp_dir: Path | None = None
 
 
 @dataclass(slots=True)
@@ -111,6 +134,40 @@ class UiState:
 
 
 @dataclass(slots=True)
+class UiSessionState:
+    """Store transient UI session values.
+
+    Attributes:
+        active_view: Logical view currently displayed by the application.
+        is_busy: Whether the UI is performing a blocking or long-running action.
+        busy_message: Optional user-facing message for the active busy state.
+        last_page_built_at: Last time the main page was built for a client.
+        last_interaction_at: Last time a UI interaction updated the session state.
+    """
+
+    active_view: str = "home"
+    is_busy: bool = False
+    busy_message: str | None = None
+    last_page_built_at: datetime | None = None
+    last_interaction_at: datetime | None = None
+
+
+@dataclass(slots=True)
+class AssetState:
+    """Store resolved asset paths used by the current runtime.
+
+    Attributes:
+        icon_path: Application icon path passed to NiceGUI.
+        page_image_path: Image path shown in the main page.
+        splash_image_path: Splash image path used by the packaged executable.
+    """
+
+    icon_path: Path | None = None
+    page_image_path: Path | None = None
+    splash_image_path: Path | None = None
+
+
+@dataclass(slots=True)
 class LogState:
     """Store configurable logging preferences and runtime status.
 
@@ -118,10 +175,12 @@ class LogState:
         level: Minimum log level name.
         enable_console: Whether logs should also be emitted to the console.
         buffer_capacity: Maximum early records kept before file logging is active.
-        file_path: Relative or absolute log file path.
+        file_path: Relative or absolute log file path configured by settings.
         rotate_max_bytes: Maximum log file size before rotation.
         rotate_backup_count: Number of rotated log files to keep.
         file_logging_enabled: Whether file logging was enabled during startup.
+        early_buffering_enabled: Whether early memory buffering is still expected.
+        effective_file_path: Resolved runtime log file path.
     """
 
     level: str = DEFAULT_LOG_LEVEL
@@ -131,6 +190,8 @@ class LogState:
     rotate_max_bytes: str = "5 MB"
     rotate_backup_count: int = DEFAULT_ROTATE_BACKUP_COUNT
     file_logging_enabled: bool = False
+    early_buffering_enabled: bool = True
+    effective_file_path: Path | None = None
 
 
 @dataclass(slots=True)
@@ -150,15 +211,75 @@ class SettingsState:
 
     Attributes:
         file_path: Effective settings file path used by the application.
+        file_exists: Whether settings.toml existed during the latest load/save.
+        using_defaults: Whether the state currently relies on in-memory defaults.
+        last_loaded_scope: Latest settings scope loaded successfully.
+        last_saved_scope: Latest settings scope saved successfully.
         last_load_ok: Whether the latest load attempt completed successfully.
         last_save_ok: Whether the latest save attempt completed successfully.
         last_error: Last settings-related error message, when available.
     """
 
     file_path: Path | None = None
+    file_exists: bool = False
+    using_defaults: bool = True
+    last_loaded_scope: str | None = None
+    last_saved_scope: str | None = None
     last_load_ok: bool = False
     last_save_ok: bool = False
     last_error: str | None = None
+
+
+@dataclass(slots=True)
+class SettingsValidationState:
+    """Store latest settings validation warnings.
+
+    Attributes:
+        warnings: Warning messages from the latest settings load operation.
+        last_validated_scope: Settings scope validated most recently.
+        last_validated_at: Timestamp of the latest validation attempt.
+    """
+
+    warnings: list[str] = field(default_factory=list)
+    last_validated_scope: str | None = None
+    last_validated_at: datetime | None = None
+
+
+@dataclass(slots=True)
+class LifecycleState:
+    """Store high-level application lifecycle status.
+
+    Attributes:
+        handlers_registered: Whether generic lifecycle handlers were registered.
+        native_handlers_registered: Whether native window handlers were registered.
+        runtime_started: Whether NiceGUI startup event was received.
+        client_connected: Whether at least one client is currently connected.
+        native_window_opened: Whether the native window was shown.
+        native_window_loaded: Whether the native window finished loading.
+        native_window_minimized: Whether the native window is currently minimized.
+        native_window_maximized: Whether the native window is currently maximized.
+        native_window_closed: Whether the native window was closed.
+        splash_registered: Whether a splash close handler was registered.
+        splash_close_attempted: Whether closing the splash was attempted.
+        splash_closed: Whether the splash screen was closed successfully.
+        shutdown_started: Whether application shutdown handling started.
+        shutdown_completed: Whether application shutdown handling completed.
+    """
+
+    handlers_registered: bool = False
+    native_handlers_registered: bool = False
+    runtime_started: bool = False
+    client_connected: bool = False
+    native_window_opened: bool = False
+    native_window_loaded: bool = False
+    native_window_minimized: bool = False
+    native_window_maximized: bool = False
+    native_window_closed: bool = False
+    splash_registered: bool = False
+    splash_close_attempted: bool = False
+    splash_closed: bool = False
+    shutdown_started: bool = False
+    shutdown_completed: bool = False
 
 
 @dataclass(slots=True)
@@ -221,21 +342,33 @@ class AppState:
     Attributes:
         meta: User-facing application metadata.
         runtime: Values resolved for the current process.
+        paths: Effective runtime paths resolved during startup.
         window: Window size and position preferences.
         ui: Visual interface preferences.
+        ui_session: Transient UI session state.
+        assets: Resolved asset paths for diagnostics.
         log: Logging preferences and runtime status.
         behavior: General behavior preferences.
         settings: Settings file runtime metadata.
+        settings_validation: Latest settings validation warnings.
+        lifecycle: High-level application lifecycle status.
         status: Current and recent application messages.
     """
 
     meta: AppMetaState = field(default_factory=AppMetaState)
     runtime: RuntimeState = field(default_factory=RuntimeState)
+    paths: RuntimePathsState = field(default_factory=RuntimePathsState)
     window: WindowState = field(default_factory=WindowState)
     ui: UiState = field(default_factory=UiState)
+    ui_session: UiSessionState = field(default_factory=UiSessionState)
+    assets: AssetState = field(default_factory=AssetState)
     log: LogState = field(default_factory=LogState)
     behavior: BehaviorState = field(default_factory=BehaviorState)
     settings: SettingsState = field(default_factory=SettingsState)
+    settings_validation: SettingsValidationState = field(
+        default_factory=SettingsValidationState
+    )
+    lifecycle: LifecycleState = field(default_factory=LifecycleState)
     status: StatusState = field(default_factory=StatusState)
 
 

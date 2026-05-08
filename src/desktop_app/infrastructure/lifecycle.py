@@ -3,8 +3,9 @@
 # Purpose:
 # Register application lifecycle handlers.
 # Behavior:
-# Centralizes NiceGUI lifecycle handler registration so the application entry
-# point does not need to know every individual infrastructure handler.
+# Centralizes NiceGUI lifecycle handler registration and updates high-level
+# lifecycle fields in AppState so diagnostics can inspect runtime status without
+# reading NiceGUI internals.
 # Notes:
 # Keep this module focused on lifecycle wiring. Handler implementation details
 # should stay in their own modules, such as desktop_app.infrastructure.splash.
@@ -21,6 +22,7 @@ from typing import Any, Final
 
 from nicegui import app
 
+from desktop_app.core.state import get_app_state
 from desktop_app.infrastructure.logger import logger_get_logger, logger_shutdown
 from desktop_app.infrastructure.splash import register_splash_handler
 
@@ -111,18 +113,30 @@ def _log_exception_event(message: str, args: tuple[Any, ...]) -> None:
 
 def _handle_application_started(*_args: Any) -> None:
     """Handle the NiceGUI application startup event."""
+    state = get_app_state()
+    state.lifecycle.runtime_started = True
     _configure_asyncio_exception_handler()
     logger.info("NiceGUI runtime started.")
 
 
 def _handle_application_shutdown(*_args: Any) -> None:
     """Handle the NiceGUI application shutdown event."""
+    state = get_app_state()
+    state.lifecycle.shutdown_started = True
     logger.info("Application shutdown completed.")
+    state.lifecycle.shutdown_completed = True
     logger_shutdown()
+
+
+def _handle_client_connected(*_args: Any) -> None:
+    """Handle the NiceGUI client connect event."""
+    get_app_state().lifecycle.client_connected = True
+    logger.info("Client connected to the application.")
 
 
 def _handle_client_disconnected(*_args: Any) -> None:
     """Handle the NiceGUI client disconnect event."""
+    get_app_state().lifecycle.client_connected = False
     logger.info("Client disconnected from the application.")
 
 
@@ -144,26 +158,39 @@ def _handle_page_exception(*args: Any) -> None:
 
 def _handle_native_window_shown(*_args: Any) -> None:
     """Handle the native window shown event."""
+    state = get_app_state()
+    state.lifecycle.native_window_opened = True
+    state.lifecycle.native_window_closed = False
     logger.info("Native window opened.")
 
 
 def _handle_native_window_loaded(*_args: Any) -> None:
     """Handle the native window loaded event."""
+    get_app_state().lifecycle.native_window_loaded = True
     logger.info("Native window finished loading.")
 
 
 def _handle_native_window_minimized(*_args: Any) -> None:
     """Handle the native window minimized event."""
+    state = get_app_state()
+    state.lifecycle.native_window_minimized = True
+    state.lifecycle.native_window_maximized = False
     logger.info("The native window was minimized by the user.")
 
 
 def _handle_native_window_maximized(*_args: Any) -> None:
     """Handle the native window maximized event."""
+    state = get_app_state()
+    state.lifecycle.native_window_maximized = True
+    state.lifecycle.native_window_minimized = False
     logger.info("The native window was maximized by the user.")
 
 
 def _handle_native_window_restored(*_args: Any) -> None:
     """Handle the native window restored event."""
+    state = get_app_state()
+    state.lifecycle.native_window_maximized = False
+    state.lifecycle.native_window_minimized = False
     logger.info("The native window was restored by the user.")
 
 
@@ -179,6 +206,9 @@ def _handle_native_window_moved(*_args: Any) -> None:
 
 def _handle_native_window_closed(*_args: Any) -> None:
     """Handle the native window closed event."""
+    state = get_app_state()
+    state.lifecycle.native_window_closed = True
+    state.lifecycle.native_window_opened = False
     logger.info("The native window was closed by the user.")
 
 
@@ -191,6 +221,7 @@ def _register_application_handlers() -> None:
     """Register generic NiceGUI application lifecycle handlers."""
     app.on_startup(_handle_application_started)
     app.on_shutdown(_handle_application_shutdown)
+    app.on_connect(_handle_client_connected)
     app.on_disconnect(_handle_client_disconnected)
     app.on_exception(_handle_application_exception)
     app.on_page_exception(_handle_page_exception)
@@ -215,14 +246,18 @@ def register_lifecycle_handlers(*, native_mode: bool) -> None:
     Args:
         native_mode: Whether NiceGUI will run with a native desktop window.
     """
+    state = get_app_state()
     logger.debug("Registering lifecycle handlers.")
 
     _register_application_handlers()
+    state.lifecycle.handlers_registered = True
 
     if native_mode:
         _register_native_window_handlers()
+        state.lifecycle.native_handlers_registered = True
         logger.debug("Native window lifecycle handlers registered.")
     else:
+        state.lifecycle.native_handlers_registered = False
         logger.debug(
             "Native window lifecycle handlers skipped because web mode is active."
         )

@@ -17,6 +17,7 @@ APPLICATION_TITLE = "NiceGui Windows Base"
 APPLICATION_VERSION = "0.3.4"
 APP_ICON_FILENAME = "app_icon.ico"
 PAGE_IMAGE_FILENAME = "page_image.png"
+SPLASH_IMAGE_FILENAME = "splash_light.png"
 
 DEFAULT_WEB_PORT = 8080
 

@@ -12,7 +12,7 @@ The settings and state implementation is designed to:
 
 - keep runtime state centralized in a small, typed model;
 - keep pure state separate from file I/O;
-- create `settings.toml` automatically on first run;
+- keep settings loading read-only when `settings.toml` is missing;
 - preserve comments and unknown TOML keys when saving existing settings;
 - load and save all settings, one settings group, or one individual property;
 - support normal Python execution and PyInstaller one-file execution;
@@ -47,7 +47,7 @@ flowchart TD
 | --- | --- |
 | [`src/desktop_app/core/state.py`](../src/desktop_app/core/state.py) | Defines the typed in-memory `AppState` model. |
 | [`src/desktop_app/infrastructure/settings/__init__.py`](../src/desktop_app/infrastructure/settings/__init__.py) | Exposes the public settings API. |
-| [`src/desktop_app/infrastructure/settings/service.py`](../src/desktop_app/infrastructure/settings/service.py) | Loads, creates, and saves the persistent `settings.toml`. |
+| [`src/desktop_app/infrastructure/settings/service.py`](../src/desktop_app/infrastructure/settings/service.py) | Loads settings read-only, saves scoped settings, and creates `settings.toml` only on save. |
 | [`src/desktop_app/infrastructure/settings/paths.py`](../src/desktop_app/infrastructure/settings/paths.py) | Resolves persistent and bundled settings paths. |
 | [`src/desktop_app/infrastructure/settings/mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py) | Converts TOML data into `AppState` and logger configuration. |
 | [`src/desktop_app/infrastructure/settings/schema.py`](../src/desktop_app/infrastructure/settings/schema.py) | Defines supported groups and property paths for scoped load/save operations. |
@@ -55,7 +55,7 @@ flowchart TD
 | [`src/desktop_app/infrastructure/settings/conversion.py`](../src/desktop_app/infrastructure/settings/conversion.py) | Provides safe conversion helpers for manually edited values. |
 | [`src/desktop_app/infrastructure/file_system.py`](../src/desktop_app/infrastructure/file_system.py) | Provides reusable parent-directory creation and atomic text writes. |
 | [`src/desktop_app/infrastructure/byte_size.py`](../src/desktop_app/infrastructure/byte_size.py) | Parses human-readable byte-size values reused by logger and settings validation. |
-| [`src/desktop_app/settings.toml`](../src/desktop_app/settings.toml) | Bundled first-run template copied when no persistent settings file exists. |
+| [`src/desktop_app/settings.toml`](../src/desktop_app/settings.toml) | Bundled template used as the initial document when settings are saved for the first time. |
 
 ---
 
@@ -74,12 +74,17 @@ Main sections:
 | State section | Purpose |
 | --- | --- |
 | `meta` | Application name, version, language, and first-run flag. |
-| `runtime` | Current startup source, runtime mode, reload flag, and selected port. |
+| `runtime` | Startup source, startup message, runtime mode, reload flag, and selected port. |
+| `paths` | Effective settings, log, executable, working directory, and PyInstaller extraction paths. |
 | `window` | Future native window size and position preferences. |
 | `ui` | Theme, font scale, dense mode, and accent color preferences. |
-| `log` | Log level, console flag, file path, rotation size, and backup count. |
+| `ui_session` | Transient UI state such as active view and busy message. |
+| `assets` | Resolved runtime asset paths for diagnostics. |
+| `log` | Log preferences plus runtime status such as effective file path. |
 | `behavior` | General behavior preferences such as auto-save. |
-| `settings` | Effective settings path and latest load/save status. |
+| `settings` | Settings file existence, defaults usage, scopes, and latest load/save status. |
+| `settings_validation` | Warnings from the latest settings validation. |
+| `lifecycle` | Application, client, native window, splash, and shutdown status flags. |
 | `status` | Current and recent status messages for future UI feedback. |
 
 The module exposes a controlled singleton API:
@@ -91,6 +96,8 @@ state = get_app_state()
 ```
 
 Use `reset_app_state()` mainly in tests or diagnostics. Avoid creating independent state instances unless a function explicitly accepts one.
+
+For the complete state model and NiceGUI binding guidance, see [Application state](state.md).
 
 ---
 
@@ -108,8 +115,8 @@ sequenceDiagram
 
     App->>State: get_app_state()
     App->>Settings: load_settings(state)
-    Settings->>Settings: create settings.toml if missing
-    Settings->>State: apply parsed values
+    Settings->>State: keep defaults if settings.toml is missing
+    Settings->>State: apply parsed values when settings.toml exists
     App->>Logger: bootstrap logger from state.log
     App->>Logger: enable file logging
     App->>State: store runtime source, mode, reload, and port
@@ -152,6 +159,17 @@ When saving a group or property, unknown TOML keys and unrelated known settings 
 
 Do not pass a group and an individual property at the same time. The package raises `SettingsScopeError` for unsupported groups, unsupported property paths, or ambiguous scopes.
 
+### Missing file behavior
+
+Loading is intentionally read-only:
+
+```text
+load_settings() with no settings.toml -> keep in-memory defaults and return True
+save_settings() with no settings.toml -> create settings.toml and save selected scope
+```
+
+This keeps startup side-effect free. `state.settings.file_exists` and `state.settings.using_defaults` make the active behavior explicit for diagnostics or a future settings page.
+
 ---
 
 ## 📁 Settings file locations
@@ -187,7 +205,7 @@ The packaging script bundles the settings template with PyInstaller:
 --add-data $settingsData
 ```
 
-The bundled file is not edited directly. On first run, the executable creates a persistent `settings.toml` next to the executable. This avoids losing user changes because PyInstaller one-file extraction directories are temporary.
+The bundled file is not edited directly. Startup does not create a persistent `settings.toml` automatically. When a save operation is requested for the first time, the application creates the persistent file next to the executable. This avoids unnecessary writes and keeps PyInstaller one-file extraction directories out of user-edited settings.
 
 Related document:
 
@@ -200,7 +218,7 @@ Related document:
 ```toml
 [app]
 name = "NiceGui Windows Base"
-version = "0.3.0"
+version = "0.3.4"
 language = "en-US"
 first_run = true
 

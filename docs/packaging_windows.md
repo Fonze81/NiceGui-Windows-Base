@@ -191,7 +191,7 @@ The script passes it to PyInstaller with:
 --add-data $settingsData
 ```
 
-At runtime, the application copies this bundled template to a persistent `settings.toml` when no editable settings file exists yet. In packaged execution, the persistent file is created next to `dist\nicegui-windows-base.exe`, not inside the temporary PyInstaller extraction directory. See [Settings and application state](settings.md).
+At runtime, startup reads an existing persistent `settings.toml` when available. If the file is missing, the application keeps in-memory defaults and does not write anything during load. The persistent file is created next to `dist\nicegui-windows-base.exe` only when a settings save operation is requested. See [Settings and application state](settings.md).
 
 ---
 

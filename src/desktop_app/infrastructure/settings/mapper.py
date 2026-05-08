@@ -93,7 +93,10 @@ def apply_setting_property_to_state(
         ).strip()
         if not state.meta.name:
             state.meta.name = APPLICATION_TITLE
-            state.status.push("Invalid application name in settings.toml.", "warning")
+            _record_settings_warning(
+                state,
+                "Invalid application name in settings.toml.",
+            )
         return
 
     if property_path == "app.version":
@@ -102,9 +105,9 @@ def apply_setting_property_to_state(
         ).strip()
         if not state.meta.version:
             state.meta.version = APPLICATION_VERSION
-            state.status.push(
+            _record_settings_warning(
+                state,
                 "Invalid application version in settings.toml.",
-                "warning",
             )
         return
 
@@ -142,7 +145,7 @@ def apply_setting_property_to_state(
         )
         if state.window.width < 400:
             state.window.width = 1024
-            state.status.push("Invalid window width in settings.toml.", "warning")
+            _record_settings_warning(state, "Invalid window width in settings.toml.")
         return
 
     if property_path == "app.window.height":
@@ -152,7 +155,7 @@ def apply_setting_property_to_state(
         )
         if state.window.height < 300:
             state.window.height = 720
-            state.status.push("Invalid window height in settings.toml.", "warning")
+            _record_settings_warning(state, "Invalid window height in settings.toml.")
         return
 
     if property_path == "app.window.maximized":
@@ -176,7 +179,7 @@ def apply_setting_property_to_state(
         )
         if state.window.monitor < 0:
             state.window.monitor = 0
-            state.status.push("Invalid monitor index in settings.toml.", "warning")
+            _record_settings_warning(state, "Invalid monitor index in settings.toml.")
         return
 
     if property_path == "app.window.storage_key":
@@ -185,7 +188,10 @@ def apply_setting_property_to_state(
         ).strip()
         if not state.window.storage_key:
             state.window.storage_key = "nicegui_windows_base_window_state"
-            state.status.push("Invalid window storage key in settings.toml.", "warning")
+            _record_settings_warning(
+                state,
+                "Invalid window storage key in settings.toml.",
+            )
         return
 
     if property_path == "app.ui.theme":
@@ -196,7 +202,7 @@ def apply_setting_property_to_state(
         )
         if state.ui.theme not in ALLOWED_THEMES:
             state.ui.theme = "light"
-            state.status.push("Invalid UI theme in settings.toml.", "warning")
+            _record_settings_warning(state, "Invalid UI theme in settings.toml.")
         return
 
     if property_path == "app.ui.font_scale":
@@ -206,7 +212,7 @@ def apply_setting_property_to_state(
         )
         if not 0.75 <= state.ui.font_scale <= 1.5:
             state.ui.font_scale = 1.0
-            state.status.push("Invalid UI font scale in settings.toml.", "warning")
+            _record_settings_warning(state, "Invalid UI font scale in settings.toml.")
         return
 
     if property_path == "app.ui.dense_mode":
@@ -222,7 +228,7 @@ def apply_setting_property_to_state(
         ).strip()
         if not state.ui.accent_color:
             state.ui.accent_color = "#2563EB"
-            state.status.push("Invalid UI accent color in settings.toml.", "warning")
+            _record_settings_warning(state, "Invalid UI accent color in settings.toml.")
         return
 
     if property_path == "app.log.level":
@@ -233,7 +239,7 @@ def apply_setting_property_to_state(
         )
         if state.log.level not in ALLOWED_LOG_LEVELS:
             state.log.level = DEFAULT_LOG_LEVEL
-            state.status.push("Invalid log level in settings.toml.", "warning")
+            _record_settings_warning(state, "Invalid log level in settings.toml.")
         return
 
     if property_path == "app.log.enable_console":
@@ -258,9 +264,9 @@ def apply_setting_property_to_state(
         )
         if not MIN_BUFFER_CAPACITY <= state.log.buffer_capacity <= MAX_BUFFER_CAPACITY:
             state.log.buffer_capacity = DEFAULT_BUFFER_CAPACITY
-            state.status.push(
+            _record_settings_warning(
+                state,
                 "Invalid log buffer capacity in settings.toml.",
-                "warning",
             )
         return
 
@@ -277,7 +283,10 @@ def apply_setting_property_to_state(
         ).strip()
         if not _is_valid_log_rotation(state.log.rotate_max_bytes):
             state.log.rotate_max_bytes = "5 MB"
-            state.status.push("Invalid log rotation size in settings.toml.", "warning")
+            _record_settings_warning(
+                state,
+                "Invalid log rotation size in settings.toml.",
+            )
         return
 
     if property_path == "app.log.rotate_backup_count":
@@ -291,7 +300,10 @@ def apply_setting_property_to_state(
             <= MAX_ROTATE_BACKUP_COUNT
         ):
             state.log.rotate_backup_count = DEFAULT_ROTATE_BACKUP_COUNT
-            state.status.push("Invalid log backup count in settings.toml.", "warning")
+            _record_settings_warning(
+                state,
+                "Invalid log backup count in settings.toml.",
+            )
         return
 
     if property_path == "app.behavior.auto_save":
@@ -299,6 +311,17 @@ def apply_setting_property_to_state(
             _get_setting(settings_data, property_path, state.behavior.auto_save),
             state.behavior.auto_save,
         )
+
+
+def _record_settings_warning(state: AppState, message: str) -> None:
+    """Record a settings validation warning in status and validation state.
+
+    Args:
+        state: Application state that receives warning metadata.
+        message: Warning message to store.
+    """
+    state.settings_validation.warnings.append(message)
+    state.status.push(message, "warning")
 
 
 def build_logger_config_from_state(

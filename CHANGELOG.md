@@ -6,6 +6,50 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
+## [0.3.4] - 2026-05-07
+
+### ✨ Added
+
+- Added typed application state in `src/desktop_app/core/state.py`.
+- Added persistent settings support through `src/desktop_app/infrastructure/settings`.
+- Added bundled `src/desktop_app/settings.toml` first-run template.
+- Added settings documentation in `docs/settings.md`.
+- Added shared `file_system.py` and `byte_size.py` infrastructure helpers.
+- Added scoped settings load and save helpers for full-file, group, and individual property operations.
+- Added runtime path, asset, UI session, settings validation, and lifecycle state sections to `AppState`.
+- Added `docs/state.md` with full state-model and NiceGUI binding guidance.
+
+### 🔄 Changed
+
+- Changed the project version from `0.3.0` to `0.3.4`.
+- Updated Windows version metadata in `scripts/version_info.txt` to `0.3.4.0`.
+- Updated application startup to load settings before final logger file activation.
+- Updated packaging to include the bundled settings template.
+- Renamed ambiguous settings helpers to explicit names such as `resolve_default_settings_path()` and `get_nested_value()`.
+- Renamed the TOML document helper module to `toml_document.py` and removed the temporary settings logging helper wrapper.
+- Reused byte-size parsing and parent-directory creation instead of duplicating helper logic.
+- Updated settings service to use the official application logger during early startup instead of optional logger wrappers.
+- Updated the logger service so early import-time bootstrap uses memory buffering without console output.
+- Added `tomlkit` as a runtime dependency so settings comments and unknown keys can be preserved.
+- Updated settings persistence to preserve unrelated settings when saving a single group or property.
+- Changed settings loading to keep in-memory defaults when `settings.toml` is missing and create the file only on save.
+
+### 🧭 Migration notes
+
+- Reinstall the project after upgrading so `tomlkit` is available:
+
+```powershell
+python -m pip install -e ".[dev,packaging]"
+```
+
+- Rebuild the executable so Windows file properties show version `0.3.4.0`:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+---
+
 ## [0.3.0] - 2026-05-07
 
 ### ✨ Added

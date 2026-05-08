@@ -40,6 +40,7 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │   ├── first_run_checklist.md
 │   ├── logging.md
 │   ├── settings.md
+│   ├── state.md
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
 │   ├── python_windows_setup.md
@@ -242,6 +243,7 @@ Main guides:
 - [Windows packaging](docs/packaging_windows.md)
 - [Logging subsystem](docs/logging.md)
 - [Settings and application state](docs/settings.md)
+- [Application state](docs/state.md)
 - [Code quality with Ruff](docs/code_quality.md)
 - [Troubleshooting](docs/troubleshooting.md)
 

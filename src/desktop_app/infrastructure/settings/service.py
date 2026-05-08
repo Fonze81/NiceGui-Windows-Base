@@ -3,20 +3,23 @@
 # Purpose:
 # Load and save the persistent settings.toml file.
 # Behavior:
-# Coordinates initial settings file creation, TOML parsing, scoped AppState
-# mapping, and scoped TOML persistence while delegating TOML manipulation to
+# Coordinates read-only settings loading, TOML parsing, scoped AppState mapping,
+# and scoped TOML persistence while delegating TOML manipulation to
 # toml_document.py.
 # Notes:
 # Uses the official application logger. The logger subsystem is safe during early
 # startup because it buffers or stays silent until final configuration is applied
-# after settings are loaded.
+# after settings are loaded. Loading missing settings is intentionally read-only;
+# settings.toml is created only by save operations.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 import tomlkit
+from tomlkit.toml_document import TOMLDocument
 
 from desktop_app.core.state import AppState, get_app_state
 from desktop_app.infrastructure.file_system import atomic_write_text
@@ -29,53 +32,42 @@ from desktop_app.infrastructure.settings.paths import (
 from desktop_app.infrastructure.settings.schema import (
     SettingsGroup,
     SettingsScopeError,
+    get_settings_scope_paths,
 )
 from desktop_app.infrastructure.settings.toml_document import (
     apply_state_to_document,
     build_document_from_state,
-    build_settings_text_from_state,
 )
 
 logger = logger_get_logger(__name__)
 
 
-def create_settings_from_bundled_template(
-    settings_path: Path,
-    state: AppState,
-) -> bool:
-    """Create persistent settings from the bundled template.
+def build_initial_settings_document(state: AppState) -> TOMLDocument:
+    """Build the initial document used when settings.toml is first saved.
 
     Args:
-        settings_path: Persistent settings file path.
         state: Current application state.
 
     Returns:
-        True when the file was created successfully.
+        TOML document based on the bundled template when available, otherwise on
+        the current AppState defaults.
     """
-    logger.debug(
-        'Creating persistent settings from bundled template: path="%s"',
-        str(settings_path),
-    )
+    bundled_text = read_bundled_settings_text()
+
+    if bundled_text is None:
+        logger.warning(
+            "Bundled settings template not found. Generated settings from defaults."
+        )
+        return build_document_from_state(state)
 
     try:
-        bundled_text = read_bundled_settings_text()
-
-        if bundled_text is None:
-            bundled_text = build_settings_text_from_state(state)
-            logger.warning(
-                "Bundled settings template not found. "
-                "Generated settings from defaults."
-            )
-
-        atomic_write_text(settings_path, bundled_text)
-        logger.info(
-            'Persistent settings file created: path="%s"',
-            str(settings_path),
-        )
-        return True
+        return tomlkit.parse(bundled_text)
     except Exception:
-        logger.exception("Failed to create persistent settings file")
-        return False
+        logger.exception(
+            "Bundled settings template could not be parsed. Generated settings "
+            "from defaults."
+        )
+        return build_document_from_state(state)
 
 
 def load_settings(
@@ -86,6 +78,9 @@ def load_settings(
     property_path: str | None = None,
 ) -> bool:
     """Load settings.toml and apply values to AppState.
+
+    Missing settings.toml is treated as a successful read-only load that keeps
+    default values in memory. The file is created only by save operations.
 
     Args:
         settings_path: Optional settings file path.
@@ -100,9 +95,17 @@ def load_settings(
     path = (settings_path or resolve_default_settings_path()).expanduser().resolve()
     scope_description = _describe_scope(group=group, property_path=property_path)
 
+    # Validate scope even when the file does not exist, so invalid API usage does
+    # not get hidden by the default-settings fallback path.
+    get_settings_scope_paths(group=group, property_path=property_path)
+
     current_state.settings.file_path = path
+    current_state.settings.file_exists = path.exists()
     current_state.settings.last_error = None
     current_state.settings.last_load_ok = False
+    current_state.settings_validation.warnings.clear()
+    current_state.settings_validation.last_validated_scope = scope_description
+    current_state.settings_validation.last_validated_at = datetime.now()
 
     logger.debug(
         'Settings load started: path="%s", scope="%s"',
@@ -111,22 +114,20 @@ def load_settings(
     )
 
     if not path.exists():
+        current_state.settings.using_defaults = True
+        current_state.settings.last_load_ok = True
+        current_state.settings.last_loaded_scope = scope_description
         current_state.status.push(
-            "settings.toml was not found. Creating default settings.",
-            "warning",
+            "settings.toml was not found. Default settings are being used.",
+            "info",
         )
-        logger.warning(
-            'Persistent settings file not found. Creating default: path="%s"',
+        logger.info(
+            'Settings file not found. Using in-memory defaults: path="%s", '
+            'scope="%s"',
             str(path),
+            scope_description,
         )
-
-        if not create_settings_from_bundled_template(path, current_state):
-            current_state.settings.last_error = f"Settings file not found: {path}"
-            current_state.status.push(
-                "settings.toml could not be created. Default settings are being used.",
-                "error",
-            )
-            return False
+        return True
 
     try:
         logger.debug('Reading settings file: path="%s"', str(path))
@@ -143,7 +144,10 @@ def load_settings(
             property_path=property_path,
         )
 
+        current_state.settings.file_exists = True
+        current_state.settings.using_defaults = False
         current_state.settings.last_load_ok = True
+        current_state.settings.last_loaded_scope = scope_description
         current_state.settings.last_error = None
         current_state.status.push("Settings loaded successfully.", "success")
 
@@ -157,6 +161,7 @@ def load_settings(
         raise
     except Exception as exc:
         current_state.settings.last_error = f"Failed to load settings: {exc}"
+        current_state.settings.using_defaults = True
         current_state.status.push(
             "settings.toml could not be loaded. Default settings are being used.",
             "error",
@@ -237,6 +242,9 @@ def save_settings(
     ).expanduser().resolve()
     scope_description = _describe_scope(group=group, property_path=property_path)
 
+    # Validate scope before touching the filesystem.
+    get_settings_scope_paths(group=group, property_path=property_path)
+
     current_state.settings.file_path = path
     current_state.settings.last_error = None
     current_state.settings.last_save_ok = False
@@ -252,8 +260,10 @@ def save_settings(
             logger.debug('Existing settings file found: path="%s"', str(path))
             document = tomlkit.parse(path.read_text(encoding="utf-8"))
         else:
-            logger.debug("Settings file not found. Building a new document.")
-            document = build_document_from_state(current_state)
+            logger.debug(
+                "Settings file not found. Building initial document for first save."
+            )
+            document = build_initial_settings_document(current_state)
 
         logger.debug(
             'Applying AppState to settings document: scope="%s"',
@@ -267,7 +277,10 @@ def save_settings(
         )
         atomic_write_text(path, tomlkit.dumps(document))
 
+        current_state.settings.file_exists = True
+        current_state.settings.using_defaults = False
         current_state.settings.last_save_ok = True
+        current_state.settings.last_saved_scope = scope_description
         current_state.status.push("Settings saved successfully.", "success")
         logger.info(
             'Settings saved successfully: path="%s", scope="%s"',
