@@ -4,7 +4,7 @@
 # Load and save the persistent settings.toml file.
 # Behavior:
 # Coordinates initial settings file creation, TOML parsing, AppState mapping, and
-# TOML persistence while delegating document manipulation to document.py.
+# TOML persistence while delegating TOML manipulation to toml_document.py.
 # Notes:
 # This is the operational facade for the settings package. It does not create log
 # handlers and does not contain UI rules.
@@ -18,22 +18,22 @@ from pathlib import Path
 import tomlkit
 
 from desktop_app.core.state import AppState, get_app_state
-from desktop_app.infrastructure.settings.diagnostics import (
+from desktop_app.infrastructure.file_system import atomic_write_text
+from desktop_app.infrastructure.settings.logging_helpers import (
     log_debug,
     log_exception,
     log_info,
     log_warning,
 )
-from desktop_app.infrastructure.settings.document import (
-    apply_state_to_document,
-    atomic_write_text,
-    build_document_from_state,
-    build_settings_text_from_state,
-)
 from desktop_app.infrastructure.settings.mapper import apply_settings_to_state
 from desktop_app.infrastructure.settings.paths import (
-    default_settings_path,
     read_bundled_settings_text,
+    resolve_default_settings_path,
+)
+from desktop_app.infrastructure.settings.toml_document import (
+    apply_state_to_document,
+    build_document_from_state,
+    build_settings_text_from_state,
 )
 
 
@@ -100,7 +100,7 @@ def load_settings(
         True when loading completed successfully.
     """
     current_state = state if state is not None else get_app_state()
-    path = (settings_path or default_settings_path()).expanduser().resolve()
+    path = (settings_path or resolve_default_settings_path()).expanduser().resolve()
 
     current_state.settings.file_path = path
     current_state.settings.last_error = None
@@ -168,7 +168,9 @@ def save_settings(
     """
     current_state = state if state is not None else get_app_state()
     path = (
-        settings_path or current_state.settings.file_path or default_settings_path()
+        settings_path
+        or current_state.settings.file_path
+        or resolve_default_settings_path()
     ).expanduser().resolve()
 
     current_state.settings.file_path = path

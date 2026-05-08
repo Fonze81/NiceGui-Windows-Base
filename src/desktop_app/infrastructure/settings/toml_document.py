@@ -1,13 +1,13 @@
 # -----------------------------------------------------------------------------
-# File: src/desktop_app/infrastructure/settings/document.py
+# File: src/desktop_app/infrastructure/settings/toml_document.py
 # Purpose:
 # Build and update TOML documents used by settings.toml.
 # Behavior:
 # Creates required TOML tables, writes AppState values into known keys, and
 # preserves comments and unknown keys when an existing document is saved again.
 # Notes:
-# Disk writes use a temporary file and atomic replacement to reduce the risk of
-# corrupting settings.toml if the process stops during persistence.
+# This module only manipulates in-memory TOML documents. Disk writes are handled
+# by shared file-system helpers.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
@@ -21,29 +21,6 @@ from tomlkit.items import Table
 from tomlkit.toml_document import TOMLDocument
 
 from desktop_app.core.state import AppState
-
-
-def ensure_parent_dir(file_path: Path) -> None:
-    """Ensure that the parent directory for a file exists.
-
-    Args:
-        file_path: File path that will be written.
-    """
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-
-
-def atomic_write_text(file_path: Path, content: str) -> None:
-    """Write text using an atomic file replacement.
-
-    Args:
-        file_path: Final destination file.
-        content: Text content to write.
-    """
-    ensure_parent_dir(file_path)
-
-    temporary_path = file_path.with_suffix(f"{file_path.suffix}.tmp")
-    temporary_path.write_text(content, encoding="utf-8")
-    temporary_path.replace(file_path)
 
 
 def ensure_toml_table(root: TOMLDocument | Table, key: str) -> Table:

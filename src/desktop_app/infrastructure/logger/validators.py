@@ -11,7 +11,6 @@
 # -----------------------------------------------------------------------------
 
 import logging
-import re
 from pathlib import Path
 
 from desktop_app.constants import (
@@ -22,17 +21,9 @@ from desktop_app.constants import (
     MIN_ROTATE_BACKUP_COUNT,
     MIN_ROTATE_MAX_BYTES,
 )
+from desktop_app.infrastructure.byte_size import parse_byte_size
 from desktop_app.infrastructure.logger.config import LoggerConfig
 from desktop_app.infrastructure.logger.exceptions import LoggerValidationError
-
-_SIZE_UNITS_TO_BYTES = {
-    "B": 1,
-    "KB": 1024,
-    "MB": 1024 * 1024,
-    "GB": 1024 * 1024 * 1024,
-}
-
-_SIZE_PATTERN = re.compile(r"^\s*(\d+)\s*([KMG]?B)\s*$", re.IGNORECASE)
 
 
 def normalize_logger_name(name: str) -> str:
@@ -146,35 +137,16 @@ def parse_size_to_bytes(size: int | str) -> int:
         TypeError: If the value type is not supported.
         LoggerValidationError: If the value is empty, invalid, or lower than 1.
     """
-    if isinstance(size, bool):
-        raise TypeError("Size must be an int or a string, not bool.")
+    try:
+        return parse_byte_size(size)
+    except TypeError as exc:
+        if isinstance(size, bool):
+            raise TypeError("Size must be an int or a string, not bool.") from exc
 
-    if isinstance(size, int):
-        if size < 1:
-            raise LoggerValidationError("Size in bytes must be greater than zero.")
-        return size
-
-    if isinstance(size, str):
-        normalized_size = size.strip()
-        if not normalized_size:
-            raise LoggerValidationError("Size string must not be empty.")
-
-        match = _SIZE_PATTERN.match(normalized_size)
-        if match is None:
-            raise LoggerValidationError(
-                "Size string must use a valid format such as '5 MB', '512KB' or '1 GB'."
-            )
-
-        numeric_value = int(match.group(1))
-        unit = match.group(2).upper()
-        size_in_bytes = numeric_value * _SIZE_UNITS_TO_BYTES[unit]
-
-        if size_in_bytes < 1:
-            raise LoggerValidationError("Size in bytes must be greater than zero.")
-
-        return size_in_bytes
-
-    raise TypeError("Size must be an int or a string.")
+        raise TypeError("Size must be an int or a string.") from exc
+    except ValueError as exc:
+        message = str(exc).replace("Byte size", "Size")
+        raise LoggerValidationError(message) from exc
 
 
 def normalize_buffer_capacity(buffer_capacity: int) -> int:

@@ -34,9 +34,11 @@ flowchart TD
     C --> H[paths.py]
     C --> I[service.py]
     C --> J[mapper.py]
-    C --> K[document.py]
+    C --> K[toml_document.py]
     C --> L[conversion.py]
-    C --> M[diagnostics.py]
+    C --> M[logging_helpers.py]
+    C --> N[src/desktop_app/infrastructure/file_system.py]
+    C --> O[src/desktop_app/infrastructure/byte_size.py]
 ```
 
 | File | Responsibility |
@@ -46,9 +48,11 @@ flowchart TD
 | [`src/desktop_app/infrastructure/settings/service.py`](../src/desktop_app/infrastructure/settings/service.py) | Loads, creates, and saves the persistent `settings.toml`. |
 | [`src/desktop_app/infrastructure/settings/paths.py`](../src/desktop_app/infrastructure/settings/paths.py) | Resolves persistent and bundled settings paths. |
 | [`src/desktop_app/infrastructure/settings/mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py) | Converts TOML data into `AppState` and logger configuration. |
-| [`src/desktop_app/infrastructure/settings/document.py`](../src/desktop_app/infrastructure/settings/document.py) | Updates TOML documents while preserving comments and unknown keys. |
+| [`src/desktop_app/infrastructure/settings/toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py) | Updates TOML documents while preserving comments and unknown keys. |
 | [`src/desktop_app/infrastructure/settings/conversion.py`](../src/desktop_app/infrastructure/settings/conversion.py) | Provides safe conversion helpers for manually edited values. |
-| [`src/desktop_app/infrastructure/settings/diagnostics.py`](../src/desktop_app/infrastructure/settings/diagnostics.py) | Provides optional logger wrappers used during settings load and save. |
+| [`src/desktop_app/infrastructure/settings/logging_helpers.py`](../src/desktop_app/infrastructure/settings/logging_helpers.py) | Provides optional logger wrappers used during settings load and save. |
+| [`src/desktop_app/infrastructure/file_system.py`](../src/desktop_app/infrastructure/file_system.py) | Provides reusable parent-directory creation and atomic text writes. |
+| [`src/desktop_app/infrastructure/byte_size.py`](../src/desktop_app/infrastructure/byte_size.py) | Parses human-readable byte-size values reused by logger and settings validation. |
 | [`src/desktop_app/settings.toml`](../src/desktop_app/settings.toml) | Bundled first-run template copied when no persistent settings file exists. |
 
 ---
@@ -135,7 +139,7 @@ The application root is resolved as follows:
 | --- | --- |
 | Normal Python execution | Current working directory. |
 | Packaged executable | Folder containing `nicegui-windows-base.exe`. |
-| Custom override | `APP_ROOT` environment variable. |
+| Custom override | `DESKTOP_APP_ROOT` environment variable. |
 
 ---
 
@@ -213,6 +217,19 @@ This keeps startup resilient even when `settings.toml` was edited manually.
 
 ---
 
+## 🧩 Shared helpers
+
+Two small helpers are intentionally shared instead of duplicated:
+
+| Helper | Used by | Why it exists |
+| --- | --- | --- |
+| [`file_system.py`](../src/desktop_app/infrastructure/file_system.py) | settings persistence and logger file handler setup | Centralizes parent-directory creation and atomic text writes. |
+| [`byte_size.py`](../src/desktop_app/infrastructure/byte_size.py) | logger validation and settings conversion | Keeps byte-size parsing rules consistent for values such as `5 MB`. |
+
+The settings package still owns TOML-specific behavior in [`toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py). The logger package still owns logger-specific validation errors in [`validators.py`](../src/desktop_app/infrastructure/logger/validators.py). This avoids creating a broad utility layer while removing actual duplicated logic.
+
+---
+
 ## 🛠️ Adding a new setting
 
 Use this checklist when adding a new configurable value:
@@ -220,7 +237,7 @@ Use this checklist when adding a new configurable value:
 1. Add the runtime field to [`state.py`](../src/desktop_app/core/state.py).
 2. Add the default value to [`src/desktop_app/settings.toml`](../src/desktop_app/settings.toml).
 3. Read and validate the value in [`mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py).
-4. Write the value back in [`document.py`](../src/desktop_app/infrastructure/settings/document.py).
+4. Write the value back in [`toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py).
 5. Update this document if the setting is user-editable or affects startup behavior.
 6. Validate with Ruff and the main execution modes.
 

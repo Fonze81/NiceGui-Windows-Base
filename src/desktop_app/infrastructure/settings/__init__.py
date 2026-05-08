@@ -15,14 +15,14 @@ from desktop_app.infrastructure.settings.mapper import (
     apply_settings_to_state,
     build_logger_config_from_state,
 )
-from desktop_app.infrastructure.settings.paths import default_settings_path
+from desktop_app.infrastructure.settings.paths import resolve_default_settings_path
 from desktop_app.infrastructure.settings.service import load_settings, save_settings
 
 __all__ = [
     "SETTINGS_FILE_NAME",
     "apply_settings_to_state",
     "build_logger_config_from_state",
-    "default_settings_path",
     "load_settings",
+    "resolve_default_settings_path",
     "save_settings",
 ]

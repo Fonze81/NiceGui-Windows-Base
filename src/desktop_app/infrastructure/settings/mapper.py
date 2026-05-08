@@ -39,25 +39,28 @@ from desktop_app.infrastructure.settings.constants import (
     ALLOWED_THEMES,
 )
 from desktop_app.infrastructure.settings.conversion import (
-    deep_get,
-    parse_size_to_bytes,
+    get_nested_value,
     to_bool,
     to_float,
     to_int,
     to_path,
+    try_parse_byte_size,
 )
 
 
-def apply_settings_to_state(state: AppState, raw: Mapping[str, Any]) -> None:
+def apply_settings_to_state(
+    state: AppState,
+    settings_data: Mapping[str, Any],
+) -> None:
     """Apply parsed TOML settings to the application state.
 
     Args:
         state: Application state that receives converted values.
-        raw: Parsed TOML mapping.
+        settings_data: Parsed TOML mapping.
     """
 
     def get_setting(path: str, default: Any) -> Any:
-        return deep_get(raw, path, default)
+        return get_nested_value(settings_data, path, default)
 
     state.meta.name = str(get_setting("app.name", state.meta.name)).strip()
     state.meta.version = str(get_setting("app.version", state.meta.version)).strip()
@@ -237,7 +240,7 @@ def _is_valid_log_rotation(value: int | str) -> bool:
     Returns:
         True when the value is inside the allowed logger rotation range.
     """
-    size_in_bytes = parse_size_to_bytes(value)
+    size_in_bytes = try_parse_byte_size(value)
 
     if size_in_bytes is None:
         return False

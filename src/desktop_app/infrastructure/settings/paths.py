@@ -16,48 +16,40 @@ import os
 import sys
 from pathlib import Path
 
+from desktop_app.core.runtime import is_frozen_executable
 from desktop_app.infrastructure.settings.constants import (
     APP_ROOT_ENV_VAR,
     SETTINGS_FILE_NAME,
 )
 
 
-def is_frozen_app() -> bool:
-    """Return whether the process is running as a packaged executable.
-
-    Returns:
-        True when PyInstaller marks the process as frozen.
-    """
-    return bool(getattr(sys, "frozen", False))
-
-
-def resolve_app_root() -> Path:
-    """Resolve the persistent application root.
+def resolve_settings_root() -> Path:
+    """Resolve the persistent settings root directory.
 
     Returns:
         Directory used for the editable settings.toml file.
     """
-    app_root = os.getenv(APP_ROOT_ENV_VAR)
+    configured_root = os.getenv(APP_ROOT_ENV_VAR)
 
-    if app_root:
-        return Path(app_root).expanduser().resolve()
+    if configured_root:
+        return Path(configured_root).expanduser().resolve()
 
-    if is_frozen_app():
+    if is_frozen_executable():
         return Path(sys.executable).resolve().parent
 
     return Path.cwd().resolve()
 
 
-def default_settings_path() -> Path:
+def resolve_default_settings_path() -> Path:
     """Return the default persistent settings path.
 
     Returns:
         Absolute path to settings.toml.
     """
-    return resolve_app_root() / SETTINGS_FILE_NAME
+    return resolve_settings_root() / SETTINGS_FILE_NAME
 
 
-def pyinstaller_temp_dir() -> Path | None:
+def get_pyinstaller_temp_dir() -> Path | None:
     """Return the PyInstaller extraction directory when available.
 
     Returns:
@@ -71,14 +63,14 @@ def pyinstaller_temp_dir() -> Path | None:
     return Path(temp_dir).resolve()
 
 
-def bundled_settings_candidates() -> list[Path]:
+def get_bundled_settings_candidate_paths() -> list[Path]:
     """Return candidate paths for the bundled settings template.
 
     Returns:
         Ordered list of template candidate paths.
     """
     candidates: list[Path] = []
-    temp_dir = pyinstaller_temp_dir()
+    temp_dir = get_pyinstaller_temp_dir()
 
     if temp_dir is not None:
         candidates.append(temp_dir / "desktop_app" / SETTINGS_FILE_NAME)
@@ -97,7 +89,7 @@ def read_bundled_settings_text() -> str | None:
     Returns:
         Template text, or None when no candidate exists.
     """
-    for candidate in bundled_settings_candidates():
+    for candidate in get_bundled_settings_candidate_paths():
         if candidate.exists() and candidate.is_file():
             return candidate.read_text(encoding="utf-8")
 

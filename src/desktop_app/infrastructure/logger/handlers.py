@@ -23,6 +23,7 @@ from desktop_app.constants import (
     FILE_DATE_FORMAT,
     FILE_LOG_FORMAT,
 )
+from desktop_app.infrastructure.file_system import ensure_parent_dir
 
 
 class BoundedMemoryHandler(MemoryHandler):
@@ -101,7 +102,7 @@ def create_rotating_file_handler(
     Returns:
         Configured rotating file handler.
     """
-    file_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_parent_dir(file_path)
 
     handler = RotatingFileHandler(
         filename=file_path,

@@ -62,6 +62,8 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       │   ├── runtime.py
 │       │   └── state.py
 │       ├── infrastructure/
+│       │   ├── byte_size.py
+│       │   ├── file_system.py
 │       │   ├── logger/
 │       │   │   ├── __init__.py
 │       │   │   ├── bootstrapper.py
@@ -75,8 +77,8 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       │   │   ├── __init__.py
 │       │   │   ├── constants.py
 │       │   │   ├── conversion.py
-│       │   │   ├── diagnostics.py
-│       │   │   ├── document.py
+│       │   │   ├── logging_helpers.py
+│       │   │   ├── toml_document.py
 │       │   │   ├── mapper.py
 │       │   │   ├── paths.py
 │       │   │   └── service.py

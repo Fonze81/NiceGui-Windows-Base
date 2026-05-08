@@ -13,22 +13,14 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-_SIZE_UNITS_TO_BYTES = {
-    "B": 1,
-    "KB": 1024,
-    "MB": 1024 * 1024,
-    "GB": 1024 * 1024 * 1024,
-}
-
-_SIZE_PATTERN = re.compile(r"^\s*(\d+)\s*([KMG]?B)\s*$", re.IGNORECASE)
+from desktop_app.infrastructure.byte_size import parse_byte_size
 
 
-def deep_get(mapping: Mapping[str, Any], path: str, default: Any) -> Any:
+def get_nested_value(mapping: Mapping[str, Any], path: str, default: Any) -> Any:
     """Return a mapping value selected by a dotted path.
 
     Args:
@@ -132,8 +124,8 @@ def to_path(value: Any, default: Path) -> Path:
     return default
 
 
-def parse_size_to_bytes(value: int | str) -> int | None:
-    """Convert a byte size value to an integer number of bytes.
+def try_parse_byte_size(value: int | str) -> int | None:
+    """Convert a byte-size value without raising for invalid settings.
 
     Args:
         value: Size as integer bytes or text such as "5 MB".
@@ -141,20 +133,7 @@ def parse_size_to_bytes(value: int | str) -> int | None:
     Returns:
         Integer size in bytes, or None when conversion is unsafe.
     """
-    if isinstance(value, bool):
+    try:
+        return parse_byte_size(value)
+    except (TypeError, ValueError):
         return None
-
-    if isinstance(value, int):
-        return value if value > 0 else None
-
-    if isinstance(value, str):
-        match = _SIZE_PATTERN.match(value)
-        if match is None:
-            return None
-
-        numeric_value = int(match.group(1))
-        unit = match.group(2).upper()
-        size_in_bytes = numeric_value * _SIZE_UNITS_TO_BYTES[unit]
-        return size_in_bytes if size_in_bytes > 0 else None
-
-    return None
