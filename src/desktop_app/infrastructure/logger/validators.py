@@ -10,6 +10,8 @@
 # tracebacks, tests, and technical diagnostics.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 
@@ -26,7 +28,7 @@ from desktop_app.infrastructure.logger.config import LoggerConfig
 from desktop_app.infrastructure.logger.exceptions import LoggerValidationError
 
 
-def normalize_logger_name(name: str) -> str:
+def normalize_logger_name(name: object) -> str:
     """Validate and trim the logger name.
 
     Args:
@@ -49,7 +51,7 @@ def normalize_logger_name(name: str) -> str:
     return normalized_name
 
 
-def normalize_logger_level(level: int | str) -> int:
+def normalize_logger_level(level: object) -> int:
     """Convert a logger level into the integer value used by logging.
 
     Args:
@@ -84,7 +86,7 @@ def normalize_logger_level(level: int | str) -> int:
     raise TypeError("Logger level must be an int or a string.")
 
 
-def normalize_enable_console(enable_console: bool) -> bool:
+def normalize_enable_console(enable_console: object) -> bool:
     """Validate the flag that enables or disables console logging.
 
     Args:
@@ -102,7 +104,7 @@ def normalize_enable_console(enable_console: bool) -> bool:
     return enable_console
 
 
-def normalize_file_path(file_path: str | Path) -> Path:
+def normalize_file_path(file_path: object) -> Path:
     """Validate and convert the log file path to Path.
 
     Args:
@@ -124,8 +126,8 @@ def normalize_file_path(file_path: str | Path) -> Path:
     return Path(file_path)
 
 
-def parse_size_to_bytes(size: int | str) -> int:
-    """Convert a size value to bytes.
+def normalize_size_to_bytes(size: object) -> int:
+    """Validate and convert a size value to bytes.
 
     Args:
         size: Size in bytes or text format, such as "5 MB".
@@ -137,19 +139,20 @@ def parse_size_to_bytes(size: int | str) -> int:
         TypeError: If the value type is not supported.
         LoggerValidationError: If the value is empty, invalid, or lower than 1.
     """
+    if isinstance(size, bool):
+        raise TypeError("Size must be an int or a string, not bool.")
+
+    if not isinstance(size, (int, str)):
+        raise TypeError("Size must be an int or a string.")
+
     try:
         return parse_byte_size(size)
-    except TypeError as exc:
-        if isinstance(size, bool):
-            raise TypeError("Size must be an int or a string, not bool.") from exc
-
-        raise TypeError("Size must be an int or a string.") from exc
     except ValueError as exc:
         message = str(exc).replace("Byte size", "Size")
         raise LoggerValidationError(message) from exc
 
 
-def normalize_buffer_capacity(buffer_capacity: int) -> int:
+def normalize_buffer_capacity(buffer_capacity: object) -> int:
     """Validate the initial log buffer capacity.
 
     Args:
@@ -178,7 +181,7 @@ def normalize_buffer_capacity(buffer_capacity: int) -> int:
     return buffer_capacity
 
 
-def normalize_rotate_max_bytes(rotate_max_bytes: int | str) -> int:
+def normalize_rotate_max_bytes(rotate_max_bytes: object) -> int:
     """Validate the maximum log file size before rotation.
 
     Args:
@@ -191,7 +194,7 @@ def normalize_rotate_max_bytes(rotate_max_bytes: int | str) -> int:
         TypeError: If the value type is not supported.
         LoggerValidationError: If the value is outside the allowed range.
     """
-    normalized_rotate_max_bytes = parse_size_to_bytes(rotate_max_bytes)
+    normalized_rotate_max_bytes = normalize_size_to_bytes(rotate_max_bytes)
 
     if normalized_rotate_max_bytes < MIN_ROTATE_MAX_BYTES:
         raise LoggerValidationError(
@@ -206,7 +209,7 @@ def normalize_rotate_max_bytes(rotate_max_bytes: int | str) -> int:
     return normalized_rotate_max_bytes
 
 
-def normalize_rotate_backup_count(rotate_backup_count: int) -> int:
+def normalize_rotate_backup_count(rotate_backup_count: object) -> int:
     """Validate the number of backup files kept during log rotation.
 
     Args:
@@ -258,7 +261,7 @@ def validate_logger_reconfiguration(
         )
 
 
-def normalize_logger_config(config: LoggerConfig) -> LoggerConfig:
+def normalize_logger_config(config: object) -> LoggerConfig:
     """Validate all logger configuration fields and return a normalized copy.
 
     Args:
