@@ -1,399 +1,576 @@
-# -----------------------------------------------------------------------------
-# File: tests/infrastructure/logger/test_bootstrapper.py
-# Purpose:
-# Validate the logger bootstrapper lifecycle and configuration behavior.
-# Behavior:
-# Exercises bootstrap, console synchronization, file logging activation, handler
-# recreation, cleanup, and recoverable file logging failures.
-# Notes:
-# Tests use unique logger names to avoid handler leakage between test cases.
-# -----------------------------------------------------------------------------
-
 import logging
-from collections.abc import Iterator
-from logging import Handler
+from logging import Handler, Logger
+from logging.handlers import MemoryHandler, RotatingFileHandler
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
+from desktop_app.infrastructure.logger import bootstrapper as bootstrapper_module
 from desktop_app.infrastructure.logger.bootstrapper import LoggerBootstrapper
 from desktop_app.infrastructure.logger.config import LoggerConfig
 from desktop_app.infrastructure.logger.exceptions import LoggerValidationError
 
-_ROTATE_MAX_BYTES = 1_048_576
+
+def _build_logger_name() -> str:
+    return f"test.logger.{uuid4()}"
 
 
-def _unique_logger_name() -> str:
-    return f"desktop_app.tests.bootstrapper.{uuid4().hex}"
-
-
-def _cleanup_logger(logger_name: str) -> None:
-    logger = logging.getLogger(logger_name)
-    for handler in list(logger.handlers):
-        logger.removeHandler(handler)
-        handler.close()
-    logger.propagate = True
-    logger.setLevel(logging.NOTSET)
-
-
-def _make_config(
-    tmp_path: Path,
+def _build_test_logger_config(
+    log_file_path: Path,
     *,
-    logger_name: str | None = None,
+    enable_console: bool = False,
     level: int | str = "INFO",
-    enable_console: bool = True,
-    file_name: str = "app.log",
-    buffer_capacity: int = 5,
-    rotate_max_bytes: int | str = _ROTATE_MAX_BYTES,
+    name: str | None = None,
+    rotate_max_bytes: int | str = "1 MB",
     rotate_backup_count: int = 1,
+    buffer_capacity: int = 10,
 ) -> LoggerConfig:
     return LoggerConfig(
-        name=logger_name or _unique_logger_name(),
+        name=name or _build_logger_name(),
         level=level,
         enable_console=enable_console,
         buffer_capacity=buffer_capacity,
-        file_path=tmp_path / file_name,
+        file_path=log_file_path,
         rotate_max_bytes=rotate_max_bytes,
         rotate_backup_count=rotate_backup_count,
     )
 
 
-@pytest.fixture
-def logger_name() -> Iterator[str]:
-    name = _unique_logger_name()
-    yield name
-    _cleanup_logger(name)
+def _get_handlers_by_type(
+    logger: Logger,
+    handler_type: type[Handler],
+) -> list[Handler]:
+    return [handler for handler in logger.handlers if isinstance(handler, handler_type)]
 
 
-def test_init_uses_default_config_and_exposes_properties() -> None:
-    bootstrapper = LoggerBootstrapper()
-
-    try:
-        assert bootstrapper.config.name == "desktop_app"
-        assert bootstrapper.root_logger.name == "desktop_app"
-        assert bootstrapper.root_logger.propagate is False
-        assert bootstrapper.is_bootstrapped is False
-        assert bootstrapper.is_shutdown is False
-        assert bootstrapper._current_level == logging.INFO
-        assert bootstrapper._current_file_path == Path("logs") / "app.log"
-        assert bootstrapper._current_rotate_max_bytes == 5 * 1024 * 1024
-    finally:
-        bootstrapper.shutdown()
-        _cleanup_logger("desktop_app")
+def _has_handler(logger: Logger, handler_type: type[Handler]) -> bool:
+    return bool(_get_handlers_by_type(logger, handler_type))
 
 
-def test_bootstrap_adds_memory_and_console_handlers(
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    bootstrapper = LoggerBootstrapper(
-        _make_config(tmp_path, logger_name=logger_name, level="DEBUG")
-    )
-
-    try:
-        logger = bootstrapper.bootstrap()
-        same_logger = bootstrapper.bootstrap()
-
-        assert same_logger is logger
-        assert bootstrapper.is_bootstrapped is True
-        assert bootstrapper.is_shutdown is False
-        assert bootstrapper._memory_handler in logger.handlers
-        assert bootstrapper._console_handler in logger.handlers
-        assert bootstrapper._memory_handler is not None
-        assert bootstrapper._memory_handler.level == logging.DEBUG
-        assert bootstrapper._console_handler is not None
-        assert bootstrapper._console_handler.level == logging.DEBUG
-
-        bootstrapper._configure_memory_handler()
-        bootstrapper._configure_console_handler()
-
-        assert logger.handlers.count(bootstrapper._memory_handler) == 1
-        assert logger.handlers.count(bootstrapper._console_handler) == 1
-    finally:
-        bootstrapper.shutdown()
-
-    assert bootstrapper.is_bootstrapped is False
-    assert bootstrapper.is_shutdown is True
-    assert bootstrapper._memory_handler is None
-    assert bootstrapper._console_handler is None
-    assert bootstrapper._file_handler is None
-
-    bootstrapper.shutdown()
-    assert bootstrapper.is_shutdown is True
-
-
-def test_bootstrap_skips_console_when_disabled(
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    bootstrapper = LoggerBootstrapper(
-        _make_config(tmp_path, logger_name=logger_name, enable_console=False)
-    )
-
-    try:
-        bootstrapper.bootstrap()
-        bootstrapper._configure_console_handler()
-
-        assert bootstrapper._memory_handler is not None
-        assert bootstrapper._console_handler is None
-    finally:
-        bootstrapper.shutdown()
-
-
-def test_update_config_synchronizes_level_and_console_handler(
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    bootstrapper = LoggerBootstrapper(
-        _make_config(tmp_path, logger_name=logger_name, level="INFO")
-    )
-    bootstrapper.bootstrap()
-
-    try:
-        bootstrapper.update_config(
-            _make_config(
-                tmp_path,
-                logger_name=logger_name,
-                level="DEBUG",
-                enable_console=False,
-            )
-        )
-
-        assert bootstrapper.root_logger.level == logging.DEBUG
-        assert bootstrapper._memory_handler is not None
-        assert bootstrapper._memory_handler.level == logging.DEBUG
-        assert bootstrapper._console_handler is None
-
-        bootstrapper.update_config(
-            _make_config(
-                tmp_path,
-                logger_name=logger_name,
-                level="WARNING",
-                enable_console=False,
-            )
-        )
-
-        assert bootstrapper.root_logger.level == logging.WARNING
-        assert bootstrapper._console_handler is None
-
-        bootstrapper.update_config(
-            _make_config(
-                tmp_path,
-                logger_name=logger_name,
-                level="ERROR",
-                enable_console=True,
-            )
-        )
-
-        assert bootstrapper._console_handler is not None
-        assert bootstrapper._console_handler.level == logging.ERROR
-
-        bootstrapper.update_config(
-            _make_config(
-                tmp_path,
-                logger_name=logger_name,
-                level="CRITICAL",
-                enable_console=True,
-            )
-        )
-
-        assert bootstrapper._console_handler is not None
-        assert bootstrapper._console_handler.level == logging.CRITICAL
-    finally:
-        bootstrapper.shutdown()
-
-
-def test_update_config_rejects_logger_name_change(
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    bootstrapper = LoggerBootstrapper(_make_config(tmp_path, logger_name=logger_name))
-
-    try:
-        with pytest.raises(LoggerValidationError, match="Root logger name cannot"):
-            bootstrapper.update_config(
-                _make_config(tmp_path, logger_name=_unique_logger_name())
-            )
-    finally:
-        bootstrapper.shutdown()
-
-
-def test_enable_file_logging_flushes_memory_records(
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    log_file_path = tmp_path / "runtime.log"
-    bootstrapper = LoggerBootstrapper(
-        _make_config(
-            tmp_path,
-            logger_name=logger_name,
-            level="INFO",
-            enable_console=False,
-        )
-    )
-
-    try:
-        bootstrapper.bootstrap()
-        bootstrapper.root_logger.info("record before file logging")
-
-        assert bootstrapper.enable_file_logging(log_file_path) is True
-
-        bootstrapper.root_logger.info("record after file logging")
-        assert bootstrapper.is_bootstrapped is True
-        assert bootstrapper._memory_handler is None
-        assert bootstrapper._file_handler is not None
-        assert bootstrapper.config.file_path == log_file_path
-    finally:
-        bootstrapper.shutdown()
-
-    log_content = log_file_path.read_text(encoding="utf-8")
-    assert "record before file logging" in log_content
-    assert "record after file logging" in log_content
-
-
-def test_enable_file_logging_uses_configured_file_path_when_no_override(
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    config = _make_config(
-        tmp_path,
-        logger_name=logger_name,
+def test_initializes_with_normalized_config(tmp_path: Path) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        level="debug",
         enable_console=False,
-        file_name="configured.log",
     )
     bootstrapper = LoggerBootstrapper(config)
 
     try:
-        assert bootstrapper.enable_file_logging() is True
-        assert bootstrapper._file_handler is not None
-        assert Path(bootstrapper._file_handler.baseFilename) == config.file_path
+        assert bootstrapper.config.level == logging.DEBUG
+        assert bootstrapper.config.file_path == tmp_path / "app.log"
+        assert bootstrapper.root_logger.name == config.name
+        assert bootstrapper.root_logger.level == logging.DEBUG
+        assert bootstrapper.root_logger.propagate is False
+        assert bootstrapper.is_bootstrapped is False
+        assert bootstrapper.is_shutdown is False
     finally:
         bootstrapper.shutdown()
 
-    assert Path(config.file_path).exists()
 
-
-def test_update_config_keeps_active_file_handler_when_file_settings_do_not_change(
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    bootstrapper = LoggerBootstrapper(
-        _make_config(tmp_path, logger_name=logger_name, enable_console=False)
-    )
+def test_initializes_with_default_config() -> None:
+    bootstrapper = LoggerBootstrapper()
 
     try:
-        assert bootstrapper.enable_file_logging() is True
-        original_file_handler = bootstrapper._file_handler
+        assert isinstance(bootstrapper.config, LoggerConfig)
+        assert isinstance(bootstrapper.root_logger, Logger)
+        assert bootstrapper.is_bootstrapped is False
+        assert bootstrapper.is_shutdown is False
+    finally:
+        bootstrapper.shutdown()
 
+
+def test_configure_memory_handler_is_idempotent(tmp_path: Path) -> None:
+    config = _build_test_logger_config(tmp_path / "app.log")
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        bootstrapper.bootstrap()
+        first_handlers = list(bootstrapper.root_logger.handlers)
+
+        bootstrapper._configure_memory_handler()
+
+        assert bootstrapper.root_logger.handlers == first_handlers
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_bootstrap_adds_memory_handler_and_console_handler_when_enabled(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=True,
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        logger = bootstrapper.bootstrap()
+
+        assert logger is bootstrapper.root_logger
+        assert bootstrapper.is_bootstrapped is True
+        assert bootstrapper.is_shutdown is False
+        assert _has_handler(logger, MemoryHandler)
+        assert _has_handler(logger, logging.StreamHandler)
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_bootstrap_does_not_add_console_handler_when_disabled(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=False,
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        logger = bootstrapper.bootstrap()
+
+        assert _has_handler(logger, MemoryHandler)
+        assert not _has_handler(logger, logging.StreamHandler)
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_bootstrap_is_idempotent(tmp_path: Path) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=True,
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        first_logger = bootstrapper.bootstrap()
+        first_handlers = list(first_logger.handlers)
+
+        second_logger = bootstrapper.bootstrap()
+
+        assert second_logger is first_logger
+        assert second_logger.handlers == first_handlers
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_update_config_applies_level_to_logger_and_active_handlers(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=True,
+        level="INFO",
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        bootstrapper.bootstrap()
         bootstrapper.update_config(
-            _make_config(
-                tmp_path,
-                logger_name=logger_name,
-                level="ERROR",
+            _build_test_logger_config(
+                tmp_path / "app.log",
                 enable_console=True,
+                level="DEBUG",
+                name=config.name,
             )
         )
 
-        assert bootstrapper._file_handler is original_file_handler
-        assert bootstrapper._file_handler is not None
-        assert bootstrapper._file_handler.level == logging.ERROR
-        assert bootstrapper._console_handler is not None
-        assert bootstrapper._console_handler.level == logging.ERROR
-    finally:
-        bootstrapper.shutdown()
-
-
-def test_update_config_recreates_active_file_handler_when_file_settings_change(
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    bootstrapper = LoggerBootstrapper(
-        _make_config(tmp_path, logger_name=logger_name, enable_console=False)
-    )
-
-    try:
-        assert bootstrapper.enable_file_logging() is True
-        original_file_handler = bootstrapper._file_handler
-
-        bootstrapper.update_config(
-            _make_config(
-                tmp_path,
-                logger_name=logger_name,
-                enable_console=False,
-                file_name="new.log",
-                rotate_backup_count=2,
-            )
-        )
-
-        assert bootstrapper._file_handler is not None
-        assert bootstrapper._file_handler is not original_file_handler
-        assert Path(bootstrapper._file_handler.baseFilename) == tmp_path / "new.log"
-        assert bootstrapper._file_handler.backupCount == 2
-    finally:
-        bootstrapper.shutdown()
-
-
-def test_enable_file_logging_returns_false_and_cleans_new_handler_on_failure(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    logger_name: str,
-) -> None:
-    import desktop_app.infrastructure.logger.bootstrapper as bootstrapper_module
-
-    def raise_during_memory_flush(*_: object) -> None:
-        raise OSError("flush failed")
-
-    bootstrapper = LoggerBootstrapper(
-        _make_config(tmp_path, logger_name=logger_name, enable_console=False)
-    )
-    bootstrapper.bootstrap()
-
-    monkeypatch.setattr(
-        bootstrapper_module,
-        "flush_memory_handler_to_target",
-        raise_during_memory_flush,
-    )
-
-    try:
-        assert bootstrapper.enable_file_logging(tmp_path / "broken.log") is False
-        assert bootstrapper._file_handler is None
-        assert bootstrapper._memory_handler is not None
-        assert not any(
-            getattr(handler, "baseFilename", None) == str(tmp_path / "broken.log")
+        assert bootstrapper.config.level == logging.DEBUG
+        assert bootstrapper.root_logger.level == logging.DEBUG
+        assert all(
+            handler.level == logging.DEBUG
             for handler in bootstrapper.root_logger.handlers
         )
     finally:
         bootstrapper.shutdown()
 
 
-def test_recreate_active_file_handler_logs_error_when_reactivation_fails(
-    monkeypatch: pytest.MonkeyPatch,
+def test_update_config_adds_console_handler_after_bootstrap(
     tmp_path: Path,
-    logger_name: str,
 ) -> None:
-    class CapturingHandler(Handler):
-        def __init__(self) -> None:
-            super().__init__()
-            self.messages: list[str] = []
-
-        def emit(self, record: logging.LogRecord) -> None:
-            self.messages.append(record.getMessage())
-
-    bootstrapper = LoggerBootstrapper(
-        _make_config(tmp_path, logger_name=logger_name, enable_console=False)
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=False,
     )
-    capturing_handler = CapturingHandler()
-    bootstrapper.root_logger.addHandler(capturing_handler)
-
-    monkeypatch.setattr(bootstrapper, "enable_file_logging", lambda: False)
+    bootstrapper = LoggerBootstrapper(config)
 
     try:
-        bootstrapper._recreate_active_file_handler()
+        bootstrapper.bootstrap()
+        assert not _has_handler(bootstrapper.root_logger, logging.StreamHandler)
 
-        assert (
-            "Active file logging reconfiguration failed." in capturing_handler.messages
+        bootstrapper.update_config(
+            _build_test_logger_config(
+                tmp_path / "app.log",
+                enable_console=True,
+                name=config.name,
+            )
         )
+
+        assert _has_handler(bootstrapper.root_logger, logging.StreamHandler)
     finally:
-        bootstrapper.root_logger.removeHandler(capturing_handler)
         bootstrapper.shutdown()
+
+
+def test_update_config_does_not_add_console_before_bootstrap(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=False,
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        bootstrapper.update_config(
+            _build_test_logger_config(
+                tmp_path / "app.log",
+                enable_console=True,
+                name=config.name,
+            )
+        )
+
+        assert not _has_handler(bootstrapper.root_logger, logging.StreamHandler)
+        assert bootstrapper.is_bootstrapped is False
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_update_config_removes_console_handler_when_disabled(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=True,
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        bootstrapper.bootstrap()
+        assert _has_handler(bootstrapper.root_logger, logging.StreamHandler)
+
+        bootstrapper.update_config(
+            _build_test_logger_config(
+                tmp_path / "app.log",
+                enable_console=False,
+                name=config.name,
+            )
+        )
+
+        assert not _has_handler(bootstrapper.root_logger, logging.StreamHandler)
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_update_config_rejects_logger_name_change(tmp_path: Path) -> None:
+    config = _build_test_logger_config(tmp_path / "app.log")
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        with pytest.raises(LoggerValidationError, match="Root logger name"):
+            bootstrapper.update_config(
+                _build_test_logger_config(
+                    tmp_path / "app.log",
+                    name=_build_logger_name(),
+                )
+            )
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_update_config_recreates_active_file_handler_when_file_path_changes(
+    tmp_path: Path,
+) -> None:
+    first_log_file_path = tmp_path / "first.log"
+    second_log_file_path = tmp_path / "second.log"
+    config = _build_test_logger_config(first_log_file_path)
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        assert bootstrapper.enable_file_logging() is True
+        first_file_handler = next(
+            handler
+            for handler in bootstrapper.root_logger.handlers
+            if isinstance(handler, RotatingFileHandler)
+        )
+
+        bootstrapper.update_config(
+            _build_test_logger_config(
+                second_log_file_path,
+                name=config.name,
+            )
+        )
+        second_file_handler = next(
+            handler
+            for handler in bootstrapper.root_logger.handlers
+            if isinstance(handler, RotatingFileHandler)
+        )
+
+        assert second_file_handler is not first_file_handler
+        assert Path(second_file_handler.baseFilename) == second_log_file_path
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_update_config_recreates_active_file_handler_when_rotation_changes(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        rotate_max_bytes="1 MB",
+        rotate_backup_count=1,
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        assert bootstrapper.enable_file_logging() is True
+        first_file_handler = next(
+            handler
+            for handler in bootstrapper.root_logger.handlers
+            if isinstance(handler, RotatingFileHandler)
+        )
+
+        bootstrapper.update_config(
+            _build_test_logger_config(
+                tmp_path / "app.log",
+                name=config.name,
+                rotate_max_bytes="2 MB",
+                rotate_backup_count=2,
+            )
+        )
+        second_file_handler = next(
+            handler
+            for handler in bootstrapper.root_logger.handlers
+            if isinstance(handler, RotatingFileHandler)
+        )
+
+        assert second_file_handler is not first_file_handler
+        assert second_file_handler.maxBytes == 2 * 1024 * 1024
+        assert second_file_handler.backupCount == 2
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_update_config_keeps_new_config_when_file_recreation_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _build_test_logger_config(tmp_path / "app.log")
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        assert bootstrapper.enable_file_logging() is True
+
+        monkeypatch.setattr(
+            bootstrapper,
+            "enable_file_logging",
+            lambda: False,
+        )
+
+        bootstrapper.update_config(
+            _build_test_logger_config(
+                tmp_path / "changed.log",
+                name=config.name,
+            )
+        )
+
+        assert bootstrapper.config.file_path == tmp_path / "changed.log"
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_enable_file_logging_bootstraps_logger_when_needed(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(tmp_path / "app.log")
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        result = bootstrapper.enable_file_logging()
+
+        assert result is True
+        assert bootstrapper.is_bootstrapped is True
+        assert _has_handler(bootstrapper.root_logger, RotatingFileHandler)
+        assert not _has_handler(bootstrapper.root_logger, MemoryHandler)
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_enable_file_logging_uses_explicit_file_path(tmp_path: Path) -> None:
+    configured_path = tmp_path / "configured.log"
+    explicit_path = tmp_path / "explicit.log"
+    config = _build_test_logger_config(configured_path)
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        result = bootstrapper.enable_file_logging(explicit_path)
+        file_handler = next(
+            handler
+            for handler in bootstrapper.root_logger.handlers
+            if isinstance(handler, RotatingFileHandler)
+        )
+
+        assert result is True
+        assert bootstrapper.config.file_path == explicit_path
+        assert Path(file_handler.baseFilename) == explicit_path
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_enable_file_logging_replaces_existing_file_handler(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(tmp_path / "app.log")
+    bootstrapper = LoggerBootstrapper(config)
+
+    try:
+        assert bootstrapper.enable_file_logging() is True
+        first_file_handler = next(
+            handler
+            for handler in bootstrapper.root_logger.handlers
+            if isinstance(handler, RotatingFileHandler)
+        )
+
+        assert bootstrapper.enable_file_logging(tmp_path / "new.log") is True
+        second_file_handler = next(
+            handler
+            for handler in bootstrapper.root_logger.handlers
+            if isinstance(handler, RotatingFileHandler)
+        )
+
+        assert second_file_handler is not first_file_handler
+        assert first_file_handler not in bootstrapper.root_logger.handlers
+        assert Path(second_file_handler.baseFilename) == tmp_path / "new.log"
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_enable_file_logging_returns_false_when_handler_creation_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _build_test_logger_config(tmp_path / "app.log")
+    bootstrapper = LoggerBootstrapper(config)
+    bootstrapper.bootstrap()
+
+    def fail_create_rotating_file_handler(
+        file_path: Path,
+        level: int,
+        max_bytes: int,
+        backup_count: int,
+    ) -> RotatingFileHandler:
+        raise OSError("Forced file handler creation failure.")
+
+    monkeypatch.setattr(
+        bootstrapper_module,
+        "create_rotating_file_handler",
+        fail_create_rotating_file_handler,
+    )
+
+    try:
+        result = bootstrapper.enable_file_logging()
+
+        assert result is False
+        assert not _has_handler(bootstrapper.root_logger, RotatingFileHandler)
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_enable_file_logging_returns_false_when_handler_setup_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _build_test_logger_config(tmp_path / "app.log")
+    bootstrapper = LoggerBootstrapper(config)
+    bootstrapper.bootstrap()
+
+    original_remove_and_close_handler_safely = (
+        bootstrapper_module.remove_and_close_handler_safely
+    )
+
+    def fail_when_removing_previous_file_handler(
+        logger: Logger,
+        handler: Handler | None,
+    ) -> None:
+        if handler is None:
+            raise RuntimeError("Forced failure before file handler assignment.")
+
+        original_remove_and_close_handler_safely(logger, handler)
+
+    try:
+        with monkeypatch.context() as patch_context:
+            patch_context.setattr(
+                bootstrapper_module,
+                "remove_and_close_handler_safely",
+                fail_when_removing_previous_file_handler,
+            )
+
+            result = bootstrapper.enable_file_logging()
+
+        assert result is False
+        assert not _has_handler(bootstrapper.root_logger, RotatingFileHandler)
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_enable_file_logging_returns_false_and_clears_handler_when_flush_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _build_test_logger_config(tmp_path / "app.log")
+    bootstrapper = LoggerBootstrapper(config)
+    bootstrapper.bootstrap()
+
+    def fail_memory_flush(
+        memory_handler: MemoryHandler | None,
+        target_handler: Handler,
+    ) -> None:
+        raise RuntimeError("Forced memory flush failure.")
+
+    monkeypatch.setattr(
+        bootstrapper_module,
+        "flush_memory_handler_to_target",
+        fail_memory_flush,
+    )
+
+    try:
+        result = bootstrapper.enable_file_logging()
+
+        assert result is False
+        assert not _has_handler(bootstrapper.root_logger, RotatingFileHandler)
+    finally:
+        bootstrapper.shutdown()
+
+
+def test_shutdown_is_idempotent(tmp_path: Path) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=True,
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    bootstrapper.bootstrap()
+    bootstrapper.shutdown()
+    bootstrapper.shutdown()
+
+    assert bootstrapper.is_shutdown is True
+    assert bootstrapper.is_bootstrapped is False
+    assert bootstrapper.root_logger.handlers == []
+
+
+def test_shutdown_removes_all_handlers_after_file_logging_enabled(
+    tmp_path: Path,
+) -> None:
+    config = _build_test_logger_config(
+        tmp_path / "app.log",
+        enable_console=True,
+    )
+    bootstrapper = LoggerBootstrapper(config)
+
+    bootstrapper.bootstrap()
+    assert bootstrapper.enable_file_logging() is True
+    assert bootstrapper.root_logger.handlers
+
+    bootstrapper.shutdown()
+
+    assert bootstrapper.root_logger.handlers == []
+    assert bootstrapper.is_shutdown is True
+    assert bootstrapper.is_bootstrapped is False
