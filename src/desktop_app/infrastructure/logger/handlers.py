@@ -11,9 +11,11 @@
 # unbounded growth before file logging is enabled.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import logging
 from contextlib import suppress
-from logging import Handler, Logger, LogRecord
+from logging import Handler, Logger, LogRecord, StreamHandler
 from logging.handlers import MemoryHandler, RotatingFileHandler
 from pathlib import Path
 
@@ -41,12 +43,12 @@ class BoundedMemoryHandler(MemoryHandler):
         """
         self.buffer.append(record)
 
-        overflow = len(self.buffer) - self.capacity
-        if overflow > 0:
-            del self.buffer[:overflow]
+        overflow_count = len(self.buffer) - self.capacity
+        if overflow_count > 0:
+            del self.buffer[:overflow_count]
 
 
-def create_console_handler(level: int) -> Handler:
+def create_console_handler(level: int) -> StreamHandler:
     """Create the handler responsible for console log output.
 
     Args:
@@ -55,7 +57,7 @@ def create_console_handler(level: int) -> Handler:
     Returns:
         Configured console handler.
     """
-    handler = logging.StreamHandler()
+    handler = StreamHandler()
     handler.setLevel(level)
     handler.setFormatter(
         logging.Formatter(
@@ -66,7 +68,7 @@ def create_console_handler(level: int) -> Handler:
     return handler
 
 
-def create_bounded_memory_handler(capacity: int, level: int) -> MemoryHandler:
+def create_bounded_memory_handler(capacity: int, level: int) -> BoundedMemoryHandler:
     """Create the temporary bounded handler used before file logging is available.
 
     Args:
