@@ -10,7 +10,7 @@
 # The module-level instance is a controlled singleton. It prevents each part of
 # the application from creating its own handlers, which could duplicate log
 # messages and keep log files locked on Windows. logger_get_logger() is safe to
-# call during module import because it performs an early memory-buffer bootstrap
+# call during module import because it performs an early memory-only bootstrap
 # when the official logger configuration has not been applied yet.
 # -----------------------------------------------------------------------------
 
@@ -30,12 +30,14 @@ def logger_create_bootstrapper(
     """Create an independent LoggerBootstrapper instance.
 
     Args:
-        config: Optional logger configuration.
+        config: Optional logger configuration. When omitted, early bootstrap uses
+            memory buffering without console output.
 
     Returns:
         Configured bootstrapper instance.
     """
-    return LoggerBootstrapper(config=config)
+    bootstrap_config = config or LoggerConfig(enable_console=False)
+    return LoggerBootstrapper(config=bootstrap_config)
 
 
 def logger_get_bootstrapper() -> LoggerBootstrapper:

@@ -14,7 +14,7 @@
 from pathlib import Path
 
 APPLICATION_TITLE = "NiceGui Windows Base"
-APPLICATION_VERSION = "0.3.0"
+APPLICATION_VERSION = "0.3.4"
 APP_ICON_FILENAME = "app_icon.ico"
 PAGE_IMAGE_FILENAME = "page_image.png"
 

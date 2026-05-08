@@ -6,7 +6,7 @@
 
 [app]
 name = "NiceGui Windows Base"
-version = "0.3.0"
+version = "0.3.4"
 language = "en-US"
 first_run = true
 

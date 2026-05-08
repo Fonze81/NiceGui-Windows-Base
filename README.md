@@ -17,7 +17,7 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 - narrative startup diagnostics shown in the terminal, rotating log file, and UI;
 - packaged and normal asset resolution for the application icon and page image;
 - structured logger package with startup buffering, rotating file logs, lifecycle logging, and safe shutdown;
-- typed runtime state model and persistent `settings.toml` support with first-run creation;
+- typed runtime state model and persistent `settings.toml` support with scoped load/save operations;
 - optional PyInstaller splash screen support that closes after the first client connects;
 - PyInstaller packaging with windowed mode, executable icon, bundled assets, Windows version metadata, hidden splash import, and splash screen;
 - VS Code recommendations and Ruff-on-save workspace settings;
@@ -77,11 +77,11 @@ A minimal **NiceGui Windows Base template** for Windows development, native desk
 │       │   │   ├── __init__.py
 │       │   │   ├── constants.py
 │       │   │   ├── conversion.py
-│       │   │   ├── logging_helpers.py
-│       │   │   ├── toml_document.py
 │       │   │   ├── mapper.py
 │       │   │   ├── paths.py
-│       │   │   └── service.py
+│       │   │   ├── schema.py
+│       │   │   ├── service.py
+│       │   │   └── toml_document.py
 │       │   ├── __init__.py
 │       │   ├── asset_paths.py
 │       │   ├── lifecycle.py

@@ -100,7 +100,7 @@ sequenceDiagram
     participant File as Rotating file handler
 
     Module->>Service: logger_get_logger(__name__)
-    Service->>Memory: bootstrap early memory logging
+    Service->>Memory: bootstrap early memory-only logging
     App->>Service: logger_bootstrap(LoggerConfig)
     Service->>Service: update or create bootstrapper
     App->>Service: logger_enable_file_logging()
@@ -114,10 +114,12 @@ Why this matters:
 1. Some modules create loggers during import.
 2. At that moment, the final log file path may not be known yet.
 3. Early records are kept in a bounded memory handler.
-4. Once `app.py` resolves the runtime log path, file logging is enabled.
-5. The early records are flushed into the rotating log file.
+4. Early bootstrap does not attach a console handler, so import-time diagnostics stay silent.
+5. Once `app.py` resolves the runtime log path, file logging is enabled.
+6. The early records are flushed into the rotating log file.
+7. Console logging is enabled only after final configuration allows it.
 
-This prevents losing important startup records without allowing unbounded memory growth.
+This prevents losing important startup records without allowing unbounded memory growth or noisy pre-configuration console output.
 
 ---
 
@@ -163,9 +165,9 @@ Key behavior:
 
 ### 💻 Console handler
 
-The console handler is useful during normal Python execution.
+The console handler is useful during normal Python execution after final logger configuration is applied.
 
-In packaged execution, console logging is disabled because the executable is built with PyInstaller `--windowed` and should not open an extra terminal window.
+Early import-time bootstrap is memory-only and intentionally silent, which allows settings to load before the final logger configuration is known. In packaged execution, console logging is disabled because the executable is built with PyInstaller `--windowed` and should not open an extra terminal window.
 
 ### 📄 Rotating file handler
 
