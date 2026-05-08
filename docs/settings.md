@@ -43,19 +43,19 @@ flowchart TD
     C --> O[src/desktop_app/infrastructure/byte_size.py]
 ```
 
-| File | Responsibility |
-| --- | --- |
-| [`src/desktop_app/core/state.py`](../src/desktop_app/core/state.py) | Defines the typed in-memory `AppState` model. |
-| [`src/desktop_app/infrastructure/settings/__init__.py`](../src/desktop_app/infrastructure/settings/__init__.py) | Exposes the public settings API. |
-| [`src/desktop_app/infrastructure/settings/service.py`](../src/desktop_app/infrastructure/settings/service.py) | Loads settings read-only, saves scoped settings, and creates `settings.toml` only on save. |
-| [`src/desktop_app/infrastructure/settings/paths.py`](../src/desktop_app/infrastructure/settings/paths.py) | Resolves persistent and bundled settings paths. |
-| [`src/desktop_app/infrastructure/settings/mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py) | Converts TOML data into `AppState` and logger configuration. |
-| [`src/desktop_app/infrastructure/settings/schema.py`](../src/desktop_app/infrastructure/settings/schema.py) | Defines supported groups and property paths for scoped load/save operations. |
-| [`src/desktop_app/infrastructure/settings/toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py) | Updates TOML documents while preserving comments and unknown keys. |
-| [`src/desktop_app/infrastructure/settings/conversion.py`](../src/desktop_app/infrastructure/settings/conversion.py) | Provides safe conversion helpers for manually edited values. |
-| [`src/desktop_app/infrastructure/file_system.py`](../src/desktop_app/infrastructure/file_system.py) | Provides reusable parent-directory creation and atomic text writes. |
-| [`src/desktop_app/infrastructure/byte_size.py`](../src/desktop_app/infrastructure/byte_size.py) | Parses human-readable byte-size values reused by logger and settings validation. |
-| [`src/desktop_app/settings.toml`](../src/desktop_app/settings.toml) | Bundled template used as the initial document when settings are saved for the first time. |
+| File                                                                                                                      | Responsibility                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [`src/desktop_app/core/state.py`](../src/desktop_app/core/state.py)                                                       | Defines the typed in-memory `AppState` model.                                              |
+| [`src/desktop_app/infrastructure/settings/__init__.py`](../src/desktop_app/infrastructure/settings/__init__.py)           | Exposes the public settings API.                                                           |
+| [`src/desktop_app/infrastructure/settings/service.py`](../src/desktop_app/infrastructure/settings/service.py)             | Loads settings read-only, saves scoped settings, and creates `settings.toml` only on save. |
+| [`src/desktop_app/infrastructure/settings/paths.py`](../src/desktop_app/infrastructure/settings/paths.py)                 | Resolves persistent and bundled settings paths.                                            |
+| [`src/desktop_app/infrastructure/settings/mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py)               | Converts TOML data into `AppState` and logger configuration.                               |
+| [`src/desktop_app/infrastructure/settings/schema.py`](../src/desktop_app/infrastructure/settings/schema.py)               | Defines supported groups and property paths for scoped load/save operations.               |
+| [`src/desktop_app/infrastructure/settings/toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py) | Updates TOML documents while preserving comments and unknown keys.                         |
+| [`src/desktop_app/infrastructure/settings/conversion.py`](../src/desktop_app/infrastructure/settings/conversion.py)       | Provides safe conversion helpers for manually edited values.                               |
+| [`src/desktop_app/infrastructure/file_system.py`](../src/desktop_app/infrastructure/file_system.py)                       | Provides reusable parent-directory creation and atomic text writes.                        |
+| [`src/desktop_app/infrastructure/byte_size.py`](../src/desktop_app/infrastructure/byte_size.py)                           | Parses human-readable byte-size values reused by logger and settings validation.           |
+| [`src/desktop_app/settings.toml`](../src/desktop_app/settings.toml)                                                       | Bundled template used as the initial document when settings are saved for the first time.  |
 
 ---
 
@@ -71,21 +71,21 @@ It is intentionally pure. It does not read files, write files, configure logging
 
 Main sections:
 
-| State section | Purpose |
-| --- | --- |
-| `meta` | Application name, version, language, and first-run flag. |
-| `runtime` | Startup source, startup message, runtime mode, reload flag, and selected port. |
-| `paths` | Effective settings, log, executable, working directory, and PyInstaller extraction paths. |
-| `window` | Future native window size and position preferences. |
-| `ui` | Theme, font scale, dense mode, and accent color preferences. |
-| `ui_session` | Transient UI state such as active view and busy message. |
-| `assets` | Resolved runtime asset paths for diagnostics. |
-| `log` | Log preferences plus runtime status such as effective file path. |
-| `behavior` | General behavior preferences such as auto-save. |
-| `settings` | Settings file existence, defaults usage, scopes, and latest load/save status. |
-| `settings_validation` | Warnings from the latest settings validation. |
-| `lifecycle` | Application, client, native window, splash, and shutdown status flags. |
-| `status` | Current and recent status messages for future UI feedback. |
+| State section         | Purpose                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| `meta`                | Application name, version, language, and first-run flag.                                  |
+| `runtime`             | Startup source, startup message, runtime mode, reload flag, and selected port.            |
+| `paths`               | Effective settings, log, executable, working directory, and PyInstaller extraction paths. |
+| `window`              | Future native window size and position preferences.                                       |
+| `ui`                  | Theme, font scale, dense mode, and accent color preferences.                              |
+| `ui_session`          | Transient UI state such as active view and busy message.                                  |
+| `assets`              | Resolved runtime asset paths for diagnostics.                                             |
+| `log`                 | Log preferences plus runtime status such as effective file path.                          |
+| `behavior`            | General behavior preferences such as auto-save.                                           |
+| `settings`            | Settings file existence, defaults usage, scopes, and latest load/save status.             |
+| `settings_validation` | Warnings from the latest settings validation.                                             |
+| `lifecycle`           | Application, client, native window, splash, and shutdown status flags.                    |
+| `status`              | Current and recent status messages for future UI feedback.                                |
 
 The module exposes a controlled singleton API:
 
@@ -131,11 +131,11 @@ This allows persisted logging preferences to be applied before final file loggin
 
 The settings service supports three scopes:
 
-| Scope | Load function | Save function | Example use |
-| --- | --- | --- | --- |
-| Full file | `load_settings()` | `save_settings()` | Startup or full persistence. |
-| Group | `load_settings_group("ui")` | `save_settings_group("ui")` | Persist a settings page tab. |
-| Property | `load_setting_property("app.ui.theme")` | `save_setting_property("app.ui.theme")` | Persist one UI control change. |
+| Scope     | Load function                           | Save function                           | Example use                    |
+| --------- | --------------------------------------- | --------------------------------------- | ------------------------------ |
+| Full file | `load_settings()`                       | `save_settings()`                       | Startup or full persistence.   |
+| Group     | `load_settings_group("ui")`             | `save_settings_group("ui")`             | Persist a settings page tab.   |
+| Property  | `load_setting_property("app.ui.theme")` | `save_setting_property("app.ui.theme")` | Persist one UI control change. |
 
 Examples:
 
@@ -176,9 +176,9 @@ This keeps startup side-effect free. `state.settings.file_exists` and `state.set
 
 The settings package distinguishes between two files:
 
-| File | Purpose | Typical location |
-| --- | --- | --- |
-| Bundled template | First-run source template. | `src/desktop_app/settings.toml` or PyInstaller extraction folder. |
+| File                | Purpose                    | Typical location                                                       |
+| ------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| Bundled template    | First-run source template. | `src/desktop_app/settings.toml` or PyInstaller extraction folder.      |
 | Persistent settings | Editable runtime settings. | Repository root during development or executable folder when packaged. |
 
 Default persistent path:
@@ -189,11 +189,11 @@ Default persistent path:
 
 The application root is resolved as follows:
 
-| Runtime | Root |
-| --- | --- |
-| Normal Python execution | Current working directory. |
-| Packaged executable | Folder containing `nicegui-windows-base.exe`. |
-| Custom override | `DESKTOP_APP_ROOT` environment variable. |
+| Runtime                 | Root                                          |
+| ----------------------- | --------------------------------------------- |
+| Normal Python execution | Current working directory.                    |
+| Packaged executable     | Folder containing `nicegui-windows-base.exe`. |
+| Custom override         | `DESKTOP_APP_ROOT` environment variable.      |
 
 ---
 
@@ -258,14 +258,14 @@ The settings mapper uses defensive conversion. Invalid user-edited values are re
 
 Examples:
 
-| Invalid value | Recovery |
-| --- | --- |
-| Unknown theme | Falls back to `light`. |
-| Window width below `400` | Falls back to `1024`. |
-| Window height below `300` | Falls back to `720`. |
-| Invalid log level | Falls back to `INFO`. |
-| Invalid rotation size | Falls back to `5 MB`. |
-| Invalid backup count | Falls back to `3`. |
+| Invalid value             | Recovery               |
+| ------------------------- | ---------------------- |
+| Unknown theme             | Falls back to `light`. |
+| Window width below `400`  | Falls back to `1024`.  |
+| Window height below `300` | Falls back to `720`.   |
+| Invalid log level         | Falls back to `INFO`.  |
+| Invalid rotation size     | Falls back to `5 MB`.  |
+| Invalid backup count      | Falls back to `3`.     |
 
 This keeps startup resilient even when `settings.toml` was edited manually.
 
@@ -275,10 +275,10 @@ This keeps startup resilient even when `settings.toml` was edited manually.
 
 Two small helpers are intentionally shared instead of duplicated:
 
-| Helper | Used by | Why it exists |
-| --- | --- | --- |
-| [`file_system.py`](../src/desktop_app/infrastructure/file_system.py) | settings persistence and logger file handler setup | Centralizes parent-directory creation and atomic text writes. |
-| [`byte_size.py`](../src/desktop_app/infrastructure/byte_size.py) | logger validation and settings conversion | Keeps byte-size parsing rules consistent for values such as `5 MB`. |
+| Helper                                                               | Used by                                            | Why it exists                                                       |
+| -------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| [`file_system.py`](../src/desktop_app/infrastructure/file_system.py) | settings persistence and logger file handler setup | Centralizes parent-directory creation and atomic text writes.       |
+| [`byte_size.py`](../src/desktop_app/infrastructure/byte_size.py)     | logger validation and settings conversion          | Keeps byte-size parsing rules consistent for values such as `5 MB`. |
 
 The settings package still owns TOML-specific behavior in [`toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py). The logger package still owns logger-specific validation errors in [`validators.py`](../src/desktop_app/infrastructure/logger/validators.py). This avoids creating a broad utility layer while removing actual duplicated logic.
 

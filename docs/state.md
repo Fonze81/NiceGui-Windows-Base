@@ -21,21 +21,21 @@ The application state model is designed to:
 
 ## 🧭 State sections
 
-| Section | Persistence | Purpose |
-| --- | --- | --- |
-| `meta` | Yes | User-facing application metadata. |
-| `runtime` | No | Startup source, startup message, runtime mode, reload flag, and selected port. |
-| `paths` | No | Effective settings, log, executable, working directory, and PyInstaller extraction paths. |
-| `window` | Yes | Future native window position and size preferences. |
-| `ui` | Yes | User-editable visual preferences. |
-| `ui_session` | No | Transient UI session state such as active view and busy message. |
-| `assets` | No | Resolved icon, page image, and splash paths for diagnostics. |
-| `log` | Mixed | Persisted logger preferences plus runtime status such as effective file path. |
-| `behavior` | Yes | General behavior preferences such as auto-save. |
-| `settings` | No | Settings file existence, default usage, latest scopes, and last error. |
-| `settings_validation` | No | Warnings from the latest settings validation. |
-| `lifecycle` | No | High-level application, native window, client, splash, and shutdown flags. |
-| `status` | No | Current and recent status messages for future UI feedback. |
+| Section               | Persistence | Purpose                                                                                   |
+| --------------------- | ----------- | ----------------------------------------------------------------------------------------- |
+| `meta`                | Yes         | User-facing application metadata.                                                         |
+| `runtime`             | No          | Startup source, startup message, runtime mode, reload flag, and selected port.            |
+| `paths`               | No          | Effective settings, log, executable, working directory, and PyInstaller extraction paths. |
+| `window`              | Yes         | Future native window position and size preferences.                                       |
+| `ui`                  | Yes         | User-editable visual preferences.                                                         |
+| `ui_session`          | No          | Transient UI session state such as active view and busy message.                          |
+| `assets`              | No          | Resolved icon, page image, and splash paths for diagnostics.                              |
+| `log`                 | Mixed       | Persisted logger preferences plus runtime status such as effective file path.             |
+| `behavior`            | Yes         | General behavior preferences such as auto-save.                                           |
+| `settings`            | No          | Settings file existence, default usage, latest scopes, and last error.                    |
+| `settings_validation` | No          | Warnings from the latest settings validation.                                             |
+| `lifecycle`           | No          | High-level application, native window, client, splash, and shutdown flags.                |
+| `status`              | No          | Current and recent status messages for future UI feedback.                                |
 
 ---
 
@@ -71,12 +71,12 @@ This avoids saving values that are valid only for the current process, current m
 
 `SettingsState` intentionally distinguishes these cases:
 
-| Field | Meaning |
-| --- | --- |
-| `file_exists` | Whether `settings.toml` exists for the current runtime. |
-| `using_defaults` | Whether the application is using in-memory defaults. |
+| Field               | Meaning                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `file_exists`       | Whether `settings.toml` exists for the current runtime.                            |
+| `using_defaults`    | Whether the application is using in-memory defaults.                               |
 | `last_loaded_scope` | Last successful load scope, such as `all`, `group:ui`, or `property:app.ui.theme`. |
-| `last_saved_scope` | Last successful save scope. |
+| `last_saved_scope`  | Last successful save scope.                                                        |
 
 Loading missing settings is not an error. The application keeps default values in memory and creates `settings.toml` only when a save operation is explicitly requested.
 

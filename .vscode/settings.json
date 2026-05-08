@@ -1,4 +1,5 @@
 {
+    "editor.formatOnSave": true,
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
@@ -6,6 +7,30 @@
             "source.fixAll.ruff": "explicit",
             "source.organizeImports.ruff": "explicit"
         }
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[css]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "python.analysis.typeCheckingMode": "standard",
     "files.exclude": {
@@ -21,11 +46,11 @@
         "LICENSE": true,
         "NiceGui Windows Base.code-workspace": true,
         "docs/vscode_setup.md": true,
+        "scripts/package_windows.ps1": true,
         "src/desktop_app/__init__.py": true,
         "src/desktop_app/__main__.py": true,
         "src/desktop_app/infrastructure/logger": true,
-        "src/nicegui_windows_base.egg-info": true,
-        "scripts/package_windows.ps1": true,
+        "src/nicegui_windows_base.egg-info": true
     },
     "search.exclude": {
         "**/__pycache__": true,
@@ -33,6 +58,6 @@
         ".pytest_cache": true,
         ".ruff_cache": true,
         ".venv": true,
-        "dist": true,
+        "dist": true
     }
 }
