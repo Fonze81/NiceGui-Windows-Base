@@ -5,6 +5,7 @@
 # Behavior:
 # Creates required TOML tables, writes AppState values into known keys, and
 # preserves comments and unknown keys when an existing document is saved again.
+# It can update all settings, one settings group, or one individual property.
 # Notes:
 # This module only manipulates in-memory TOML documents. Disk writes are handled
 # by shared file-system helpers.
@@ -21,6 +22,11 @@ from tomlkit.items import Table
 from tomlkit.toml_document import TOMLDocument
 
 from desktop_app.core.state import AppState
+from desktop_app.infrastructure.settings.schema import (
+    SettingsGroup,
+    get_legacy_paths_for_scope,
+    get_settings_scope_paths,
+)
 
 
 def ensure_toml_table(root: TOMLDocument | Table, key: str) -> Table:
@@ -92,50 +98,111 @@ def normalize_path_for_toml(file_path: Path) -> str:
     return file_path.as_posix()
 
 
-def apply_state_to_document(document: TOMLDocument, state: AppState) -> None:
+def apply_state_to_document(
+    document: TOMLDocument,
+    state: AppState,
+    *,
+    group: SettingsGroup | None = None,
+    property_path: str | None = None,
+) -> None:
     """Update a TOML document with values from the application state.
 
     Args:
         document: TOML document to update.
         state: Application state used as source.
+        group: Optional settings group to save.
+        property_path: Optional individual property path to save.
     """
-    set_toml_value(document, "app.name", state.meta.name)
-    set_toml_value(document, "app.version", state.meta.version)
-    set_toml_value(document, "app.language", state.meta.language)
-    set_toml_value(document, "app.first_run", state.meta.first_run)
+    property_paths = get_settings_scope_paths(group=group, property_path=property_path)
 
-    set_toml_value(document, "app.window.x", state.window.x)
-    set_toml_value(document, "app.window.y", state.window.y)
-    set_toml_value(document, "app.window.width", state.window.width)
-    set_toml_value(document, "app.window.height", state.window.height)
-    set_toml_value(document, "app.window.maximized", state.window.maximized)
-    set_toml_value(document, "app.window.fullscreen", state.window.fullscreen)
-    set_toml_value(document, "app.window.monitor", state.window.monitor)
-    set_toml_value(document, "app.window.storage_key", state.window.storage_key)
+    for legacy_path in get_legacy_paths_for_scope(property_paths):
+        remove_toml_value(document, legacy_path)
 
-    set_toml_value(document, "app.ui.theme", state.ui.theme)
-    set_toml_value(document, "app.ui.font_scale", state.ui.font_scale)
-    set_toml_value(document, "app.ui.dense_mode", state.ui.dense_mode)
-    set_toml_value(document, "app.ui.accent_color", state.ui.accent_color)
+    for selected_path in property_paths:
+        apply_state_property_to_document(document, state, selected_path)
 
-    remove_toml_value(document, "app.log.name")
-    remove_toml_value(document, "app.log.console")
-    set_toml_value(document, "app.log.level", state.log.level)
-    set_toml_value(document, "app.log.enable_console", state.log.enable_console)
-    set_toml_value(document, "app.log.buffer_capacity", state.log.buffer_capacity)
+
+def apply_state_property_to_document(
+    document: TOMLDocument,
+    state: AppState,
+    property_path: str,
+) -> None:
+    """Update one TOML property with a value from the application state.
+
+    Args:
+        document: TOML document to update.
+        state: Application state used as source.
+        property_path: Supported property path to save.
+    """
     set_toml_value(
         document,
-        "app.log.file_path",
-        normalize_path_for_toml(state.log.file_path),
-    )
-    set_toml_value(document, "app.log.rotate_max_bytes", state.log.rotate_max_bytes)
-    set_toml_value(
-        document,
-        "app.log.rotate_backup_count",
-        state.log.rotate_backup_count,
+        property_path,
+        get_state_property_value(state, property_path),
     )
 
-    set_toml_value(document, "app.behavior.auto_save", state.behavior.auto_save)
+
+def get_state_property_value(state: AppState, property_path: str) -> Any:
+    """Return one TOML-compatible value from AppState.
+
+    Args:
+        state: Application state used as source.
+        property_path: Supported property path to read.
+
+    Returns:
+        TOML-compatible value for the property path.
+    """
+    if property_path == "app.name":
+        return state.meta.name
+    if property_path == "app.version":
+        return state.meta.version
+    if property_path == "app.language":
+        return state.meta.language
+    if property_path == "app.first_run":
+        return state.meta.first_run
+
+    if property_path == "app.window.x":
+        return state.window.x
+    if property_path == "app.window.y":
+        return state.window.y
+    if property_path == "app.window.width":
+        return state.window.width
+    if property_path == "app.window.height":
+        return state.window.height
+    if property_path == "app.window.maximized":
+        return state.window.maximized
+    if property_path == "app.window.fullscreen":
+        return state.window.fullscreen
+    if property_path == "app.window.monitor":
+        return state.window.monitor
+    if property_path == "app.window.storage_key":
+        return state.window.storage_key
+
+    if property_path == "app.ui.theme":
+        return state.ui.theme
+    if property_path == "app.ui.font_scale":
+        return state.ui.font_scale
+    if property_path == "app.ui.dense_mode":
+        return state.ui.dense_mode
+    if property_path == "app.ui.accent_color":
+        return state.ui.accent_color
+
+    if property_path == "app.log.level":
+        return state.log.level
+    if property_path == "app.log.enable_console":
+        return state.log.enable_console
+    if property_path == "app.log.buffer_capacity":
+        return state.log.buffer_capacity
+    if property_path == "app.log.file_path":
+        return normalize_path_for_toml(state.log.file_path)
+    if property_path == "app.log.rotate_max_bytes":
+        return state.log.rotate_max_bytes
+    if property_path == "app.log.rotate_backup_count":
+        return state.log.rotate_backup_count
+
+    if property_path == "app.behavior.auto_save":
+        return state.behavior.auto_save
+
+    raise ValueError(f"Unsupported settings property path: {property_path!r}.")
 
 
 def build_document_from_state(state: AppState) -> TOMLDocument:

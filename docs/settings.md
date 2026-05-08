@@ -14,6 +14,7 @@ The settings and state implementation is designed to:
 - keep pure state separate from file I/O;
 - create `settings.toml` automatically on first run;
 - preserve comments and unknown TOML keys when saving existing settings;
+- load and save all settings, one settings group, or one individual property;
 - support normal Python execution and PyInstaller one-file execution;
 - let logging configuration be adjusted before final file logging starts;
 - avoid coupling NiceGUI callbacks directly to TOML parsing or file writes.
@@ -34,6 +35,7 @@ flowchart TD
     C --> H[paths.py]
     C --> I[service.py]
     C --> J[mapper.py]
+    C --> P[schema.py]
     C --> K[toml_document.py]
     C --> L[conversion.py]
     C --> M[logging_helpers.py]
@@ -48,6 +50,7 @@ flowchart TD
 | [`src/desktop_app/infrastructure/settings/service.py`](../src/desktop_app/infrastructure/settings/service.py) | Loads, creates, and saves the persistent `settings.toml`. |
 | [`src/desktop_app/infrastructure/settings/paths.py`](../src/desktop_app/infrastructure/settings/paths.py) | Resolves persistent and bundled settings paths. |
 | [`src/desktop_app/infrastructure/settings/mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py) | Converts TOML data into `AppState` and logger configuration. |
+| [`src/desktop_app/infrastructure/settings/schema.py`](../src/desktop_app/infrastructure/settings/schema.py) | Defines supported groups and property paths for scoped load/save operations. |
 | [`src/desktop_app/infrastructure/settings/toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py) | Updates TOML documents while preserving comments and unknown keys. |
 | [`src/desktop_app/infrastructure/settings/conversion.py`](../src/desktop_app/infrastructure/settings/conversion.py) | Provides safe conversion helpers for manually edited values. |
 | [`src/desktop_app/infrastructure/settings/logging_helpers.py`](../src/desktop_app/infrastructure/settings/logging_helpers.py) | Provides optional logger wrappers used during settings load and save. |
@@ -115,6 +118,40 @@ sequenceDiagram
 ```
 
 This allows persisted logging preferences to be applied before final file logging is enabled.
+
+---
+
+## 🎚️ Granular load and save
+
+The settings service supports three scopes:
+
+| Scope | Load function | Save function | Example use |
+| --- | --- | --- | --- |
+| Full file | `load_settings()` | `save_settings()` | Startup or full persistence. |
+| Group | `load_settings_group("ui")` | `save_settings_group("ui")` | Persist a settings page tab. |
+| Property | `load_setting_property("app.ui.theme")` | `save_setting_property("app.ui.theme")` | Persist one UI control change. |
+
+Examples:
+
+```python
+from desktop_app.infrastructure.settings import (
+    load_setting_property,
+    load_settings_group,
+    save_setting_property,
+    save_settings_group,
+)
+
+load_settings_group("window")
+load_setting_property("app.ui.theme")
+
+save_settings_group("log")
+save_setting_property("app.window.width")
+```
+
+`load_settings()` and `save_settings()` still operate on the full file by default.
+When saving a group or property, unknown TOML keys and unrelated known settings are preserved.
+
+Do not pass a group and an individual property at the same time. The package raises `SettingsScopeError` for unsupported groups, unsupported property paths, or ambiguous scopes.
 
 ---
 
@@ -236,10 +273,11 @@ Use this checklist when adding a new configurable value:
 
 1. Add the runtime field to [`state.py`](../src/desktop_app/core/state.py).
 2. Add the default value to [`src/desktop_app/settings.toml`](../src/desktop_app/settings.toml).
-3. Read and validate the value in [`mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py).
-4. Write the value back in [`toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py).
-5. Update this document if the setting is user-editable or affects startup behavior.
-6. Validate with Ruff and the main execution modes.
+3. Add the property path to the correct group in [`schema.py`](../src/desktop_app/infrastructure/settings/schema.py).
+4. Read and validate the value in [`mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py).
+5. Write the value back in [`toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py).
+6. Update this document if the setting is user-editable or affects startup behavior.
+7. Validate with Ruff and the main execution modes.
 
 Recommended checks:
 

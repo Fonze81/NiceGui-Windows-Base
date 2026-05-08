@@ -4,8 +4,9 @@
 # Map settings.toml data to AppState and LoggerConfig.
 # Behavior:
 # Reads already parsed TOML values, applies safe conversions and range checks,
-# then updates the application state. It also builds a logger configuration from
-# the validated state.
+# then updates either all application state, one settings group, or one
+# individual settings property. It also builds a logger configuration from the
+# validated state.
 # Notes:
 # Handler creation and file logging remain the responsibility of the logger
 # package. This module only translates settings data.
@@ -46,153 +47,258 @@ from desktop_app.infrastructure.settings.conversion import (
     to_path,
     try_parse_byte_size,
 )
+from desktop_app.infrastructure.settings.schema import (
+    SettingsGroup,
+    get_settings_scope_paths,
+)
 
 
 def apply_settings_to_state(
     state: AppState,
     settings_data: Mapping[str, Any],
+    *,
+    group: SettingsGroup | None = None,
+    property_path: str | None = None,
 ) -> None:
     """Apply parsed TOML settings to the application state.
 
     Args:
         state: Application state that receives converted values.
         settings_data: Parsed TOML mapping.
+        group: Optional settings group to load.
+        property_path: Optional individual property path to load.
     """
-
-    def get_setting(path: str, default: Any) -> Any:
-        return get_nested_value(settings_data, path, default)
-
-    state.meta.name = str(get_setting("app.name", state.meta.name)).strip()
-    state.meta.version = str(get_setting("app.version", state.meta.version)).strip()
-    state.meta.language = str(get_setting("app.language", state.meta.language)).strip()
-    state.meta.first_run = to_bool(
-        get_setting("app.first_run", state.meta.first_run),
-        state.meta.first_run,
-    )
-
-    if not state.meta.name:
-        state.meta.name = APPLICATION_TITLE
-        state.status.push("Invalid application name in settings.toml.", "warning")
-
-    if not state.meta.version:
-        state.meta.version = APPLICATION_VERSION
-        state.status.push("Invalid application version in settings.toml.", "warning")
-
-    state.window.x = to_int(get_setting("app.window.x", state.window.x), state.window.x)
-    state.window.y = to_int(get_setting("app.window.y", state.window.y), state.window.y)
-    state.window.width = to_int(
-        get_setting("app.window.width", state.window.width),
-        state.window.width,
-    )
-    state.window.height = to_int(
-        get_setting("app.window.height", state.window.height),
-        state.window.height,
-    )
-    state.window.maximized = to_bool(
-        get_setting("app.window.maximized", state.window.maximized),
-        state.window.maximized,
-    )
-    state.window.fullscreen = to_bool(
-        get_setting("app.window.fullscreen", state.window.fullscreen),
-        state.window.fullscreen,
-    )
-    state.window.monitor = to_int(
-        get_setting("app.window.monitor", state.window.monitor),
-        state.window.monitor,
-    )
-    state.window.storage_key = str(
-        get_setting("app.window.storage_key", state.window.storage_key)
-    ).strip()
-
-    if state.window.width < 400:
-        state.window.width = 1024
-        state.status.push("Invalid window width in settings.toml.", "warning")
-
-    if state.window.height < 300:
-        state.window.height = 720
-        state.status.push("Invalid window height in settings.toml.", "warning")
-
-    if state.window.monitor < 0:
-        state.window.monitor = 0
-        state.status.push("Invalid monitor index in settings.toml.", "warning")
-
-    if not state.window.storage_key:
-        state.window.storage_key = "nicegui_windows_base_window_state"
-        state.status.push("Invalid window storage key in settings.toml.", "warning")
-
-    state.ui.theme = str(get_setting("app.ui.theme", state.ui.theme)).strip().lower()
-    state.ui.font_scale = to_float(
-        get_setting("app.ui.font_scale", state.ui.font_scale),
-        state.ui.font_scale,
-    )
-    state.ui.dense_mode = to_bool(
-        get_setting("app.ui.dense_mode", state.ui.dense_mode),
-        state.ui.dense_mode,
-    )
-    state.ui.accent_color = str(
-        get_setting("app.ui.accent_color", state.ui.accent_color)
-    ).strip()
-
-    if state.ui.theme not in ALLOWED_THEMES:
-        state.ui.theme = "light"
-        state.status.push("Invalid UI theme in settings.toml.", "warning")
-
-    if not 0.75 <= state.ui.font_scale <= 1.5:
-        state.ui.font_scale = 1.0
-        state.status.push("Invalid UI font scale in settings.toml.", "warning")
-
-    if not state.ui.accent_color:
-        state.ui.accent_color = "#2563EB"
-        state.status.push("Invalid UI accent color in settings.toml.", "warning")
-
-    state.log.level = str(get_setting("app.log.level", state.log.level)).upper().strip()
-    state.log.enable_console = to_bool(
-        get_setting(
-            "app.log.enable_console",
-            get_setting("app.log.console", state.log.enable_console),
-        ),
-        state.log.enable_console,
-    )
-    state.log.buffer_capacity = to_int(
-        get_setting("app.log.buffer_capacity", state.log.buffer_capacity),
-        state.log.buffer_capacity,
-    )
-    state.log.file_path = to_path(
-        get_setting("app.log.file_path", state.log.file_path),
-        DEFAULT_LOG_FILE_PATH,
-    )
-    state.log.rotate_max_bytes = str(
-        get_setting("app.log.rotate_max_bytes", state.log.rotate_max_bytes)
-    ).strip()
-    state.log.rotate_backup_count = to_int(
-        get_setting("app.log.rotate_backup_count", state.log.rotate_backup_count),
-        state.log.rotate_backup_count,
-    )
-
-    if state.log.level not in ALLOWED_LOG_LEVELS:
-        state.log.level = DEFAULT_LOG_LEVEL
-        state.status.push("Invalid log level in settings.toml.", "warning")
-
-    if not MIN_BUFFER_CAPACITY <= state.log.buffer_capacity <= MAX_BUFFER_CAPACITY:
-        state.log.buffer_capacity = DEFAULT_BUFFER_CAPACITY
-        state.status.push("Invalid log buffer capacity in settings.toml.", "warning")
-
-    if not _is_valid_log_rotation(state.log.rotate_max_bytes):
-        state.log.rotate_max_bytes = "5 MB"
-        state.status.push("Invalid log rotation size in settings.toml.", "warning")
-
-    if not (
-        MIN_ROTATE_BACKUP_COUNT
-        <= state.log.rotate_backup_count
-        <= MAX_ROTATE_BACKUP_COUNT
+    for selected_path in get_settings_scope_paths(
+        group=group,
+        property_path=property_path,
     ):
-        state.log.rotate_backup_count = DEFAULT_ROTATE_BACKUP_COUNT
-        state.status.push("Invalid log backup count in settings.toml.", "warning")
+        apply_setting_property_to_state(state, settings_data, selected_path)
 
-    state.behavior.auto_save = to_bool(
-        get_setting("app.behavior.auto_save", state.behavior.auto_save),
-        state.behavior.auto_save,
-    )
+
+def apply_setting_property_to_state(
+    state: AppState,
+    settings_data: Mapping[str, Any],
+    property_path: str,
+) -> None:
+    """Apply one parsed TOML property to the application state.
+
+    Args:
+        state: Application state that receives the converted value.
+        settings_data: Parsed TOML mapping.
+        property_path: Supported property path to load.
+    """
+    if property_path == "app.name":
+        state.meta.name = str(
+            _get_setting(settings_data, property_path, state.meta.name)
+        ).strip()
+        if not state.meta.name:
+            state.meta.name = APPLICATION_TITLE
+            state.status.push("Invalid application name in settings.toml.", "warning")
+        return
+
+    if property_path == "app.version":
+        state.meta.version = str(
+            _get_setting(settings_data, property_path, state.meta.version)
+        ).strip()
+        if not state.meta.version:
+            state.meta.version = APPLICATION_VERSION
+            state.status.push(
+                "Invalid application version in settings.toml.",
+                "warning",
+            )
+        return
+
+    if property_path == "app.language":
+        state.meta.language = str(
+            _get_setting(settings_data, property_path, state.meta.language)
+        ).strip()
+        return
+
+    if property_path == "app.first_run":
+        state.meta.first_run = to_bool(
+            _get_setting(settings_data, property_path, state.meta.first_run),
+            state.meta.first_run,
+        )
+        return
+
+    if property_path == "app.window.x":
+        state.window.x = to_int(
+            _get_setting(settings_data, property_path, state.window.x),
+            state.window.x,
+        )
+        return
+
+    if property_path == "app.window.y":
+        state.window.y = to_int(
+            _get_setting(settings_data, property_path, state.window.y),
+            state.window.y,
+        )
+        return
+
+    if property_path == "app.window.width":
+        state.window.width = to_int(
+            _get_setting(settings_data, property_path, state.window.width),
+            state.window.width,
+        )
+        if state.window.width < 400:
+            state.window.width = 1024
+            state.status.push("Invalid window width in settings.toml.", "warning")
+        return
+
+    if property_path == "app.window.height":
+        state.window.height = to_int(
+            _get_setting(settings_data, property_path, state.window.height),
+            state.window.height,
+        )
+        if state.window.height < 300:
+            state.window.height = 720
+            state.status.push("Invalid window height in settings.toml.", "warning")
+        return
+
+    if property_path == "app.window.maximized":
+        state.window.maximized = to_bool(
+            _get_setting(settings_data, property_path, state.window.maximized),
+            state.window.maximized,
+        )
+        return
+
+    if property_path == "app.window.fullscreen":
+        state.window.fullscreen = to_bool(
+            _get_setting(settings_data, property_path, state.window.fullscreen),
+            state.window.fullscreen,
+        )
+        return
+
+    if property_path == "app.window.monitor":
+        state.window.monitor = to_int(
+            _get_setting(settings_data, property_path, state.window.monitor),
+            state.window.monitor,
+        )
+        if state.window.monitor < 0:
+            state.window.monitor = 0
+            state.status.push("Invalid monitor index in settings.toml.", "warning")
+        return
+
+    if property_path == "app.window.storage_key":
+        state.window.storage_key = str(
+            _get_setting(settings_data, property_path, state.window.storage_key)
+        ).strip()
+        if not state.window.storage_key:
+            state.window.storage_key = "nicegui_windows_base_window_state"
+            state.status.push("Invalid window storage key in settings.toml.", "warning")
+        return
+
+    if property_path == "app.ui.theme":
+        state.ui.theme = (
+            str(_get_setting(settings_data, property_path, state.ui.theme))
+            .strip()
+            .lower()
+        )
+        if state.ui.theme not in ALLOWED_THEMES:
+            state.ui.theme = "light"
+            state.status.push("Invalid UI theme in settings.toml.", "warning")
+        return
+
+    if property_path == "app.ui.font_scale":
+        state.ui.font_scale = to_float(
+            _get_setting(settings_data, property_path, state.ui.font_scale),
+            state.ui.font_scale,
+        )
+        if not 0.75 <= state.ui.font_scale <= 1.5:
+            state.ui.font_scale = 1.0
+            state.status.push("Invalid UI font scale in settings.toml.", "warning")
+        return
+
+    if property_path == "app.ui.dense_mode":
+        state.ui.dense_mode = to_bool(
+            _get_setting(settings_data, property_path, state.ui.dense_mode),
+            state.ui.dense_mode,
+        )
+        return
+
+    if property_path == "app.ui.accent_color":
+        state.ui.accent_color = str(
+            _get_setting(settings_data, property_path, state.ui.accent_color)
+        ).strip()
+        if not state.ui.accent_color:
+            state.ui.accent_color = "#2563EB"
+            state.status.push("Invalid UI accent color in settings.toml.", "warning")
+        return
+
+    if property_path == "app.log.level":
+        state.log.level = (
+            str(_get_setting(settings_data, property_path, state.log.level))
+            .upper()
+            .strip()
+        )
+        if state.log.level not in ALLOWED_LOG_LEVELS:
+            state.log.level = DEFAULT_LOG_LEVEL
+            state.status.push("Invalid log level in settings.toml.", "warning")
+        return
+
+    if property_path == "app.log.enable_console":
+        state.log.enable_console = to_bool(
+            _get_setting(
+                settings_data,
+                property_path,
+                _get_setting(
+                    settings_data,
+                    "app.log.console",
+                    state.log.enable_console,
+                ),
+            ),
+            state.log.enable_console,
+        )
+        return
+
+    if property_path == "app.log.buffer_capacity":
+        state.log.buffer_capacity = to_int(
+            _get_setting(settings_data, property_path, state.log.buffer_capacity),
+            state.log.buffer_capacity,
+        )
+        if not MIN_BUFFER_CAPACITY <= state.log.buffer_capacity <= MAX_BUFFER_CAPACITY:
+            state.log.buffer_capacity = DEFAULT_BUFFER_CAPACITY
+            state.status.push(
+                "Invalid log buffer capacity in settings.toml.",
+                "warning",
+            )
+        return
+
+    if property_path == "app.log.file_path":
+        state.log.file_path = to_path(
+            _get_setting(settings_data, property_path, state.log.file_path),
+            DEFAULT_LOG_FILE_PATH,
+        )
+        return
+
+    if property_path == "app.log.rotate_max_bytes":
+        state.log.rotate_max_bytes = str(
+            _get_setting(settings_data, property_path, state.log.rotate_max_bytes)
+        ).strip()
+        if not _is_valid_log_rotation(state.log.rotate_max_bytes):
+            state.log.rotate_max_bytes = "5 MB"
+            state.status.push("Invalid log rotation size in settings.toml.", "warning")
+        return
+
+    if property_path == "app.log.rotate_backup_count":
+        state.log.rotate_backup_count = to_int(
+            _get_setting(settings_data, property_path, state.log.rotate_backup_count),
+            state.log.rotate_backup_count,
+        )
+        if not (
+            MIN_ROTATE_BACKUP_COUNT
+            <= state.log.rotate_backup_count
+            <= MAX_ROTATE_BACKUP_COUNT
+        ):
+            state.log.rotate_backup_count = DEFAULT_ROTATE_BACKUP_COUNT
+            state.status.push("Invalid log backup count in settings.toml.", "warning")
+        return
+
+    if property_path == "app.behavior.auto_save":
+        state.behavior.auto_save = to_bool(
+            _get_setting(settings_data, property_path, state.behavior.auto_save),
+            state.behavior.auto_save,
+        )
 
 
 def build_logger_config_from_state(
@@ -229,6 +335,24 @@ def build_logger_config_from_state(
         config = replace(config, enable_console=enable_console)
 
     return config
+
+
+def _get_setting(
+    settings_data: Mapping[str, Any],
+    property_path: str,
+    default: Any,
+) -> Any:
+    """Return one parsed TOML setting value.
+
+    Args:
+        settings_data: Parsed TOML mapping.
+        property_path: Dotted settings path.
+        default: Fallback value.
+
+    Returns:
+        Parsed value or fallback.
+    """
+    return get_nested_value(settings_data, property_path, default)
 
 
 def _is_valid_log_rotation(value: int | str) -> bool:
