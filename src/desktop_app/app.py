@@ -63,7 +63,7 @@ def configure_logging(*, state: AppState | None = None) -> Path:
         The configured log file path.
     """
     current_state = state if state is not None else get_app_state()
-    load_settings(state=current_state, logger=logger)
+    load_settings(state=current_state)
 
     frozen_executable = is_frozen_executable()
     log_file_path = resolve_log_file_path(

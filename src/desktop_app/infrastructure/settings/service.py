@@ -7,25 +7,20 @@
 # mapping, and scoped TOML persistence while delegating TOML manipulation to
 # toml_document.py.
 # Notes:
-# This is the operational facade for the settings package. It does not create log
-# handlers and does not contain UI rules.
+# Uses the official application logger. The logger subsystem is safe during early
+# startup because it buffers or stays silent until final configuration is applied
+# after settings are loaded.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 import tomlkit
 
 from desktop_app.core.state import AppState, get_app_state
 from desktop_app.infrastructure.file_system import atomic_write_text
-from desktop_app.infrastructure.settings.logging_helpers import (
-    log_debug,
-    log_exception,
-    log_info,
-    log_warning,
-)
+from desktop_app.infrastructure.logger import logger_get_logger
 from desktop_app.infrastructure.settings.mapper import apply_settings_to_state
 from desktop_app.infrastructure.settings.paths import (
     read_bundled_settings_text,
@@ -41,24 +36,23 @@ from desktop_app.infrastructure.settings.toml_document import (
     build_settings_text_from_state,
 )
 
+logger = logger_get_logger(__name__)
+
 
 def create_settings_from_bundled_template(
     settings_path: Path,
     state: AppState,
-    logger: logging.Logger | None,
 ) -> bool:
     """Create persistent settings from the bundled template.
 
     Args:
         settings_path: Persistent settings file path.
         state: Current application state.
-        logger: Optional logger for diagnostics.
 
     Returns:
         True when the file was created successfully.
     """
-    log_debug(
-        logger,
+    logger.debug(
         'Creating persistent settings from bundled template: path="%s"',
         str(settings_path),
     )
@@ -68,23 +62,19 @@ def create_settings_from_bundled_template(
 
         if bundled_text is None:
             bundled_text = build_settings_text_from_state(state)
-            log_warning(
-                logger,
-                (
-                    "Bundled settings template not found. "
-                    "Generated settings from defaults."
-                ),
+            logger.warning(
+                "Bundled settings template not found. "
+                "Generated settings from defaults."
             )
 
         atomic_write_text(settings_path, bundled_text)
-        log_info(
-            logger,
+        logger.info(
             'Persistent settings file created: path="%s"',
             str(settings_path),
         )
         return True
     except Exception:
-        log_exception(logger, "Failed to create persistent settings file")
+        logger.exception("Failed to create persistent settings file")
         return False
 
 
@@ -92,7 +82,6 @@ def load_settings(
     *,
     settings_path: Path | None = None,
     state: AppState | None = None,
-    logger: logging.Logger | None = None,
     group: SettingsGroup | None = None,
     property_path: str | None = None,
 ) -> bool:
@@ -101,7 +90,6 @@ def load_settings(
     Args:
         settings_path: Optional settings file path.
         state: State that receives settings values. Uses the global state when omitted.
-        logger: Optional logger for diagnostics.
         group: Optional settings group to load.
         property_path: Optional individual property path to load.
 
@@ -116,8 +104,7 @@ def load_settings(
     current_state.settings.last_error = None
     current_state.settings.last_load_ok = False
 
-    log_debug(
-        logger,
+    logger.debug(
         'Settings load started: path="%s", scope="%s"',
         str(path),
         scope_description,
@@ -128,13 +115,12 @@ def load_settings(
             "settings.toml was not found. Creating default settings.",
             "warning",
         )
-        log_warning(
-            logger,
+        logger.warning(
             'Persistent settings file not found. Creating default: path="%s"',
             str(path),
         )
 
-        if not create_settings_from_bundled_template(path, current_state, logger):
+        if not create_settings_from_bundled_template(path, current_state):
             current_state.settings.last_error = f"Settings file not found: {path}"
             current_state.status.push(
                 "settings.toml could not be created. Default settings are being used.",
@@ -143,11 +129,10 @@ def load_settings(
             return False
 
     try:
-        log_debug(logger, 'Reading settings file: path="%s"', str(path))
+        logger.debug('Reading settings file: path="%s"', str(path))
         document = tomlkit.parse(path.read_text(encoding="utf-8"))
 
-        log_debug(
-            logger,
+        logger.debug(
             'Applying settings document to AppState: scope="%s"',
             scope_description,
         )
@@ -162,8 +147,7 @@ def load_settings(
         current_state.settings.last_error = None
         current_state.status.push("Settings loaded successfully.", "success")
 
-        log_info(
-            logger,
+        logger.info(
             'Settings loaded successfully: path="%s", scope="%s"',
             str(path),
             scope_description,
@@ -177,7 +161,7 @@ def load_settings(
             "settings.toml could not be loaded. Default settings are being used.",
             "error",
         )
-        log_exception(logger, "Failed to load settings")
+        logger.exception("Failed to load settings")
         return False
 
 
@@ -186,7 +170,6 @@ def load_settings_group(
     *,
     settings_path: Path | None = None,
     state: AppState | None = None,
-    logger: logging.Logger | None = None,
 ) -> bool:
     """Load one settings group from settings.toml.
 
@@ -194,7 +177,6 @@ def load_settings_group(
         group: Settings group to load.
         settings_path: Optional settings file path.
         state: State that receives settings values. Uses the global state when omitted.
-        logger: Optional logger for diagnostics.
 
     Returns:
         True when loading completed successfully.
@@ -202,7 +184,6 @@ def load_settings_group(
     return load_settings(
         settings_path=settings_path,
         state=state,
-        logger=logger,
         group=group,
     )
 
@@ -212,7 +193,6 @@ def load_setting_property(
     *,
     settings_path: Path | None = None,
     state: AppState | None = None,
-    logger: logging.Logger | None = None,
 ) -> bool:
     """Load one settings property from settings.toml.
 
@@ -220,7 +200,6 @@ def load_setting_property(
         property_path: Individual settings property path to load.
         settings_path: Optional settings file path.
         state: State that receives settings values. Uses the global state when omitted.
-        logger: Optional logger for diagnostics.
 
     Returns:
         True when loading completed successfully.
@@ -228,7 +207,6 @@ def load_setting_property(
     return load_settings(
         settings_path=settings_path,
         state=state,
-        logger=logger,
         property_path=property_path,
     )
 
@@ -237,7 +215,6 @@ def save_settings(
     *,
     settings_path: Path | None = None,
     state: AppState | None = None,
-    logger: logging.Logger | None = None,
     group: SettingsGroup | None = None,
     property_path: str | None = None,
 ) -> bool:
@@ -246,7 +223,6 @@ def save_settings(
     Args:
         settings_path: Optional settings file path.
         state: State used as source. Uses the global state when omitted.
-        logger: Optional logger for diagnostics.
         group: Optional settings group to save.
         property_path: Optional individual property path to save.
 
@@ -265,8 +241,7 @@ def save_settings(
     current_state.settings.last_error = None
     current_state.settings.last_save_ok = False
 
-    log_debug(
-        logger,
+    logger.debug(
         'Settings save started: path="%s", scope="%s"',
         str(path),
         scope_description,
@@ -274,14 +249,13 @@ def save_settings(
 
     try:
         if path.exists():
-            log_debug(logger, 'Existing settings file found: path="%s"', str(path))
+            logger.debug('Existing settings file found: path="%s"', str(path))
             document = tomlkit.parse(path.read_text(encoding="utf-8"))
         else:
-            log_debug(logger, "Settings file not found. Building a new document.")
+            logger.debug("Settings file not found. Building a new document.")
             document = build_document_from_state(current_state)
 
-        log_debug(
-            logger,
+        logger.debug(
             'Applying AppState to settings document: scope="%s"',
             scope_description,
         )
@@ -295,8 +269,7 @@ def save_settings(
 
         current_state.settings.last_save_ok = True
         current_state.status.push("Settings saved successfully.", "success")
-        log_info(
-            logger,
+        logger.info(
             'Settings saved successfully: path="%s", scope="%s"',
             str(path),
             scope_description,
@@ -307,7 +280,7 @@ def save_settings(
     except Exception as exc:
         current_state.settings.last_error = f"Failed to save settings: {exc}"
         current_state.status.push("settings.toml could not be saved.", "error")
-        log_exception(logger, "Failed to save settings")
+        logger.exception("Failed to save settings")
         return False
 
 
@@ -316,7 +289,6 @@ def save_settings_group(
     *,
     settings_path: Path | None = None,
     state: AppState | None = None,
-    logger: logging.Logger | None = None,
 ) -> bool:
     """Save one settings group to settings.toml.
 
@@ -324,7 +296,6 @@ def save_settings_group(
         group: Settings group to save.
         settings_path: Optional settings file path.
         state: State used as source. Uses the global state when omitted.
-        logger: Optional logger for diagnostics.
 
     Returns:
         True when saving completed successfully.
@@ -332,7 +303,6 @@ def save_settings_group(
     return save_settings(
         settings_path=settings_path,
         state=state,
-        logger=logger,
         group=group,
     )
 
@@ -342,7 +312,6 @@ def save_setting_property(
     *,
     settings_path: Path | None = None,
     state: AppState | None = None,
-    logger: logging.Logger | None = None,
 ) -> bool:
     """Save one settings property to settings.toml.
 
@@ -350,7 +319,6 @@ def save_setting_property(
         property_path: Individual settings property path to save.
         settings_path: Optional settings file path.
         state: State used as source. Uses the global state when omitted.
-        logger: Optional logger for diagnostics.
 
     Returns:
         True when saving completed successfully.
@@ -358,7 +326,6 @@ def save_setting_property(
     return save_settings(
         settings_path=settings_path,
         state=state,
-        logger=logger,
         property_path=property_path,
     )
 

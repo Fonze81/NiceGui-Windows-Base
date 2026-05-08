@@ -38,7 +38,7 @@ flowchart TD
     C --> P[schema.py]
     C --> K[toml_document.py]
     C --> L[conversion.py]
-    C --> M[logging_helpers.py]
+    C --> M[src/desktop_app/infrastructure/logger]
     C --> N[src/desktop_app/infrastructure/file_system.py]
     C --> O[src/desktop_app/infrastructure/byte_size.py]
 ```
@@ -53,7 +53,6 @@ flowchart TD
 | [`src/desktop_app/infrastructure/settings/schema.py`](../src/desktop_app/infrastructure/settings/schema.py) | Defines supported groups and property paths for scoped load/save operations. |
 | [`src/desktop_app/infrastructure/settings/toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py) | Updates TOML documents while preserving comments and unknown keys. |
 | [`src/desktop_app/infrastructure/settings/conversion.py`](../src/desktop_app/infrastructure/settings/conversion.py) | Provides safe conversion helpers for manually edited values. |
-| [`src/desktop_app/infrastructure/settings/logging_helpers.py`](../src/desktop_app/infrastructure/settings/logging_helpers.py) | Provides optional logger wrappers used during settings load and save. |
 | [`src/desktop_app/infrastructure/file_system.py`](../src/desktop_app/infrastructure/file_system.py) | Provides reusable parent-directory creation and atomic text writes. |
 | [`src/desktop_app/infrastructure/byte_size.py`](../src/desktop_app/infrastructure/byte_size.py) | Parses human-readable byte-size values reused by logger and settings validation. |
 | [`src/desktop_app/settings.toml`](../src/desktop_app/settings.toml) | Bundled first-run template copied when no persistent settings file exists. |
@@ -264,6 +263,35 @@ Two small helpers are intentionally shared instead of duplicated:
 | [`byte_size.py`](../src/desktop_app/infrastructure/byte_size.py) | logger validation and settings conversion | Keeps byte-size parsing rules consistent for values such as `5 MB`. |
 
 The settings package still owns TOML-specific behavior in [`toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py). The logger package still owns logger-specific validation errors in [`validators.py`](../src/desktop_app/infrastructure/logger/validators.py). This avoids creating a broad utility layer while removing actual duplicated logic.
+
+---
+
+## 🖨️ Logger usage during settings startup
+
+The settings service imports the official application logger with:
+
+```python
+from desktop_app.infrastructure.logger import logger_get_logger
+
+logger = logger_get_logger(__name__)
+```
+
+This is safe during startup because the logger subsystem is intentionally able to work before the final file logging configuration is applied. Settings are loaded first, then `app.py` builds `LoggerConfig` from `state.log` and enables final file logging.
+
+This keeps settings diagnostics aligned with the rest of the application while preserving the startup order:
+
+```mermaid
+sequenceDiagram
+    participant Settings as settings service
+    participant Logger as logger package
+    participant App as app.py
+
+    Settings->>Logger: logger_get_logger(__name__)
+    App->>Settings: load_settings(state)
+    Settings->>Logger: early startup diagnostics
+    App->>Logger: logger_bootstrap(LoggerConfig from state.log)
+    App->>Logger: logger_enable_file_logging()
+```
 
 ---
 
