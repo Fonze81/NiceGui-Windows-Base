@@ -10,6 +10,8 @@
 # values provided to the logging subsystem.
 # -----------------------------------------------------------------------------
 
+__all__: tuple[str, ...] = ("LoggerValidationError",)
+
 
 class LoggerValidationError(ValueError):
     """Represent invalid configuration data in the logging subsystem."""
