@@ -36,7 +36,9 @@ def logger_create_bootstrapper(
     Returns:
         Configured bootstrapper instance.
     """
-    bootstrap_config = config or LoggerConfig(enable_console=False)
+    bootstrap_config = (
+        config if config is not None else LoggerConfig(enable_console=False)
+    )
     return LoggerBootstrapper(config=bootstrap_config)
 
 

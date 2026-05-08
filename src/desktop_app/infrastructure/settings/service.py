@@ -122,8 +122,7 @@ def load_settings(
             "info",
         )
         logger.info(
-            'Settings file not found. Using in-memory defaults: path="%s", '
-            'scope="%s"',
+            'Settings file not found. Using in-memory defaults: path="%s", scope="%s"',
             str(path),
             scope_description,
         )
@@ -236,10 +235,14 @@ def save_settings(
     """
     current_state = state if state is not None else get_app_state()
     path = (
-        settings_path
-        or current_state.settings.file_path
-        or resolve_default_settings_path()
-    ).expanduser().resolve()
+        (
+            settings_path
+            or current_state.settings.file_path
+            or resolve_default_settings_path()
+        )
+        .expanduser()
+        .resolve()
+    )
     scope_description = _describe_scope(group=group, property_path=property_path)
 
     # Validate scope before touching the filesystem.
