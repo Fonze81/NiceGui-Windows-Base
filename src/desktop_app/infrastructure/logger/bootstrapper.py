@@ -34,6 +34,8 @@ from desktop_app.infrastructure.logger.validators import (
     validate_logger_reconfiguration,
 )
 
+type _LogFilePath = str | Path
+
 
 class LoggerBootstrapper:
     """Manage logger initialization, updates, and shutdown.
@@ -134,16 +136,16 @@ class LoggerBootstrapper:
         self._apply_current_level()
         self._synchronize_console_handler()
 
-        file_handler_must_be_recreated = (
-            previous_file_path != self._current_file_path
-            or previous_rotate_max_bytes != self._current_rotate_max_bytes
-            or previous_rotate_backup_count != self._config.rotate_backup_count
+        should_recreate_file_handler = self._file_handler_requires_recreation(
+            previous_file_path=previous_file_path,
+            previous_rotate_max_bytes=previous_rotate_max_bytes,
+            previous_rotate_backup_count=previous_rotate_backup_count,
         )
 
-        if file_logging_is_active and file_handler_must_be_recreated:
+        if file_logging_is_active and should_recreate_file_handler:
             self._recreate_active_file_handler()
 
-    def enable_file_logging(self, file_path: Path | str | None = None) -> bool:
+    def enable_file_logging(self, file_path: _LogFilePath | None = None) -> bool:
         """Enable file logging and transfer preserved memory records.
 
         Args:
@@ -155,12 +157,12 @@ class LoggerBootstrapper:
         if not self._is_bootstrapped:
             self.bootstrap()
 
-        target_path = self._resolve_target_file_path(file_path)
+        target_file_path = self._resolve_target_file_path(file_path)
         new_handler: RotatingFileHandler | None = None
 
         try:
             new_handler = create_rotating_file_handler(
-                file_path=target_path,
+                file_path=target_file_path,
                 level=self._current_level,
                 max_bytes=self._current_rotate_max_bytes,
                 backup_count=self._config.rotate_backup_count,
@@ -262,7 +264,36 @@ class LoggerBootstrapper:
         if not self.enable_file_logging():
             self._root_logger.error("Active file logging reconfiguration failed.")
 
-    def _resolve_target_file_path(self, file_path: Path | str | None) -> Path:
+    def _file_handler_requires_recreation(
+        self,
+        previous_file_path: Path,
+        previous_rotate_max_bytes: int,
+        previous_rotate_backup_count: int,
+    ) -> bool:
+        """Return whether active file logging settings changed.
+
+        Args:
+            previous_file_path: Log file path used before the config update.
+            previous_rotate_max_bytes: Rotation size used before the config update.
+            previous_rotate_backup_count: Backup count used before the config update.
+
+        Returns:
+            True when the active file handler must be recreated.
+        """
+        previous_file_settings = (
+            previous_file_path,
+            previous_rotate_max_bytes,
+            previous_rotate_backup_count,
+        )
+        current_file_settings = (
+            self._current_file_path,
+            self._current_rotate_max_bytes,
+            self._config.rotate_backup_count,
+        )
+
+        return previous_file_settings != current_file_settings
+
+    def _resolve_target_file_path(self, file_path: _LogFilePath | None) -> Path:
         """Resolve the final log file path.
 
         Args:
@@ -274,7 +305,7 @@ class LoggerBootstrapper:
         if file_path is None:
             return self._current_file_path
 
-        normalized_path = normalize_file_path(file_path)
-        self._config = replace(self._config, file_path=normalized_path)
+        normalized_file_path = normalize_file_path(file_path)
+        self._config = replace(self._config, file_path=normalized_file_path)
 
-        return normalized_path
+        return normalized_file_path
