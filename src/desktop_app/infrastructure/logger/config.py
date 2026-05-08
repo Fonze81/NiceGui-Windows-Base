@@ -22,6 +22,10 @@ from desktop_app.constants import (
     DEFAULT_ROTATE_MAX_BYTES,
 )
 
+type LoggerLevel = int | str
+type LogFilePath = str | Path
+type LogRotationSize = int | str
+
 
 @dataclass(slots=True)
 class LoggerConfig:
@@ -38,9 +42,9 @@ class LoggerConfig:
     """
 
     name: str = DEFAULT_LOGGER_NAME
-    level: int | str = DEFAULT_LOG_LEVEL
+    level: LoggerLevel = DEFAULT_LOG_LEVEL
     enable_console: bool = True
     buffer_capacity: int = DEFAULT_BUFFER_CAPACITY
-    file_path: str | Path = DEFAULT_LOG_FILE_PATH
-    rotate_max_bytes: int | str = DEFAULT_ROTATE_MAX_BYTES
+    file_path: LogFilePath = DEFAULT_LOG_FILE_PATH
+    rotate_max_bytes: LogRotationSize = DEFAULT_ROTATE_MAX_BYTES
     rotate_backup_count: int = DEFAULT_ROTATE_BACKUP_COUNT
