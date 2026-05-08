@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.13,<3.14"
 license = { file = "LICENSE" }
 authors = [{ name = "NiceGui Windows Base contributors" }]
-dependencies = ["nicegui>=3.11", "pywebview"]
+dependencies = ["nicegui>=3.11", "pywebview", "tomlkit>=0.13"]
 
 [project.optional-dependencies]
 dev = ["ruff"]
@@ -37,4 +37,4 @@ line-ending = "auto"
 quote-style = "double"
 
 [tool.setuptools.package-data]
-desktop_app = ["assets/*.ico", "assets/*.png", "assets/*.svg"]
+desktop_app = ["assets/*.ico", "assets/*.png", "assets/*.svg", "settings.toml"]

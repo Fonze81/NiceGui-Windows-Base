@@ -1,0 +1,38 @@
+# Default settings template for NiceGui Windows Base.
+#
+# On first run, the application copies this template to settings.toml in the
+# persistent application root. During normal Python execution this is the current
+# working directory. In a packaged executable, it is the executable directory.
+
+[app]
+name = "NiceGui Windows Base"
+version = "0.3.0"
+language = "en-US"
+first_run = true
+
+[app.window]
+x = 100
+y = 100
+width = 1024
+height = 720
+maximized = false
+fullscreen = false
+monitor = 0
+storage_key = "nicegui_windows_base_window_state"
+
+[app.ui]
+theme = "light"
+font_scale = 1.0
+dense_mode = false
+accent_color = "#2563EB"
+
+[app.log]
+level = "INFO"
+enable_console = true
+buffer_capacity = 500
+file_path = "logs/app.log"
+rotate_max_bytes = "5 MB"
+rotate_backup_count = 3
+
+[app.behavior]
+auto_save = true
