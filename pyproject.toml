@@ -13,7 +13,7 @@ authors = [{ name = "NiceGui Windows Base contributors" }]
 dependencies = ["nicegui>=3.11", "pywebview", "tomlkit>=0.13"]
 
 [project.optional-dependencies]
-dev = ["ruff"]
+dev = ["coverage[toml]>=7.10", "pytest>=8.0", "pytest-cov>=6.0", "ruff"]
 packaging = ["pyinstaller>=6.0"]
 
 [project.scripts]
@@ -35,6 +35,27 @@ select = ["B", "E", "F", "I", "SIM", "UP"]
 docstring-code-format = true
 line-ending = "auto"
 quote-style = "double"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-config", "--strict-markers"]
+
+[tool.coverage.run]
+branch = true
+source = ["desktop_app"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = [
+	"if TYPE_CHECKING:",
+	"if __name__ == .__main__.:",
+	"raise NotImplementedError",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.setuptools.package-data]
 desktop_app = ["assets/*.ico", "assets/*.png", "assets/*.svg", "settings.toml"]
