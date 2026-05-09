@@ -12,8 +12,10 @@
 # application. High-level splash state is mirrored in AppState for diagnostics.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import importlib
-from types import ModuleType
+from typing import Protocol, cast
 
 from nicegui import app
 
@@ -24,15 +26,23 @@ from desktop_app.infrastructure.logger import logger_get_logger
 
 logger = logger_get_logger(__name__)
 
-_splash_module: ModuleType | None = None
+
+class _SplashModule(Protocol):
+    """Define the PyInstaller splash module behavior used by this module."""
+
+    def close(self) -> None:
+        """Close the active PyInstaller splash screen."""
+
+
+_splash_module: _SplashModule | None = None
 _splash_close_attempted = False
 
 
-def load_splash_module() -> ModuleType | None:
+def load_splash_module() -> _SplashModule | None:
     """Load the optional PyInstaller splash module when available.
 
     Returns:
-        The imported PyInstaller splash module, or None when unavailable.
+        Imported PyInstaller splash module, or None when unavailable.
     """
     if not is_frozen_executable():
         logger.debug(
@@ -42,7 +52,7 @@ def load_splash_module() -> ModuleType | None:
         return None
 
     try:
-        splash_module = importlib.import_module(PYINSTALLER_SPLASH_MODULE)
+        imported_module = importlib.import_module(PYINSTALLER_SPLASH_MODULE)
     except ImportError:
         logger.debug(
             "PyInstaller splash module is unavailable; startup will continue "
@@ -60,7 +70,7 @@ def load_splash_module() -> ModuleType | None:
         "PyInstaller splash module loaded; it will be closed after the first "
         "client connects."
     )
-    return splash_module
+    return cast(_SplashModule, imported_module)
 
 
 def close_splash_once() -> None:
