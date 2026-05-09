@@ -10,7 +10,7 @@
 # for organization and tests, not to create parallel usage paths.
 # -----------------------------------------------------------------------------
 
-from desktop_app.infrastructure.settings.constants import SETTINGS_FILE_NAME
+from desktop_app.constants import SETTINGS_FILE_NAME
 from desktop_app.infrastructure.settings.mapper import (
     apply_setting_property_to_state,
     apply_settings_to_state,
@@ -32,7 +32,7 @@ from desktop_app.infrastructure.settings.service import (
     save_settings_group,
 )
 
-__all__ = [
+__all__: tuple[str, ...] = (
     "GROUP_PROPERTY_PATHS",
     "KNOWN_PROPERTY_PATHS",
     "SETTINGS_FILE_NAME",
@@ -48,4 +48,4 @@ __all__ = [
     "save_setting_property",
     "save_settings",
     "save_settings_group",
-]
+)
