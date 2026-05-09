@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +27,38 @@ from desktop_app.infrastructure.settings.schema import (
     get_legacy_paths_for_scope,
     get_settings_scope_paths,
 )
+
+type TomlScalar = str | int | float | bool
+type StateValueReader = Callable[[AppState], TomlScalar]
+
+
+_STATE_VALUE_READERS: dict[str, StateValueReader] = {
+    "app.name": lambda state: state.meta.name,
+    "app.version": lambda state: state.meta.version,
+    "app.language": lambda state: state.meta.language,
+    "app.first_run": lambda state: state.meta.first_run,
+    "app.window.x": lambda state: state.window.x,
+    "app.window.y": lambda state: state.window.y,
+    "app.window.width": lambda state: state.window.width,
+    "app.window.height": lambda state: state.window.height,
+    "app.window.maximized": lambda state: state.window.maximized,
+    "app.window.fullscreen": lambda state: state.window.fullscreen,
+    "app.window.monitor": lambda state: state.window.monitor,
+    "app.window.storage_key": lambda state: state.window.storage_key,
+    "app.ui.theme": lambda state: state.ui.theme,
+    "app.ui.font_scale": lambda state: state.ui.font_scale,
+    "app.ui.dense_mode": lambda state: state.ui.dense_mode,
+    "app.ui.accent_color": lambda state: state.ui.accent_color,
+    "app.log.level": lambda state: state.log.level,
+    "app.log.enable_console": lambda state: state.log.enable_console,
+    "app.log.buffer_capacity": lambda state: state.log.buffer_capacity,
+    "app.log.file_path": lambda state: normalize_path_for_toml(
+        state.log.file_path,
+    ),
+    "app.log.rotate_max_bytes": lambda state: state.log.rotate_max_bytes,
+    "app.log.rotate_backup_count": lambda state: state.log.rotate_backup_count,
+    "app.behavior.auto_save": lambda state: state.behavior.auto_save,
+}
 
 
 def ensure_toml_table(root: TOMLDocument | Table, key: str) -> Table:
@@ -49,7 +81,11 @@ def ensure_toml_table(root: TOMLDocument | Table, key: str) -> Table:
     return table
 
 
-def set_toml_value(document: TOMLDocument, dotted_path: str, value: Any) -> None:
+def set_toml_value(
+    document: TOMLDocument,
+    dotted_path: str,
+    value: TomlScalar,
+) -> None:
     """Set a TOML value selected by a dotted path.
 
     Args:
@@ -67,7 +103,7 @@ def set_toml_value(document: TOMLDocument, dotted_path: str, value: Any) -> None
 
 
 def remove_toml_value(document: TOMLDocument, dotted_path: str) -> None:
-    """Remove a known TOML key that should no longer be written.
+    """Remove a TOML value selected by a dotted path when it exists.
 
     Args:
         document: TOML document to update.
@@ -141,7 +177,7 @@ def apply_state_property_to_document(
     )
 
 
-def get_state_property_value(state: AppState, property_path: str) -> Any:
+def get_state_property_value(state: AppState, property_path: str) -> TomlScalar:
     """Return one TOML-compatible value from AppState.
 
     Args:
@@ -150,59 +186,18 @@ def get_state_property_value(state: AppState, property_path: str) -> Any:
 
     Returns:
         TOML-compatible value for the property path.
+
+    Raises:
+        ValueError: If the property path is not supported by this writer.
     """
-    if property_path == "app.name":
-        return state.meta.name
-    if property_path == "app.version":
-        return state.meta.version
-    if property_path == "app.language":
-        return state.meta.language
-    if property_path == "app.first_run":
-        return state.meta.first_run
+    try:
+        value_reader = _STATE_VALUE_READERS[property_path]
+    except KeyError as exc:
+        raise ValueError(
+            f"Unsupported settings property path: {property_path!r}."
+        ) from exc
 
-    if property_path == "app.window.x":
-        return state.window.x
-    if property_path == "app.window.y":
-        return state.window.y
-    if property_path == "app.window.width":
-        return state.window.width
-    if property_path == "app.window.height":
-        return state.window.height
-    if property_path == "app.window.maximized":
-        return state.window.maximized
-    if property_path == "app.window.fullscreen":
-        return state.window.fullscreen
-    if property_path == "app.window.monitor":
-        return state.window.monitor
-    if property_path == "app.window.storage_key":
-        return state.window.storage_key
-
-    if property_path == "app.ui.theme":
-        return state.ui.theme
-    if property_path == "app.ui.font_scale":
-        return state.ui.font_scale
-    if property_path == "app.ui.dense_mode":
-        return state.ui.dense_mode
-    if property_path == "app.ui.accent_color":
-        return state.ui.accent_color
-
-    if property_path == "app.log.level":
-        return state.log.level
-    if property_path == "app.log.enable_console":
-        return state.log.enable_console
-    if property_path == "app.log.buffer_capacity":
-        return state.log.buffer_capacity
-    if property_path == "app.log.file_path":
-        return normalize_path_for_toml(state.log.file_path)
-    if property_path == "app.log.rotate_max_bytes":
-        return state.log.rotate_max_bytes
-    if property_path == "app.log.rotate_backup_count":
-        return state.log.rotate_backup_count
-
-    if property_path == "app.behavior.auto_save":
-        return state.behavior.auto_save
-
-    raise ValueError(f"Unsupported settings property path: {property_path!r}.")
+    return value_reader(state)
 
 
 def build_document_from_state(state: AppState) -> TOMLDocument:
