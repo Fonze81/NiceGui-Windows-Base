@@ -12,20 +12,25 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
+from os import PathLike
 from pathlib import Path
 
+type _FilePath = str | PathLike[str]
 
-def ensure_parent_dir(file_path: Path) -> None:
+
+def ensure_parent_dir(file_path: _FilePath) -> None:
     """Ensure that the parent directory for a file exists.
 
     Args:
         file_path: File path whose parent directory must exist.
     """
-    file_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path = Path(file_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
 
 
 def atomic_write_text(
-    file_path: Path,
+    file_path: _FilePath,
     content: str,
     *,
     encoding: str = "utf-8",
@@ -36,9 +41,21 @@ def atomic_write_text(
         file_path: Final destination file.
         content: Text content to write.
         encoding: Text encoding used by the temporary file.
-    """
-    ensure_parent_dir(file_path)
 
-    temporary_path = file_path.with_suffix(f"{file_path.suffix}.tmp")
-    temporary_path.write_text(content, encoding=encoding)
-    temporary_path.replace(file_path)
+    Raises:
+        OSError: If the temporary file cannot be written, removed, or replaced.
+        UnicodeError: If the content cannot be encoded with the selected encoding.
+    """
+    target_path = Path(file_path)
+    ensure_parent_dir(target_path)
+
+    temporary_path = target_path.with_name(f"{target_path.name}.tmp")
+
+    try:
+        temporary_path.write_text(content, encoding=encoding)
+        temporary_path.replace(target_path)
+    except Exception:
+        with suppress(OSError):
+            temporary_path.unlink(missing_ok=True)
+
+        raise
