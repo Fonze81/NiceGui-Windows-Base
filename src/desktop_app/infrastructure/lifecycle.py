@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from logging import Logger
 from typing import Any, Final
 
 from nicegui import app
@@ -26,55 +27,55 @@ from desktop_app.core.state import get_app_state
 from desktop_app.infrastructure.logger import logger_get_logger, logger_shutdown
 from desktop_app.infrastructure.splash import register_splash_handler
 
-logger = logger_get_logger(__name__)
+logger: Final[Logger] = logger_get_logger(__name__)
 
-WINDOWS_CONNECTION_RESET_ERROR: Final[int] = 10054
+WINDOWS_CONNECTION_RESET_WINERROR: Final[int] = 10054
 
 
 def _is_expected_windows_connection_reset(
-    context: Mapping[str, object],
+    exception_context: Mapping[str, object],
 ) -> bool:
     """Return whether an asyncio exception is expected Windows shutdown noise.
 
     Args:
-        context: Exception context received from the asyncio event loop.
+        exception_context: Exception context received from the asyncio event loop.
 
     Returns:
         True when the context represents the known benign Windows connection
         reset raised while the native window connection is being closed.
     """
-    exception = context.get("exception")
+    exception = exception_context.get("exception")
 
     if not isinstance(exception, ConnectionResetError):
         return False
 
-    if getattr(exception, "winerror", None) != WINDOWS_CONNECTION_RESET_ERROR:
+    if getattr(exception, "winerror", None) != WINDOWS_CONNECTION_RESET_WINERROR:
         return False
 
-    message = str(context.get("message", ""))
-    handle = context.get("handle")
+    message = str(exception_context.get("message", ""))
+    handle = exception_context.get("handle")
 
     return "_call_connection_lost" in message or "_call_connection_lost" in repr(handle)
 
 
 def _handle_asyncio_exception(
     loop: asyncio.AbstractEventLoop,
-    context: dict[str, object],
+    exception_context: dict[str, Any],
 ) -> None:
     """Handle selected asyncio exceptions without hiding unexpected failures.
 
     Args:
         loop: Running asyncio event loop.
-        context: Exception context received from asyncio.
+        exception_context: Exception context received from asyncio.
     """
-    if _is_expected_windows_connection_reset(context):
+    if _is_expected_windows_connection_reset(exception_context):
         logger.debug(
             "Suppressed expected Windows connection reset during native "
             "window shutdown."
         )
         return
 
-    loop.default_exception_handler(context)
+    loop.default_exception_handler(exception_context)
 
 
 def _configure_asyncio_exception_handler() -> None:
@@ -89,29 +90,31 @@ def _configure_asyncio_exception_handler() -> None:
     logger.debug("Asyncio exception handler installed.")
 
 
-def _log_exception_event(message: str, args: tuple[Any, ...]) -> None:
+def _log_exception_event(event_message: str, event_args: tuple[object, ...]) -> None:
     """Log a NiceGUI exception event with traceback when available.
 
     Args:
-        message: Human-readable event message.
-        args: Event arguments that may contain an exception instance.
+        event_message: Human-readable event message.
+        event_args: Event arguments that may contain an exception instance.
     """
-    exception = next((arg for arg in args if isinstance(arg, BaseException)), None)
+    exception = next(
+        (arg for arg in event_args if isinstance(arg, BaseException)), None
+    )
 
     if exception is None:
-        logger.error("%s No exception object was provided by NiceGUI.", message)
+        logger.error("%s No exception object was provided by NiceGUI.", event_message)
         return
 
     logger.error(
         "%s %s: %s",
-        message,
+        event_message,
         type(exception).__name__,
         exception,
         exc_info=(type(exception), exception, exception.__traceback__),
     )
 
 
-def _handle_application_started(*_args: Any) -> None:
+def _handle_application_started(*_args: object) -> None:
     """Handle the NiceGUI application startup event."""
     state = get_app_state()
     state.lifecycle.runtime_started = True
@@ -119,7 +122,7 @@ def _handle_application_started(*_args: Any) -> None:
     logger.info("NiceGUI runtime started.")
 
 
-def _handle_application_shutdown(*_args: Any) -> None:
+def _handle_application_shutdown(*_args: object) -> None:
     """Handle the NiceGUI application shutdown event."""
     state = get_app_state()
     state.lifecycle.shutdown_started = True
@@ -128,35 +131,35 @@ def _handle_application_shutdown(*_args: Any) -> None:
     logger_shutdown()
 
 
-def _handle_client_connected(*_args: Any) -> None:
+def _handle_client_connected(*_args: object) -> None:
     """Handle the NiceGUI client connect event."""
     get_app_state().lifecycle.client_connected = True
     logger.info("Client connected to the application.")
 
 
-def _handle_client_disconnected(*_args: Any) -> None:
+def _handle_client_disconnected(*_args: object) -> None:
     """Handle the NiceGUI client disconnect event."""
     get_app_state().lifecycle.client_connected = False
     logger.info("Client disconnected from the application.")
 
 
-def _handle_application_exception(*args: Any) -> None:
+def _handle_application_exception(*event_args: object) -> None:
     """Handle a general NiceGUI application exception event."""
     _log_exception_event(
         "NiceGUI reported an application-level exception.",
-        args,
+        event_args,
     )
 
 
-def _handle_page_exception(*args: Any) -> None:
+def _handle_page_exception(*event_args: object) -> None:
     """Handle a NiceGUI page exception event."""
     _log_exception_event(
         "NiceGUI reported a page-level exception.",
-        args,
+        event_args,
     )
 
 
-def _handle_native_window_shown(*_args: Any) -> None:
+def _handle_native_window_shown(*_args: object) -> None:
     """Handle the native window shown event."""
     state = get_app_state()
     state.lifecycle.native_window_opened = True
@@ -164,13 +167,13 @@ def _handle_native_window_shown(*_args: Any) -> None:
     logger.info("Native window opened.")
 
 
-def _handle_native_window_loaded(*_args: Any) -> None:
+def _handle_native_window_loaded(*_args: object) -> None:
     """Handle the native window loaded event."""
     get_app_state().lifecycle.native_window_loaded = True
     logger.info("Native window finished loading.")
 
 
-def _handle_native_window_minimized(*_args: Any) -> None:
+def _handle_native_window_minimized(*_args: object) -> None:
     """Handle the native window minimized event."""
     state = get_app_state()
     state.lifecycle.native_window_minimized = True
@@ -178,7 +181,7 @@ def _handle_native_window_minimized(*_args: Any) -> None:
     logger.info("The native window was minimized by the user.")
 
 
-def _handle_native_window_maximized(*_args: Any) -> None:
+def _handle_native_window_maximized(*_args: object) -> None:
     """Handle the native window maximized event."""
     state = get_app_state()
     state.lifecycle.native_window_maximized = True
@@ -186,7 +189,7 @@ def _handle_native_window_maximized(*_args: Any) -> None:
     logger.info("The native window was maximized by the user.")
 
 
-def _handle_native_window_restored(*_args: Any) -> None:
+def _handle_native_window_restored(*_args: object) -> None:
     """Handle the native window restored event."""
     state = get_app_state()
     state.lifecycle.native_window_maximized = False
@@ -194,17 +197,17 @@ def _handle_native_window_restored(*_args: Any) -> None:
     logger.info("The native window was restored by the user.")
 
 
-def _handle_native_window_resized(*_args: Any) -> None:
+def _handle_native_window_resized(*_args: object) -> None:
     """Handle the native window resized event."""
     logger.debug("The native window was resized.")
 
 
-def _handle_native_window_moved(*_args: Any) -> None:
+def _handle_native_window_moved(*_args: object) -> None:
     """Handle the native window moved event."""
     logger.debug("The native window was moved.")
 
 
-def _handle_native_window_closed(*_args: Any) -> None:
+def _handle_native_window_closed(*_args: object) -> None:
     """Handle the native window closed event."""
     state = get_app_state()
     state.lifecycle.native_window_closed = True
@@ -212,7 +215,7 @@ def _handle_native_window_closed(*_args: Any) -> None:
     logger.info("The native window was closed by the user.")
 
 
-def _handle_native_file_drop(*_args: Any) -> None:
+def _handle_native_file_drop(*_args: object) -> None:
     """Handle files dropped on the native window."""
     logger.info("Files were dropped on the native window.")
 
