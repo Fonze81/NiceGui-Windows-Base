@@ -30,8 +30,8 @@ from desktop_app.constants import (
     DEFAULT_WEB_PORT,
 )
 
-StatusLevel = Literal["info", "success", "warning", "error"]
-ThemeName = Literal["light", "dark", "system"]
+type StatusLevel = Literal["info", "success", "warning", "error"]
+type ThemeName = Literal["light", "dark", "system"]
 
 
 @dataclass(slots=True)
@@ -324,15 +324,21 @@ class StatusState:
         message = StatusMessage(text=text, level=level)
         self.current_message = message
         self.history.append(message)
-
-        if len(self.history) > self.max_history:
-            self.history = self.history[-self.max_history :]
-
+        self._trim_history()
         return message
 
     def clear(self) -> None:
         """Clear the current status message while preserving history."""
         self.current_message = None
+
+    def _trim_history(self) -> None:
+        """Limit retained status messages to the configured capacity."""
+        if self.max_history <= 0:
+            self.history.clear()
+            return
+
+        if len(self.history) > self.max_history:
+            del self.history[: -self.max_history]
 
 
 @dataclass(slots=True)
