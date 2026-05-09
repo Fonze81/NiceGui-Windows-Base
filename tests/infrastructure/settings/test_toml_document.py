@@ -22,6 +22,7 @@ from tomlkit.items import Table
 from tomlkit.toml_document import TOMLDocument
 
 from desktop_app.core.state import AppState
+from desktop_app.infrastructure.settings import toml_document as toml_document_module
 from desktop_app.infrastructure.settings.schema import ALL_PROPERTY_PATHS
 from desktop_app.infrastructure.settings.toml_document import (
     apply_state_property_to_document,
@@ -337,3 +338,24 @@ def test_build_settings_text_from_state_returns_serialized_toml() -> None:
     assert 'name = "Test App"' in settings_text
     assert 'file_path = "runtime/logs/custom.log"' in settings_text
     assert "auto_save = false" in settings_text
+
+
+def test_apply_state_to_document_handles_empty_scope_without_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Handle an empty property scope without changing the TOML document."""
+    state = AppState()
+    document = tomlkit.document()
+    document["existing"] = "value"
+
+    monkeypatch.setattr(
+        toml_document_module,
+        "get_settings_scope_paths",
+        lambda *, group=None, property_path=None: (),
+    )
+
+    toml_document_module.apply_state_to_document(document, state)
+
+    document_data = cast(dict[str, Any], document.unwrap())
+
+    assert document_data == {"existing": "value"}
