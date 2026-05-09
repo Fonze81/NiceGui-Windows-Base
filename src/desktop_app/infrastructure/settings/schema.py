@@ -16,8 +16,9 @@ from collections.abc import Iterable
 from typing import Literal
 
 SettingsGroup = Literal["meta", "window", "ui", "log", "behavior"]
+type SettingsPropertyPath = str
 
-GROUP_PROPERTY_PATHS: dict[SettingsGroup, tuple[str, ...]] = {
+GROUP_PROPERTY_PATHS: dict[SettingsGroup, tuple[SettingsPropertyPath, ...]] = {
     "meta": (
         "app.name",
         "app.version",
@@ -51,15 +52,17 @@ GROUP_PROPERTY_PATHS: dict[SettingsGroup, tuple[str, ...]] = {
     "behavior": ("app.behavior.auto_save",),
 }
 
-ALL_PROPERTY_PATHS: tuple[str, ...] = tuple(
+ALL_PROPERTY_PATHS: tuple[SettingsPropertyPath, ...] = tuple(
     property_path
     for group_property_paths in GROUP_PROPERTY_PATHS.values()
     for property_path in group_property_paths
 )
 
-KNOWN_PROPERTY_PATHS = frozenset(ALL_PROPERTY_PATHS)
+KNOWN_PROPERTY_PATHS: frozenset[SettingsPropertyPath] = frozenset(ALL_PROPERTY_PATHS)
 
-LEGACY_PROPERTY_PATHS_BY_GROUP: dict[SettingsGroup, tuple[str, ...]] = {
+LEGACY_PROPERTY_PATHS_BY_GROUP: dict[
+    SettingsGroup, tuple[SettingsPropertyPath, ...]
+] = {
     "log": (
         "app.log.name",
         "app.log.console",
@@ -71,7 +74,7 @@ class SettingsScopeError(ValueError):
     """Represent an invalid settings group or property path request."""
 
 
-def get_settings_group_paths(group: SettingsGroup) -> tuple[str, ...]:
+def get_settings_group_paths(group: SettingsGroup) -> tuple[SettingsPropertyPath, ...]:
     """Return property paths for one settings group.
 
     Args:
@@ -95,8 +98,8 @@ def get_settings_group_paths(group: SettingsGroup) -> tuple[str, ...]:
 def get_settings_scope_paths(
     *,
     group: SettingsGroup | None = None,
-    property_path: str | None = None,
-) -> tuple[str, ...]:
+    property_path: SettingsPropertyPath | None = None,
+) -> tuple[SettingsPropertyPath, ...]:
     """Return property paths selected by a settings scope.
 
     Args:
@@ -130,7 +133,9 @@ def get_settings_scope_paths(
     return ALL_PROPERTY_PATHS
 
 
-def get_legacy_paths_for_scope(property_paths: Iterable[str]) -> tuple[str, ...]:
+def get_legacy_paths_for_scope(
+    property_paths: Iterable[SettingsPropertyPath],
+) -> tuple[SettingsPropertyPath, ...]:
     """Return legacy property paths that should be removed for a save scope.
 
     Args:
@@ -140,7 +145,7 @@ def get_legacy_paths_for_scope(property_paths: Iterable[str]) -> tuple[str, ...]
         Legacy property paths to remove before writing selected properties.
     """
     selected_paths = set(property_paths)
-    legacy_paths: list[str] = []
+    legacy_paths: list[SettingsPropertyPath] = []
 
     for group, group_paths in GROUP_PROPERTY_PATHS.items():
         if selected_paths.intersection(group_paths):
