@@ -39,7 +39,14 @@ quote-style = "double"
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
-addopts = ["-ra", "--strict-config", "--strict-markers"]
+pythonpath = ["src"]
+addopts = [
+	"-ra",
+	"--strict-config",
+	"--strict-markers",
+	"--import-mode=importlib",
+]
+
 
 [tool.coverage.run]
 branch = true
