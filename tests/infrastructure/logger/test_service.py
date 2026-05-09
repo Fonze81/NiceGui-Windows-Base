@@ -1,3 +1,5 @@
+"""Test the logger service facade and singleton lifecycle."""
+
 from __future__ import annotations
 
 import logging
@@ -11,6 +13,7 @@ from desktop_app.infrastructure.logger import service
 from desktop_app.infrastructure.logger.config import LoggerConfig
 
 
+# The fake bootstrapper avoids real logging handlers and file IO.
 class FakeBootstrapper:
     """Test double for LoggerBootstrapper.
 
@@ -21,6 +24,7 @@ class FakeBootstrapper:
     instances: ClassVar[list[FakeBootstrapper]] = []
 
     def __init__(self, config: LoggerConfig) -> None:
+        """Initialize the fake bootstrapper state used by service tests."""
         self.config = config
         self.root_logger = logging.getLogger("desktop_app")
         self.is_bootstrapped = False
@@ -67,6 +71,7 @@ class FakeBootstrapper:
         self.shutdown_call_count += 1
 
 
+# Fixtures isolate module-level singleton state between tests.
 @pytest.fixture(autouse=True)
 def reset_global_bootstrapper(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Reset the service singleton before and after each test.
@@ -97,9 +102,11 @@ def fake_bootstrapper_type(monkeypatch: pytest.MonkeyPatch) -> type[FakeBootstra
     return FakeBootstrapper
 
 
+# Service facade tests.
 def test_logger_create_bootstrapper_uses_memory_only_default_config(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_create_bootstrapper uses memory only default config."""
     bootstrapper = cast(FakeBootstrapper, service.logger_create_bootstrapper())
 
     assert isinstance(bootstrapper, fake_bootstrapper_type)
@@ -109,6 +116,7 @@ def test_logger_create_bootstrapper_uses_memory_only_default_config(
 def test_logger_create_bootstrapper_uses_provided_config(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_create_bootstrapper uses provided config."""
     config = LoggerConfig(enable_console=True)
 
     bootstrapper = cast(
@@ -123,6 +131,7 @@ def test_logger_create_bootstrapper_uses_provided_config(
 def test_logger_get_bootstrapper_creates_single_global_instance(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_get_bootstrapper creates single global instance."""
     first_bootstrapper = service.logger_get_bootstrapper()
     second_bootstrapper = service.logger_get_bootstrapper()
 
@@ -133,6 +142,7 @@ def test_logger_get_bootstrapper_creates_single_global_instance(
 def test_logger_bootstrap_creates_bootstrapper_with_config(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_bootstrap creates bootstrapper with config."""
     config = LoggerConfig()
 
     logger = service.logger_bootstrap(config=config)
@@ -146,6 +156,7 @@ def test_logger_bootstrap_creates_bootstrapper_with_config(
 def test_logger_bootstrap_updates_existing_bootstrapper_config(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_bootstrap updates existing bootstrapper config."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
     config = LoggerConfig()
 
@@ -160,6 +171,7 @@ def test_logger_bootstrap_updates_existing_bootstrapper_config(
 def test_logger_bootstrap_keeps_existing_config_when_config_is_omitted(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_bootstrap keeps existing config when config is omitted."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
 
     service.logger_bootstrap()
@@ -172,6 +184,7 @@ def test_logger_bootstrap_keeps_existing_config_when_config_is_omitted(
 def test_logger_get_logger_bootstraps_early_and_returns_root_logger(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_get_logger bootstraps early and returns root logger."""
     logger = service.logger_get_logger()
 
     bootstrapper = fake_bootstrapper_type.instances[0]
@@ -182,6 +195,7 @@ def test_logger_get_logger_bootstraps_early_and_returns_root_logger(
 def test_logger_get_logger_returns_root_logger_by_root_name(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_get_logger returns root logger by root name."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
     bootstrapper.is_bootstrapped = True
 
@@ -195,6 +209,7 @@ def test_logger_get_logger_returns_root_logger_by_root_name(
 def test_logger_get_logger_returns_absolute_child_logger(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_get_logger returns absolute child logger."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
     bootstrapper.is_bootstrapped = True
 
@@ -207,6 +222,7 @@ def test_logger_get_logger_returns_absolute_child_logger(
 def test_logger_get_logger_returns_relative_child_logger(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_get_logger returns relative child logger."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
     bootstrapper.is_bootstrapped = True
 
@@ -219,6 +235,7 @@ def test_logger_get_logger_returns_relative_child_logger(
 def test_logger_update_config_creates_bootstrapper_when_missing(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_update_config creates bootstrapper when missing."""
     config = LoggerConfig()
 
     service.logger_update_config(config)
@@ -231,6 +248,7 @@ def test_logger_update_config_creates_bootstrapper_when_missing(
 def test_logger_update_config_updates_existing_bootstrapper(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_update_config updates existing bootstrapper."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
     config = LoggerConfig()
 
@@ -244,6 +262,7 @@ def test_logger_update_config_updates_existing_bootstrapper(
 def test_logger_enable_file_logging_delegates_to_bootstrapper(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_enable_file_logging delegates to bootstrapper."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
     log_file_path = Path("logs/app.log")
 
@@ -257,6 +276,7 @@ def test_logger_enable_file_logging_delegates_to_bootstrapper(
 def test_logger_enable_file_logging_returns_false_when_activation_fails(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_enable_file_logging returns false when activation fails."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
     bootstrapper.enable_file_logging_result = False
 
@@ -270,6 +290,7 @@ def test_logger_enable_file_logging_returns_false_when_activation_fails(
 def test_logger_shutdown_does_nothing_when_bootstrapper_is_missing(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_shutdown does nothing when bootstrapper is missing."""
     service.logger_shutdown()
 
     assert fake_bootstrapper_type.instances == []
@@ -278,6 +299,7 @@ def test_logger_shutdown_does_nothing_when_bootstrapper_is_missing(
 def test_logger_shutdown_releases_bootstrapper(
     fake_bootstrapper_type: type[FakeBootstrapper],
 ) -> None:
+    """Verify that logger_shutdown releases bootstrapper."""
     bootstrapper = cast(FakeBootstrapper, service.logger_get_bootstrapper())
 
     service.logger_shutdown()

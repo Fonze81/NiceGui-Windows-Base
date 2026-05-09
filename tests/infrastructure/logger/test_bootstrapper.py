@@ -1,3 +1,5 @@
+"""Test logger bootstrapper lifecycle, reconfiguration, and failure paths."""
+
 import logging
 from logging import Handler, Logger
 from logging.handlers import MemoryHandler, RotatingFileHandler
@@ -12,7 +14,9 @@ from desktop_app.infrastructure.logger.config import LoggerConfig
 from desktop_app.infrastructure.logger.exceptions import LoggerValidationError
 
 
+# Helper functions keep logger setup isolated per test.
 def _build_logger_name() -> str:
+    """Return a unique logger name for isolated tests."""
     return f"test.logger.{uuid4()}"
 
 
@@ -26,6 +30,7 @@ def _build_test_logger_config(
     rotate_backup_count: int = 1,
     buffer_capacity: int = 10,
 ) -> LoggerConfig:
+    """Build a logger configuration with test-safe defaults."""
     return LoggerConfig(
         name=name or _build_logger_name(),
         level=level,
@@ -41,14 +46,18 @@ def _get_handlers_by_type(
     logger: Logger,
     handler_type: type[Handler],
 ) -> list[Handler]:
+    """Return all logger handlers that match the requested type."""
     return [handler for handler in logger.handlers if isinstance(handler, handler_type)]
 
 
 def _has_handler(logger: Logger, handler_type: type[Handler]) -> bool:
+    """Return whether the logger has a handler of the requested type."""
     return bool(_get_handlers_by_type(logger, handler_type))
 
 
+# Initialization and bootstrap tests.
 def test_initializes_with_normalized_config(tmp_path: Path) -> None:
+    """Verify that the bootstrapper initializes with normalized config."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         level="debug",
@@ -69,6 +78,7 @@ def test_initializes_with_normalized_config(tmp_path: Path) -> None:
 
 
 def test_initializes_with_default_config() -> None:
+    """Verify that the bootstrapper initializes with default config."""
     bootstrapper = LoggerBootstrapper()
 
     try:
@@ -81,6 +91,7 @@ def test_initializes_with_default_config() -> None:
 
 
 def test_configure_memory_handler_is_idempotent(tmp_path: Path) -> None:
+    """Verify that configure memory handler is idempotent."""
     config = _build_test_logger_config(tmp_path / "app.log")
     bootstrapper = LoggerBootstrapper(config)
 
@@ -98,6 +109,7 @@ def test_configure_memory_handler_is_idempotent(tmp_path: Path) -> None:
 def test_bootstrap_adds_memory_handler_and_console_handler_when_enabled(
     tmp_path: Path,
 ) -> None:
+    """Verify that bootstrap adds memory handler and console handler when enabled."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=True,
@@ -119,6 +131,7 @@ def test_bootstrap_adds_memory_handler_and_console_handler_when_enabled(
 def test_bootstrap_does_not_add_console_handler_when_disabled(
     tmp_path: Path,
 ) -> None:
+    """Verify that bootstrap does not add console handler when disabled."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=False,
@@ -135,6 +148,7 @@ def test_bootstrap_does_not_add_console_handler_when_disabled(
 
 
 def test_bootstrap_is_idempotent(tmp_path: Path) -> None:
+    """Verify that bootstrap is idempotent."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=True,
@@ -153,9 +167,11 @@ def test_bootstrap_is_idempotent(tmp_path: Path) -> None:
         bootstrapper.shutdown()
 
 
+# Configuration update tests.
 def test_update_config_applies_level_to_logger_and_active_handlers(
     tmp_path: Path,
 ) -> None:
+    """Verify that updating config applies level to logger and active handlers."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=True,
@@ -187,6 +203,7 @@ def test_update_config_applies_level_to_logger_and_active_handlers(
 def test_update_config_adds_console_handler_after_bootstrap(
     tmp_path: Path,
 ) -> None:
+    """Verify that updating config adds console handler after bootstrap."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=False,
@@ -213,6 +230,7 @@ def test_update_config_adds_console_handler_after_bootstrap(
 def test_update_config_does_not_add_console_before_bootstrap(
     tmp_path: Path,
 ) -> None:
+    """Verify that updating config does not add console before bootstrap."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=False,
@@ -237,6 +255,7 @@ def test_update_config_does_not_add_console_before_bootstrap(
 def test_update_config_removes_console_handler_when_disabled(
     tmp_path: Path,
 ) -> None:
+    """Verify that updating config removes console handler when disabled."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=True,
@@ -261,6 +280,7 @@ def test_update_config_removes_console_handler_when_disabled(
 
 
 def test_update_config_rejects_logger_name_change(tmp_path: Path) -> None:
+    """Verify that updating config rejects logger name change."""
     config = _build_test_logger_config(tmp_path / "app.log")
     bootstrapper = LoggerBootstrapper(config)
 
@@ -279,6 +299,9 @@ def test_update_config_rejects_logger_name_change(tmp_path: Path) -> None:
 def test_update_config_recreates_active_file_handler_when_file_path_changes(
     tmp_path: Path,
 ) -> None:
+    """Verify that updating config recreates active file handler when file path
+    changes.
+    """
     first_log_file_path = tmp_path / "first.log"
     second_log_file_path = tmp_path / "second.log"
     config = _build_test_logger_config(first_log_file_path)
@@ -313,6 +336,9 @@ def test_update_config_recreates_active_file_handler_when_file_path_changes(
 def test_update_config_recreates_active_file_handler_when_rotation_changes(
     tmp_path: Path,
 ) -> None:
+    """Verify that updating config recreates active file handler when rotation
+    changes.
+    """
     config = _build_test_logger_config(
         tmp_path / "app.log",
         rotate_max_bytes="1 MB",
@@ -353,6 +379,7 @@ def test_update_config_keeps_new_config_when_file_recreation_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Verify that updating config keeps new config when file recreation fails."""
     config = _build_test_logger_config(tmp_path / "app.log")
     bootstrapper = LoggerBootstrapper(config)
 
@@ -377,9 +404,11 @@ def test_update_config_keeps_new_config_when_file_recreation_fails(
         bootstrapper.shutdown()
 
 
+# File logging activation and failure path tests.
 def test_enable_file_logging_bootstraps_logger_when_needed(
     tmp_path: Path,
 ) -> None:
+    """Verify that file logging bootstraps logger when needed."""
     config = _build_test_logger_config(tmp_path / "app.log")
     bootstrapper = LoggerBootstrapper(config)
 
@@ -395,6 +424,7 @@ def test_enable_file_logging_bootstraps_logger_when_needed(
 
 
 def test_enable_file_logging_uses_explicit_file_path(tmp_path: Path) -> None:
+    """Verify that file logging uses explicit file path."""
     configured_path = tmp_path / "configured.log"
     explicit_path = tmp_path / "explicit.log"
     config = _build_test_logger_config(configured_path)
@@ -418,6 +448,7 @@ def test_enable_file_logging_uses_explicit_file_path(tmp_path: Path) -> None:
 def test_enable_file_logging_replaces_existing_file_handler(
     tmp_path: Path,
 ) -> None:
+    """Verify that file logging replaces existing file handler."""
     config = _build_test_logger_config(tmp_path / "app.log")
     bootstrapper = LoggerBootstrapper(config)
 
@@ -447,6 +478,7 @@ def test_enable_file_logging_returns_false_when_handler_creation_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Verify that file logging returns false when handler creation fails."""
     config = _build_test_logger_config(tmp_path / "app.log")
     bootstrapper = LoggerBootstrapper(config)
     bootstrapper.bootstrap()
@@ -457,6 +489,7 @@ def test_enable_file_logging_returns_false_when_handler_creation_fails(
         max_bytes: int,
         backup_count: int,
     ) -> RotatingFileHandler:
+        """Simulate a rotating file handler creation failure."""
         raise OSError("Forced file handler creation failure.")
 
     monkeypatch.setattr(
@@ -478,6 +511,7 @@ def test_enable_file_logging_returns_false_when_handler_setup_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Verify that file logging returns false when handler setup fails."""
     config = _build_test_logger_config(tmp_path / "app.log")
     bootstrapper = LoggerBootstrapper(config)
     bootstrapper.bootstrap()
@@ -490,6 +524,7 @@ def test_enable_file_logging_returns_false_when_handler_setup_fails(
         logger: Logger,
         handler: Handler | None,
     ) -> None:
+        """Simulate a failure before the new file handler is assigned."""
         if handler is None:
             raise RuntimeError("Forced failure before file handler assignment.")
 
@@ -515,6 +550,7 @@ def test_enable_file_logging_returns_false_and_clears_handler_when_flush_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Verify that file logging returns false and clears handler when flush fails."""
     config = _build_test_logger_config(tmp_path / "app.log")
     bootstrapper = LoggerBootstrapper(config)
     bootstrapper.bootstrap()
@@ -523,6 +559,7 @@ def test_enable_file_logging_returns_false_and_clears_handler_when_flush_fails(
         memory_handler: MemoryHandler | None,
         target_handler: Handler,
     ) -> None:
+        """Simulate a failure while flushing buffered records."""
         raise RuntimeError("Forced memory flush failure.")
 
     monkeypatch.setattr(
@@ -540,7 +577,9 @@ def test_enable_file_logging_returns_false_and_clears_handler_when_flush_fails(
         bootstrapper.shutdown()
 
 
+# Shutdown lifecycle tests.
 def test_shutdown_is_idempotent(tmp_path: Path) -> None:
+    """Verify that shutdown is idempotent."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=True,
@@ -559,6 +598,7 @@ def test_shutdown_is_idempotent(tmp_path: Path) -> None:
 def test_shutdown_removes_all_handlers_after_file_logging_enabled(
     tmp_path: Path,
 ) -> None:
+    """Verify that shutdown removes all handlers after file logging enabled."""
     config = _build_test_logger_config(
         tmp_path / "app.log",
         enable_console=True,

@@ -1,3 +1,5 @@
+"""Test the LoggerConfig data contract."""
+
 from dataclasses import fields, is_dataclass
 from pathlib import Path
 
@@ -12,7 +14,9 @@ from desktop_app.constants import (
 from desktop_app.infrastructure.logger.config import LoggerConfig
 
 
+# LoggerConfig data contract tests.
 def test_logger_config_uses_expected_default_values() -> None:
+    """Verify that LoggerConfig uses expected default values."""
     config = LoggerConfig()
 
     assert config.name == DEFAULT_LOGGER_NAME
@@ -25,6 +29,7 @@ def test_logger_config_uses_expected_default_values() -> None:
 
 
 def test_logger_config_accepts_custom_values() -> None:
+    """Verify that LoggerConfig accepts custom values."""
     log_file_path = Path("logs/custom.log")
 
     config = LoggerConfig(
@@ -47,6 +52,7 @@ def test_logger_config_accepts_custom_values() -> None:
 
 
 def test_logger_config_accepts_string_paths_and_level_names() -> None:
+    """Verify that LoggerConfig accepts string paths and level names."""
     config = LoggerConfig(level="DEBUG", file_path="logs/debug.log")
 
     assert config.level == "DEBUG"
@@ -54,6 +60,7 @@ def test_logger_config_accepts_string_paths_and_level_names() -> None:
 
 
 def test_logger_config_is_a_slotted_dataclass() -> None:
+    """Verify that LoggerConfig is a slotted dataclass."""
     config = LoggerConfig()
 
     assert is_dataclass(config)

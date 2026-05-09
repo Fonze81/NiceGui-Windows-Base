@@ -1,3 +1,5 @@
+"""Test logger handler factories and cleanup helpers."""
+
 from __future__ import annotations
 
 import logging
@@ -19,6 +21,7 @@ from desktop_app.infrastructure.logger.handlers import (
 )
 
 
+# Test helpers and doubles make handler behavior observable.
 def make_log_record(message: str, level: int = logging.INFO) -> LogRecord:
     """Create a log record for handler tests.
 
@@ -116,7 +119,9 @@ def isolated_logger() -> logging.Logger:
     return logger
 
 
+# Handler factory, buffering, flushing, and cleanup tests.
 def test_bounded_memory_handler_keeps_only_recent_records() -> None:
+    """Verify that bounded memory handler keeps only recent records."""
     handler = BoundedMemoryHandler(
         capacity=2,
         flushLevel=logging.CRITICAL + 1,
@@ -131,6 +136,7 @@ def test_bounded_memory_handler_keeps_only_recent_records() -> None:
 
 
 def test_create_console_handler_configures_level_and_formatter() -> None:
+    """Verify that create console handler configures level and formatter."""
     handler = create_console_handler(logging.WARNING)
 
     assert isinstance(handler, logging.StreamHandler)
@@ -140,6 +146,9 @@ def test_create_console_handler_configures_level_and_formatter() -> None:
 
 
 def test_create_bounded_memory_handler_configures_capacity_target_and_level() -> None:
+    """Verify that create bounded memory handler configures capacity target and
+    level.
+    """
     handler = create_bounded_memory_handler(capacity=3, level=logging.DEBUG)
 
     assert isinstance(handler, BoundedMemoryHandler)
@@ -150,6 +159,7 @@ def test_create_bounded_memory_handler_configures_capacity_target_and_level() ->
 
 
 def test_create_rotating_file_handler_configures_file_output(tmp_path: Path) -> None:
+    """Verify that create rotating file handler configures file output."""
     file_path = tmp_path / "logs" / "app.log"
     handler = create_rotating_file_handler(
         file_path=file_path,
@@ -176,6 +186,9 @@ def test_create_rotating_file_handler_configures_file_output(tmp_path: Path) -> 
 
 
 def test_flush_memory_handler_to_target_returns_when_memory_handler_is_none() -> None:
+    """Verify that flush memory handler to target returns when memory handler is
+    none.
+    """
     target_handler = CollectingHandler()
 
     flush_memory_handler_to_target(None, target_handler)
@@ -185,6 +198,7 @@ def test_flush_memory_handler_to_target_returns_when_memory_handler_is_none() ->
 
 
 def test_flush_memory_handler_to_target_moves_records_and_clears_buffer() -> None:
+    """Verify that flush memory handler to target moves records and clears buffer."""
     memory_handler = create_bounded_memory_handler(capacity=5, level=logging.DEBUG)
     first_record = make_log_record("first", logging.DEBUG)
     second_record = make_log_record("second", logging.INFO)
@@ -200,6 +214,7 @@ def test_flush_memory_handler_to_target_moves_records_and_clears_buffer() -> Non
 
 
 def test_flush_memory_handler_to_target_suppresses_target_flush_errors() -> None:
+    """Verify that flush memory handler to target suppresses target flush errors."""
     memory_handler = create_bounded_memory_handler(capacity=5, level=logging.INFO)
     record = make_log_record("preserved")
     memory_handler.emit(record)
@@ -215,6 +230,7 @@ def test_flush_memory_handler_to_target_suppresses_target_flush_errors() -> None
 def test_remove_handler_safely_returns_when_handler_is_none(
     isolated_logger: logging.Logger,
 ) -> None:
+    """Verify that remove handler safely returns when handler is none."""
     remove_handler_safely(isolated_logger, None)
 
     assert isolated_logger.handlers == []
@@ -223,6 +239,7 @@ def test_remove_handler_safely_returns_when_handler_is_none(
 def test_remove_handler_safely_removes_existing_handler(
     isolated_logger: logging.Logger,
 ) -> None:
+    """Verify that remove handler safely removes existing handler."""
     handler = CollectingHandler()
     isolated_logger.addHandler(handler)
 
@@ -235,9 +252,11 @@ def test_remove_handler_safely_suppresses_logger_errors(
     isolated_logger: logging.Logger,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Verify that remove handler safely suppresses logger errors."""
     handler = CollectingHandler()
 
     def raise_remove_error(_handler: Handler) -> None:
+        """Simulate a logger failure while removing a handler."""
         raise RuntimeError("remove failed")
 
     monkeypatch.setattr(isolated_logger, "removeHandler", raise_remove_error)
@@ -246,10 +265,12 @@ def test_remove_handler_safely_suppresses_logger_errors(
 
 
 def test_close_handler_safely_returns_when_handler_is_none() -> None:
+    """Verify that close handler safely returns when handler is none."""
     close_handler_safely(None)
 
 
 def test_close_handler_safely_flushes_and_closes_handler() -> None:
+    """Verify that close handler safely flushes and closes handler."""
     handler = CollectingHandler()
 
     close_handler_safely(handler)
@@ -259,6 +280,7 @@ def test_close_handler_safely_flushes_and_closes_handler() -> None:
 
 
 def test_close_handler_safely_suppresses_flush_and_close_errors() -> None:
+    """Verify that close handler safely suppresses flush and close errors."""
     handler = FailingCleanupHandler()
 
     close_handler_safely(handler)
@@ -270,6 +292,7 @@ def test_close_handler_safely_suppresses_flush_and_close_errors() -> None:
 def test_remove_and_close_handler_safely_removes_and_closes_handler(
     isolated_logger: logging.Logger,
 ) -> None:
+    """Verify that remove and close handler safely removes and closes handler."""
     handler = CollectingHandler()
     isolated_logger.addHandler(handler)
 
