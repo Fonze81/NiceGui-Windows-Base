@@ -12,7 +12,10 @@ Use this guide when:
 - VS Code opened the wrong folder;
 - VS Code does not detect `.venv`;
 - imports appear unresolved;
+- tests are not discovered;
+- coverage is not easy to run;
 - Ruff does not run on save;
+- Markdown linting does not run;
 - the integrated terminal uses a different Python version;
 - recommended extensions were not installed.
 
@@ -67,14 +70,17 @@ The root should also contain files and folders such as:
 README.md
 src
 docs
+tests
 scripts
 dev_run.py
 ```
 
-Do not open only `src`, `docs`, or `scripts`. Opening a subfolder can break or confuse:
+Do not open only `src`, `docs`, `scripts`, or `tests`. Opening a subfolder can break or confuse:
 
 - imports;
 - editable package behavior;
+- pytest discovery;
+- coverage paths;
 - Ruff configuration;
 - workspace settings;
 - documentation links;
@@ -108,6 +114,7 @@ Expected result:
 
 - the VS Code status bar shows the `.venv` interpreter;
 - Pylance resolves project imports;
+- pytest uses the correct environment;
 - the integrated terminal can use the same environment.
 
 ---
@@ -160,7 +167,7 @@ python -m pip install -e ".[dev,packaging]"
 
 Editable installation is important because this project uses a `src` layout.
 
-It allows Python, VS Code, and tooling to resolve:
+It allows Python, VS Code, pytest, coverage, and tooling to resolve:
 
 ```text
 src\desktop_app
@@ -186,50 +193,31 @@ You can also install them manually:
 
 ### Core recommendations
 
-| Extension           | Identifier                   | Purpose                                      |
-| ------------------- | ---------------------------- | -------------------------------------------- |
-| Python              | `ms-python.python`           | Python language support                      |
-| Pylance             | `ms-python.vscode-pylance`   | Python analysis and IntelliSense             |
-| Ruff                | `charliermarsh.ruff`         | Linting, formatting, and import organization |
-| Markdown All in One | `yzhang.markdown-all-in-one` | Markdown editing support                     |
-| markdownlint        | `DavidAnson.vscode-markdownlint` | Markdown linting and style validation     |
-| EditorConfig        | `editorconfig.editorconfig`  | Consistent editor behavior                   |
+| Extension           | Identifier                       | Purpose                                                            |
+| ------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| Python              | `ms-python.python`               | Python language support, test discovery, and environment selection |
+| Pylance             | `ms-python.vscode-pylance`       | Python analysis and IntelliSense                                   |
+| Ruff                | `charliermarsh.ruff`             | Linting, formatting, and import organization                       |
+| Markdown All in One | `yzhang.markdown-all-in-one`     | Markdown editing support                                           |
+| markdownlint        | `DavidAnson.vscode-markdownlint` | Markdown linting and style validation                              |
+| Prettier            | `esbenp.prettier-vscode`         | JSON, YAML, HTML, and Markdown formatting                          |
+| EditorConfig        | `editorconfig.editorconfig`      | Consistent editor behavior                                         |
 
-### Optional visual and productivity recommendations
+### Optional recommendations
 
-| Extension           | Identifier                    | Purpose                                    |
-| ------------------- | ----------------------------- | ------------------------------------------ |
-| Dracula Theme       | `dracula-theme.theme-dracula` | Optional dark theme                        |
-| FiraCode Font       | `seyyedkhandon.firacode`      | Optional font helper                       |
-| Material Icon Theme | `PKief.material-icon-theme`   | Optional file and folder icons             |
-| Bookmarks           | `alefragnani.Bookmarks`       | Optional navigation bookmarks              |
-| Git Graph           | `mhutchie.git-graph`          | Optional Git branch visualization          |
-| Git History         | `donjayamanne.githistory`     | Optional Git history inspection            |
-| Todo Tree           | `Gruntfuggly.todo-tree`       | Optional TODO and FIXME tracking           |
-| Trailing Spaces     | `shardulm94.trailing-spaces`  | Optional trailing whitespace visualization |
+| Extension           | Identifier                  | Purpose                                                       |
+| ------------------- | --------------------------- | ------------------------------------------------------------- |
+| Even Better TOML    | `tamasfe.even-better-toml`  | TOML editing support for `pyproject.toml` and `settings.toml` |
+| Git Graph           | `mhutchie.git-graph`        | Git branch visualization                                      |
+| Git History         | `donjayamanne.githistory`   | Git history inspection                                        |
+| Todo Tree           | `Gruntfuggly.todo-tree`     | TODO and FIXME tracking                                       |
+| Material Icon Theme | `PKief.material-icon-theme` | Optional file and folder icons                                |
 
 The project should still work if optional visual extensions are not installed.
 
 ---
 
-## 🔤 8. Optional Fira Code setup
-
-The `seyyedkhandon.firacode` extension can help with Fira Code, but the font may still need to be installed in Windows.
-
-Recommended editor settings if the font is available:
-
-```json
-{
-    "editor.fontFamily": "'Fira Code', Consolas, 'Courier New', monospace",
-    "editor.fontLigatures": true
-}
-```
-
-If Fira Code is unavailable, VS Code will use the fallback fonts.
-
----
-
-## 💾 9. Ruff on save
+## 💾 8. Ruff on save
 
 Workspace settings live in:
 
@@ -241,14 +229,14 @@ Current Python save behavior:
 
 ```json
 {
-    "[python]": {
-        "editor.defaultFormatter": "charliermarsh.ruff",
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-            "source.fixAll.ruff": "explicit",
-            "source.organizeImports.ruff": "explicit"
-        }
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
     }
+  }
 }
 ```
 
@@ -262,25 +250,72 @@ Ruff-specific code actions are used instead of generic `source.fixAll` and `sour
 
 ---
 
-## 🗂️ 10. Workspace file visibility
+## 🧪 9. Pytest in VS Code
 
-The project uses VS Code `files.exclude` to keep the Explorer focused on files that are more relevant during daily development.
+Workspace settings should enable pytest:
 
-Some generated files, cache folders, build artifacts, metadata files, and stable infrastructure files are hidden from the Explorer because they are not expected to change frequently.
+```json
+{
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.cwd": "${workspaceFolder}",
+  "python.testing.pytestArgs": ["tests"]
+}
+```
 
-This does not remove files from the project and does not affect Git tracking. It only changes the VS Code Explorer view.
+After changing settings:
 
-If a hidden file needs to be opened, use one of these options:
+```text
+Ctrl + Shift + P > Python: Refresh Tests
+```
 
-- `Ctrl + P` and type the file path;
-- temporarily disable the related entry in `.vscode\settings.json`;
-- open the file directly from the terminal.
+Terminal validation:
 
-Search exclusions are more conservative and mainly hide generated artifacts such as virtual environments, cache folders, compiled Python files, and distribution outputs.
+```powershell
+pytest --collect-only
+pytest
+```
 
 ---
 
-## ✅ 11. Validate VS Code setup
+## 📊 10. Coverage from VS Code terminal
+
+Run:
+
+```powershell
+pytest --cov=desktop_app --cov-report=term-missing
+```
+
+HTML report:
+
+```powershell
+pytest --cov=desktop_app --cov-report=html
+start htmlcov\index.html
+```
+
+The generated `htmlcov` directory should not be committed.
+
+---
+
+## 📝 11. Markdown and non-Python formatting
+
+Recommended formatters:
+
+| File type | Formatter                        |
+| --------- | -------------------------------- |
+| Python    | Ruff                             |
+| JSON      | Prettier                         |
+| JSONC     | VS Code JSON language features   |
+| Markdown  | Prettier and markdownlint        |
+| YAML      | Prettier                         |
+| HTML      | Prettier                         |
+| TOML      | Even Better TOML, when installed |
+
+Markdown documentation may use emojis in headings. Python code, comments, and docstrings must not use emojis.
+
+---
+
+## ✅ 12. Validate VS Code setup
 
 Run these commands in the VS Code integrated terminal:
 
@@ -288,6 +323,8 @@ Run these commands in the VS Code integrated terminal:
 python --version
 python -c "import sys; print(sys.executable)"
 python -m pip show nicegui
+pytest --collect-only
+pytest
 ruff check .
 ruff format --check .
 ```
@@ -330,6 +367,22 @@ Then reload the VS Code window:
 
 ```text
 Ctrl + Shift + P > Developer: Reload Window
+```
+
+### Tests are not discovered
+
+Confirm that:
+
+- the Python extension is installed;
+- pytest is enabled in `.vscode\settings.json`;
+- VS Code opened the repository root;
+- `.venv` is selected;
+- the project was installed in editable mode.
+
+Run:
+
+```powershell
+pytest --collect-only
 ```
 
 ### Ruff does not run on save
@@ -382,4 +435,5 @@ If the path does not point to `.venv`, select the interpreter again and open a n
 - [Python 3.13 setup on Windows](python_windows_setup.md)
 - [PowerShell execution policy](powershell_execution_policy.md)
 - [Code quality with Ruff](code_quality.md)
+- [Settings subsystem](settings.md)
 - [Troubleshooting](troubleshooting.md)

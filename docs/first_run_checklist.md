@@ -8,15 +8,19 @@ Use this checklist to validate a new clone or a new Windows machine.
 
 - [ ] I opened the repository root folder.
 - [ ] The folder contains `pyproject.toml`.
+- [ ] The folder contains `README.md`.
+- [ ] The folder contains `CHANGELOG.md`.
 - [ ] The folder contains `src`.
 - [ ] The folder contains `docs`.
+- [ ] The folder contains `tests`.
 - [ ] The folder contains `dev_run.py`.
 - [ ] The folder contains `scripts\package_windows.ps1`.
+- [ ] The folder contains `scripts\version_info.txt`.
+- [ ] The folder contains `src\desktop_app\settings.toml`.
 - [ ] The folder contains `src\desktop_app\assets\app_icon.ico`.
 - [ ] The folder contains `src\desktop_app\assets\logo.png`.
 - [ ] The folder contains `src\desktop_app\assets\page_image.png`.
 - [ ] The folder contains `src\desktop_app\assets\splash_light.png`.
-- [ ] The folder contains `src\desktop_app\settings.toml`.
 
 ---
 
@@ -94,10 +98,12 @@ python -m pip install -e ".[dev,packaging]"
 ## 🧰 VS Code
 
 - [ ] VS Code is installed.
-- [ ] VS Code opened the repository root, not only `src` or `docs`.
+- [ ] VS Code opened the repository root, not only `src`, `docs`, `scripts`, or `tests`.
 - [ ] The selected interpreter is `.venv\Scripts\python.exe`.
 - [ ] Recommended extensions were reviewed.
 - [ ] Ruff runs on save for Python files.
+- [ ] pytest test discovery finds tests from the `tests` folder.
+- [ ] Markdown linting is available for documentation files.
 
 ---
 
@@ -125,6 +131,61 @@ python src\desktop_app\app.py
 
 ```powershell
 python dev_run.py
+```
+
+---
+
+## ⚙️ Settings
+
+- [ ] The bundled template exists:
+
+```powershell
+Test-Path .\src\desktop_app\settings.toml
+```
+
+- [ ] The template version is aligned with `pyproject.toml`:
+
+```text
+0.4.0
+```
+
+- [ ] Normal execution can start even when `<repository-root>\settings.toml` does not exist.
+- [ ] When settings are saved later, they are written to the runtime root.
+- [ ] For isolated diagnostics, `DESKTOP_APP_ROOT` can point to a temporary folder.
+
+Example:
+
+```powershell
+$env:DESKTOP_APP_ROOT = "C:\Temp\nicegui-windows-base-test"
+nicegui-windows-base
+```
+
+After the diagnostic, clear it:
+
+```powershell
+Remove-Item Env:\DESKTOP_APP_ROOT
+```
+
+---
+
+## 🧪 Tests
+
+- [ ] Syntax compilation passes:
+
+```powershell
+python -m compileall -q src dev_run.py
+```
+
+- [ ] Full pytest suite passes:
+
+```powershell
+pytest
+```
+
+- [ ] Coverage report works:
+
+```powershell
+pytest --cov=desktop_app --cov-report=term-missing
 ```
 
 ---
@@ -172,6 +233,15 @@ dist\nicegui-windows-base.exe
 ```
 
 - [ ] The executable opens the native app.
+- [ ] The executable has the project icon.
+- [ ] The executable shows a splash screen during startup.
+- [ ] The executable opens without an extra console window.
+- [ ] The page displays the PNG image and startup status message.
+- [ ] `dist\packaging_report.md` is created.
+- [ ] `dist\logs\app.log` is created after the packaged executable starts.
+- [ ] Packaged settings resolve next to the executable.
+- [ ] The bundled default `settings.toml` is included in the packaged build.
+- [ ] The log contains startup source, runtime mode, settings path, NiceGUI startup, page build, and shutdown narrative.
 
 ---
 
@@ -180,21 +250,7 @@ dist\nicegui-windows-base.exe
 - [Development environment](development_environment.md)
 - [VS Code setup](vscode_setup.md)
 - [Execution modes](execution_modes.md)
+- [Settings subsystem](settings.md)
+- [Application state](state.md)
 - [Logging subsystem](logging.md)
 - [Troubleshooting](troubleshooting.md)
-
----
-
-## 📦 Packaging validation
-
-- [ ] `python -m pip install -e ".[dev,packaging]"` completed successfully.
-- [ ] `.\scripts\package_windows.ps1` creates `dist\nicegui-windows-base.exe`.
-- [ ] The executable has the project icon.
-- [ ] The executable shows a splash screen during startup.
-- [ ] The executable opens the NiceGUI native window without an extra console window.
-- [ ] The page displays the PNG image and startup status message.
-- [ ] Starting the executable without `settings.toml` uses in-memory defaults and does not create the file automatically.
-- [ ] A settings save operation creates persistent `settings.toml` next to the executable when missing.
-- [ ] `dist\packaging_report.md` is created.
-- [ ] `dist\logs\app.log` is created after the packaged executable starts.
-- [ ] The log contains the startup source, runtime mode, NiceGUI startup, page build, and shutdown narrative.

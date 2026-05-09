@@ -41,17 +41,20 @@ This project uses NiceGUI in native mode and packages a Windows executable. The 
 
 A previous installation attempt showed `pythonnet` wheel build failure when the environment involved Python 3.14. To keep the project reproducible now, use Python 3.13.x.
 
-Review compatibility later through:
+Review compatibility later through the official projects:
 
-- <https://pypi.org/project/pythonnet/>
-- <https://github.com/pythonnet/pythonnet>
-- <https://github.com/pythonnet/pythonnet/releases>
+- `pythonnet`;
+- `pywebview`;
+- `NiceGUI`;
+- `PyInstaller`.
 
 Before changing the Python rule, confirm that:
 
 - `pythonnet` supports the new Python version;
 - `pywebview` installs successfully;
 - native execution opens correctly;
+- browser development mode opens correctly;
+- the full pytest suite passes;
 - PyInstaller generates a working executable through `scripts\package_windows.ps1`.
 
 ---
@@ -135,10 +138,10 @@ pyproject.toml
 Example:
 
 ```powershell
-cd C:\path\to\NiceGui Windows Base
+cd C:\path\to\NiceGui-Windows-Base
 ```
 
-Do not create `.venv` inside `src`, `docs`, or another subfolder.
+Do not create `.venv` inside `src`, `docs`, `scripts`, `tests`, or another subfolder.
 
 ---
 
@@ -163,7 +166,7 @@ Do not commit `.venv` to Git.
 Expected terminal prefix:
 
 ```text
-(.venv) PS C:\path\to\NiceGui Windows Base>
+(.venv) PS C:\path\to\NiceGui-Windows-Base>
 ```
 
 Confirm active Python:
@@ -192,6 +195,34 @@ python -m pip install -e ".[dev,packaging]"
 
 ---
 
+## ✅ 9. Validate the environment
+
+Compile Python files:
+
+```powershell
+python -m compileall -q src dev_run.py
+```
+
+Run tests:
+
+```powershell
+pytest
+```
+
+Run the app:
+
+```powershell
+nicegui-windows-base
+```
+
+Run browser development mode:
+
+```powershell
+python dev_run.py
+```
+
+---
+
 ## 🧯 Recovery after using the wrong Python version
 
 If `.venv` was created with the wrong Python version:
@@ -204,6 +235,7 @@ py -3.13 -m venv .venv
 python --version
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev,packaging]"
+pytest
 ```
 
 ---
@@ -213,4 +245,5 @@ python -m pip install -e ".[dev,packaging]"
 - [Development environment](development_environment.md)
 - [PowerShell execution policy](powershell_execution_policy.md)
 - [VS Code setup](vscode_setup.md)
+- [Code quality](code_quality.md)
 - [Troubleshooting](troubleshooting.md)

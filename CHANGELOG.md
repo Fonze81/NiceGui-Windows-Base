@@ -6,43 +6,58 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
-## [0.3.4] - 2026-05-07
+## [0.4.0] - 2026-05-09
 
 ### ✨ Added
 
-- Added typed application state in `src/desktop_app/core/state.py`.
-- Added persistent settings support through `src/desktop_app/infrastructure/settings`.
-- Added bundled `src/desktop_app/settings.toml` first-run template.
-- Added settings documentation in `docs/settings.md`.
-- Added shared `file_system.py` and `byte_size.py` infrastructure helpers.
-- Added scoped settings load and save helpers for full-file, group, and individual property operations.
-- Added runtime path, asset, UI session, settings validation, and lifecycle state sections to `AppState`.
-- Added `docs/state.md` with full state-model and NiceGUI binding guidance.
+- Added a typed central `AppState` model with runtime, path, window, UI, UI session, asset, log, behavior, settings, validation, lifecycle, and status sections.
+- Added persistent `settings.toml` support with full-file, group, and individual property load/save operations.
+- Added bundled default settings template at `src/desktop_app/settings.toml`.
+- Added settings path resolution for normal Python execution, packaged execution, PyInstaller extraction, and `%DESKTOP_APP_ROOT%` overrides.
+- Added defensive settings conversion helpers for booleans, integers, floats, paths, and byte-size values.
+- Added TOML document update helpers that preserve comments and unknown keys during scoped saves.
+- Added `byte_size.py` for reusable parsing of values such as `5 MB`, `512KB`, and `1 GB`.
+- Added `file_system.py` with parent-directory creation and atomic text writes.
+- Added pytest and coverage configuration to `pyproject.toml`.
+- Added extensive tests for core runtime, application state, logger, settings, asset paths, byte-size parsing, file-system helpers, lifecycle handlers, splash handling, constants, and module execution.
+- Added VS Code pytest discovery settings and Prettier defaults for non-Python file types.
+- Added documentation for settings persistence and application state.
 
 ### 🔄 Changed
 
-- Changed the project version from `0.3.0` to `0.3.4`.
-- Updated Windows version metadata in `scripts/version_info.txt` to `0.3.4.0`.
-- Updated application startup to load settings before final logger file activation.
-- Updated packaging to include the bundled settings template.
-- Renamed ambiguous settings helpers to explicit names such as `resolve_default_settings_path()` and `get_nested_value()`.
-- Renamed the TOML document helper module to `toml_document.py` and removed the temporary settings logging helper wrapper.
-- Reused byte-size parsing and parent-directory creation instead of duplicating helper logic.
-- Updated settings service to use the official application logger during early startup instead of optional logger wrappers.
-- Updated the logger service so early import-time bootstrap uses memory buffering without console output.
-- Added `tomlkit` as a runtime dependency so settings comments and unknown keys can be preserved.
-- Updated settings persistence to preserve unrelated settings when saving a single group or property.
-- Changed settings loading to keep in-memory defaults when `settings.toml` is missing and create the file only on save.
+- Changed the project version from `0.3.0` to `0.4.0`.
+- Updated Windows version metadata in `scripts/version_info.txt` to `0.4.0.0`.
+- Updated application constants and default settings to version `0.4.0`.
+- Updated packaging to bundle `src\desktop_app\settings.toml` with the executable.
+- Updated application startup so settings are loaded before final logger configuration.
+- Updated runtime diagnostics to store effective settings, log, executable, working directory, and PyInstaller extraction paths in `AppState`.
+- Updated development mode reload settings to watch Python source files and ignore logs, generated settings, build outputs, distribution outputs, and `.venv`.
+- Updated documentation to reflect the current settings package, state model, tests, coverage, packaging inputs, and project structure.
+
+### 🐞 Fixed
+
+- Removed stale documentation references to the deleted `desktop_app.infrastructure.settings.constants` module.
+- Clarified that missing `settings.toml` during load is not an error and does not create a file.
+- Clarified packaged settings behavior so editable settings are stored next to the executable, not inside the PyInstaller temporary extraction directory.
+- Clarified package-data requirements for both assets and the bundled settings template.
 
 ### 🧭 Migration notes
 
-- Reinstall the project after upgrading so `tomlkit` is available:
+- Reinstall the project after upgrading:
 
 ```powershell
 python -m pip install -e ".[dev,packaging]"
 ```
 
-- Rebuild the executable so Windows file properties show version `0.3.4.0`:
+- Run the test suite and quality checks:
+
+```powershell
+pytest
+ruff check .
+ruff format --check .
+```
+
+- Rebuild the executable so Windows file properties show version `0.4.0.0` and the bundled settings template is included:
 
 ```powershell
 .\scripts\package_windows.ps1

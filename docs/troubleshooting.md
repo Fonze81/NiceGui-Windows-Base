@@ -4,46 +4,6 @@ This guide collects common issues for the current **NiceGui Windows Base** proje
 
 ---
 
-## 🖼️ Packaged splash screen does not appear
-
-Confirm that the packaging script includes `--splash` and that the image exists:
-
-```powershell
-Test-Path src\desktop_app\assets\splash_light.png
-```
-
-Then clean old build outputs and package again:
-
-```powershell
-Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
-Remove-Item -Force *.spec -ErrorAction SilentlyContinue
-.\scripts\package_windows.ps1
-```
-
-During normal Python execution, no splash screen appears. The splash is a packaged-executable behavior.
-
-If the splash still does not appear after packaging, confirm that the PyInstaller command includes both `--splash` and `--hidden-import pyi_splash`.
-
----
-
-## 🖼️ Packaged splash screen does not close
-
-Confirm that `register_lifecycle_handlers(native_mode=native_mode)` in `src\desktop_app\app.py` is called before `ui.run(...)`. It delegates splash setup through `register_splash_handler()` in `src\desktop_app\infrastructure\splash.py`:
-
-```python
-register_lifecycle_handlers(native_mode=native_mode)
-```
-
-The splash handler imports the optional `pyi_splash` module only when `sys.frozen` is true, stores the module reference, and registers `close_splash_once()` with `app.on_connect(...)`. This avoids importing the module too late, closes the splash after the first NiceGUI client connects, and prevents repeated close attempts during reconnects.
-
-Also confirm that the packaging script keeps the hidden import:
-
-```powershell
---hidden-import pyi_splash
-```
-
----
-
 ## 🐍 Python 3.13 is not found
 
 Check installed versions:
@@ -75,6 +35,7 @@ py -3.13 -m venv .venv
 python --version
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev,packaging]"
+pytest
 ```
 
 ---
@@ -139,6 +100,91 @@ Ctrl + Shift + P > Developer: Reload Window
 
 ---
 
+## 🧪 VS Code does not discover tests
+
+Confirm that VS Code opened the repository root and that `.vscode\settings.json` enables pytest.
+
+Expected settings include:
+
+```json
+{
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.cwd": "${workspaceFolder}",
+  "python.testing.pytestArgs": ["tests"]
+}
+```
+
+Then run:
+
+```text
+Ctrl + Shift + P > Python: Configure Tests
+```
+
+Choose `pytest` and the `tests` folder.
+
+If discovery still fails, validate from the terminal:
+
+```powershell
+pytest --collect-only
+```
+
+---
+
+## 🧪 Pytest import mismatch
+
+Example symptom:
+
+```text
+import file mismatch
+```
+
+Possible causes:
+
+- duplicate test module names were imported by path instead of importlib mode;
+- stale `__pycache__` files exist;
+- pytest was run from a subfolder instead of the repository root.
+
+Fix:
+
+```powershell
+Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
+pytest
+```
+
+The project config uses:
+
+```toml
+--import-mode=importlib
+```
+
+This reduces collisions when different folders contain files with the same base name.
+
+---
+
+## 📊 Coverage report is missing files
+
+Run coverage from the repository root:
+
+```powershell
+pytest --cov=desktop_app --cov-report=term-missing
+```
+
+The coverage configuration in `pyproject.toml` points to:
+
+```toml
+source = ["desktop_app"]
+```
+
+If a new package or module is not shown, confirm that:
+
+- it is below `src\desktop_app`;
+- it is imported by tests;
+- tests are not skipped;
+- the command is running inside the correct `.venv`.
+
+---
+
 ## 🔁 Startup logs appear duplicated in development mode
 
 Likely cause:
@@ -165,6 +211,77 @@ Confirm that `dev_run.py` uses the multiprocessing-safe guard:
 if __name__ in {"__main__", "__mp_main__"}:
     main(development_mode=True)
 ```
+
+---
+
+## ⚙️ Persistent `settings.toml` is missing
+
+This is normal during first run. The application can load bundled defaults from:
+
+```text
+src\desktop_app\settings.toml
+```
+
+A persistent runtime file is needed only when settings are saved.
+
+See [Settings subsystem](settings.md).
+
+---
+
+## ⚙️ Settings are written to the wrong folder
+
+Check whether `DESKTOP_APP_ROOT` is set:
+
+```powershell
+Get-ChildItem Env:\DESKTOP_APP_ROOT
+```
+
+When set, it intentionally changes the runtime root.
+
+Clear it:
+
+```powershell
+Remove-Item Env:\DESKTOP_APP_ROOT
+```
+
+---
+
+## ⚙️ Packaged executable cannot find default settings
+
+Confirm that the packaging script includes:
+
+```powershell
+--add-data $settingsData
+```
+
+Also confirm:
+
+```powershell
+Test-Path .\src\desktop_app\settings.toml
+```
+
+Then clean old outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
+```
+
+---
+
+## ⚙️ Invalid setting value is ignored or replaced
+
+The settings mapper validates values before applying them to state.
+
+Examples:
+
+- `app.ui.theme` must be `light`, `dark`, or `system`;
+- `app.log.rotate_max_bytes` must be a supported byte-size value;
+- numeric window values must be valid integers;
+- boolean fields must be valid booleans.
+
+Fix the value in the persistent `settings.toml` or delete the persistent file to use bundled defaults again.
 
 ---
 
@@ -273,7 +390,7 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 ## 🖨️ Startup message differs between terminal and page
 
-The startup message should be built once in `main(...)` and reused for both terminal output and the NiceGUI page.
+The startup message should be built once in `main(...)` and reused for terminal output, state, logs, and the NiceGUI page.
 
 Expected pattern:
 
@@ -337,6 +454,46 @@ Then clean old build outputs and package again:
 Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
 Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 .\scripts\package_windows.ps1
+```
+
+---
+
+## 🖼️ Packaged splash screen does not appear
+
+Confirm that the packaging script includes `--splash` and that the image exists:
+
+```powershell
+Test-Path src\desktop_app\assets\splash_light.png
+```
+
+Then clean old build outputs and package again:
+
+```powershell
+Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\package_windows.ps1
+```
+
+During normal Python execution, no splash screen appears. The splash is a packaged-executable behavior.
+
+If the splash still does not appear after packaging, confirm that the PyInstaller command includes both `--splash` and `--hidden-import pyi_splash`.
+
+---
+
+## 🖼️ Packaged splash screen does not close
+
+Confirm that `register_lifecycle_handlers(native_mode=native_mode)` in `src\desktop_app\app.py` is called before `ui.run(...)`. It delegates splash setup through `register_splash_handler()` in `src\desktop_app\infrastructure\splash.py`:
+
+```python
+register_lifecycle_handlers(native_mode=native_mode)
+```
+
+The splash handler imports the optional `pyi_splash` module only when `sys.frozen` is true, stores the module reference, and registers `close_splash_once()` with `app.on_connect(...)`.
+
+Also confirm that the packaging script keeps the hidden import:
+
+```powershell
+--hidden-import pyi_splash
 ```
 
 ---
@@ -428,80 +585,19 @@ dist\packaging_report.md
 
 ---
 
-## ⏱️ Cannot convert `System.Object[]` to `System.TimeSpan`
-
-Error example:
-
-```text
-Cannot convert the "System.Object[]" value of type "System.Object[]" to type "System.TimeSpan".
-```
-
-Cause: a PowerShell function that should return only elapsed time also wrote native command output to the success output pipeline.
-
-Fix: execute native commands through `Invoke-NativeCommand`, which writes command output to the host and keeps the function return clean:
-
-```powershell
-& $Command @Arguments 2>&1 | ForEach-Object {
-    Write-Host $_
-}
-```
-
-Then assign the elapsed time with an explicit type:
-
-```powershell
-[TimeSpan]$pyInstallerElapsed = Invoke-PyInstallerBuild
-```
-
----
-
-## 📦 NativeCommandError from PyInstaller log output
-
-Error example:
-
-```text
-pyinstaller.exe : 204 INFO: PyInstaller: 6.20.0, contrib hooks: 2026.4
-CategoryInfo          : NotSpecified: ... RemoteException
-FullyQualifiedErrorId : NativeCommandError
-```
-
-Cause: PyInstaller can write normal progress logs to stderr. The packaging script also uses `$ErrorActionPreference = "Stop"` so real errors stop the build. If stderr is redirected with `2>&1` without temporarily relaxing error handling, PowerShell can treat normal stderr output as `NativeCommandError`.
-
-Fix: `Invoke-NativeCommand` must temporarily set native command error handling to a non-terminating mode and then validate the native command exit code explicitly:
-
-```powershell
-$ErrorActionPreference = "Continue"
-& $Command @Arguments 2>&1 | ForEach-Object {
-    Write-Host $_
-}
-$exitCode = $LASTEXITCODE
-```
-
-The script should then throw only when `$exitCode` is different from zero.
-
-This keeps PyInstaller logs visible while still failing correctly when the build command actually fails.
-
----
-
 ## 📦 nicegui-pack is no longer used
 
 The project previously compared `nicegui-pack` and direct PyInstaller packaging.
 
-Measured results were similar:
+The project now uses direct PyInstaller only because it supports `--version-file`, `--windowed`, `--splash`, `--hidden-import pyi_splash`, bundled assets, and bundled settings without a second post-processing path.
 
-| Packager     |     Size |    Time |
-| ------------ | -------: | ------: |
-| nicegui-pack | 41.26 MB | 80.54 s |
-| PyInstaller  | 40.37 MB | 78.36 s |
-
-The project now uses direct PyInstaller only because it supports `--version-file`, `--windowed`, `--splash`, and `--hidden-import pyi_splash` without a second post-processing path.
-
-If old documentation or terminal commands mention `nicegui-pack`, use this instead:
+Use this instead:
 
 ```powershell
 .\scripts\package_windows.ps1
 ```
 
-The script now creates:
+The script creates:
 
 ```text
 dist\nicegui-windows-base.exe
@@ -515,5 +611,7 @@ dist\packaging_report.md
 - [Python 3.13 setup on Windows](python_windows_setup.md)
 - [VS Code setup](vscode_setup.md)
 - [Execution modes](execution_modes.md)
+- [Settings subsystem](settings.md)
+- [Application state](state.md)
 - [Logging subsystem](logging.md)
 - [Windows packaging](packaging_windows.md)

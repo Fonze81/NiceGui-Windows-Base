@@ -42,6 +42,34 @@ See the root [README](../README.md#-naming-model) for the complete naming model.
 
 ---
 
+## 🚀 Startup sequence
+
+All execution modes converge into `desktop_app.app.main(...)`.
+
+```mermaid
+sequenceDiagram
+    participant Entry as Entry point
+    participant App as app.py
+    participant Settings as settings service
+    participant State as AppState
+    participant Logger as logger service
+    participant NiceGUI as ui.run
+
+    Entry->>App: main(...)
+    App->>Settings: load_settings()
+    Settings->>State: apply_settings_to_state(...)
+    App->>Logger: logger_bootstrap(...)
+    App->>Logger: logger_enable_file_logging()
+    App->>State: store runtime diagnostics
+    App->>App: resolve startup source and runtime mode
+    App->>App: register lifecycle handlers
+    App->>NiceGUI: ui.run(...)
+```
+
+The startup message is built once and reused by terminal output, logs, state, and the visible page.
+
+---
+
 ## 🖥️ Normal native execution
 
 ```powershell
@@ -52,9 +80,11 @@ Expected behavior:
 
 - native mode enabled;
 - reload disabled;
-- startup source reported as `pyproject command`.
+- startup source reported as `pyproject command`;
+- port selected dynamically for native mode;
+- settings loaded before logging is finalized.
 
-Expected message:
+Expected message shape:
 
 ```text
 NiceGui Windows Base is starting from the pyproject command in native mode with reload disabled.
@@ -74,7 +104,7 @@ This uses:
 src\desktop_app\__main__.py
 ```
 
-Expected message:
+Expected message shape:
 
 ```text
 NiceGui Windows Base is starting from module execution in native mode with reload disabled.
@@ -88,7 +118,7 @@ NiceGui Windows Base is starting from module execution in native mode with reloa
 python src\desktop_app\app.py
 ```
 
-Expected message:
+Expected message shape:
 
 ```text
 NiceGui Windows Base is starting from direct script execution in native mode with reload disabled.
@@ -119,7 +149,15 @@ if development_mode:
 return True, False
 ```
 
-Expected message:
+Expected behavior:
+
+- native mode disabled;
+- reload enabled;
+- port uses the configured web port, currently `8080`;
+- reload watches `src` and `dev_run.py`;
+- runtime source is shown as `the development runner`.
+
+Expected message shape:
 
 ```text
 NiceGui Windows Base is starting from the development runner in web mode with reload enabled.
@@ -148,11 +186,34 @@ After packaging:
 .\dist\nicegui-windows-base.exe
 ```
 
-Expected message:
+Expected behavior:
+
+- native mode enabled;
+- reload disabled;
+- console disabled by PyInstaller `--windowed`;
+- log file written next to the executable;
+- persistent `settings.toml` resolved next to the executable;
+- bundled default `settings.toml` available as fallback;
+- PyInstaller splash screen closes after the first client connects.
+
+Expected message shape:
 
 ```text
 NiceGui Windows Base is starting from the packaged executable in native mode with reload disabled.
 ```
+
+---
+
+## 🔌 Runtime ports
+
+Port selection is centralized in `get_runtime_port(...)`.
+
+| Runtime mode         | Port behavior                              |
+| -------------------- | ------------------------------------------ |
+| Native mode          | Uses NiceGUI native open-port discovery.   |
+| Web development mode | Uses `DEFAULT_WEB_PORT`, currently `8080`. |
+
+This avoids fixed-port conflicts in native desktop mode while keeping browser development predictable.
 
 ---
 
@@ -172,25 +233,40 @@ src\desktop_app\core\runtime.py
 | `module`            | `python -m desktop_app` starts the app                    |
 | `script`            | `src\desktop_app\app.py` starts directly                  |
 
-`app.py` only orchestrates the result: it logs the resolved source, builds the startup message once, prints it to the terminal, and passes it to the page builder. The internal Python package name is intentionally `desktop_app`, while the command and executable keep the public `nicegui-windows-base` name.
+`app.py` only orchestrates the result: it logs the resolved source, builds the startup message once, prints it to the terminal, stores runtime state, and passes it to the page builder.
 
 ---
 
-## 🧭 Which mode should I use?
+## ⚙️ Settings during execution
 
-| Scenario                   | Recommended command               |
-| -------------------------- | --------------------------------- |
-| Normal local usage         | `nicegui-windows-base`            |
-| Validate package execution | `python -m desktop_app`           |
-| Quick diagnostic run       | `python src\desktop_app\app.py`   |
-| Develop UI with reload     | `python dev_run.py`               |
-| Test packaged output       | `.\dist\nicegui-windows-base.exe` |
+Settings are loaded before the main runtime sequence continues.
+
+The default template lives at:
+
+```text
+src\desktop_app\settings.toml
+```
+
+Persistent settings are resolved by runtime root:
+
+| Runtime                 | Persistent settings path                    |
+| ----------------------- | ------------------------------------------- |
+| Normal Python execution | `<current-working-directory>\settings.toml` |
+| Environment override    | `%DESKTOP_APP_ROOT%\settings.toml`          |
+| Packaged executable     | `<executable-directory>\settings.toml`      |
+
+Missing persistent settings are allowed. Bundled defaults are used until the application saves persistent settings.
+
+See:
+
+- [Settings subsystem](settings.md)
+- [Application state](state.md)
 
 ---
 
-## 🧊 Packaged execution
+## 🧊 Packaged execution entry point
 
-The packaged executable uses the standard application entry point with `freeze_support()`:
+The packaged executable uses the standard Windows-safe entry point with `freeze_support()`:
 
 ```python
 if __name__ == "__main__":
@@ -209,9 +285,10 @@ if __name__ == "__main__":
 The same message is used for:
 
 - terminal output through `print(...)`;
+- `AppState.status.current_message`;
 - the NiceGUI page, displayed after `NiceGui Windows Base`.
 
-This avoids duplicated formatting logic and keeps the terminal diagnostics aligned with the visible UI.
+This avoids duplicated formatting logic and keeps terminal diagnostics aligned with the visible UI.
 
 ---
 
@@ -226,7 +303,7 @@ Logging initialized for NiceGui Windows Base.
 Starting NiceGui Windows Base startup sequence.
 Startup source resolved: the packaged executable.
 Runtime mode resolved: native mode with reload disabled.
-Starting NiceGUI runtime in native mode on port 8000.
+Starting NiceGUI runtime in native mode on port 53124.
 NiceGUI runtime started.
 Native window opened.
 Building the main page for the connected client.
@@ -239,7 +316,7 @@ Application shutdown completed.
 
 Repeated native window events such as resize and move are logged at `DEBUG` to keep the main story readable. In browser development mode, native window handlers are skipped because no native desktop window is active.
 
-For the internal logger architecture, early startup buffering, and file rotation behavior, see [Logging subsystem](logging.md).
+For the internal logger architecture, early startup buffering, settings integration, and file rotation behavior, see [Logging subsystem](logging.md).
 
 ---
 
@@ -282,5 +359,7 @@ The splash screen is configured by [Windows packaging](packaging_windows.md). Wh
 ## 🔗 Related documents
 
 - [Development environment](development_environment.md)
+- [Settings subsystem](settings.md)
+- [Application state](state.md)
 - [Windows packaging](packaging_windows.md)
 - [Troubleshooting](troubleshooting.md)

@@ -82,6 +82,24 @@ This does not permanently change system, user, or machine policy settings.
 
 ---
 
+## 🧪 Running tests without activation
+
+When activation is blocked and you only need a quick test, you can call the virtual environment Python directly:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
+
+Coverage example:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest --cov=desktop_app --cov-report=term-missing
+```
+
+This does not replace activation for normal development, but it can help diagnose whether the virtual environment itself is valid.
+
+---
+
 ## 🏢 Corporate environments
 
 In corporate environments, policies may be controlled by IT.
@@ -97,12 +115,13 @@ Recommended behavior:
 
 ## ✅ Summary
 
-| Situation                  | Recommended action                                                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------- |
-| `.venv` activation blocked | Use `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`                            |
-| Packaging script blocked   | Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1` |
-| Corporate policy enforced  | Contact IT or use approved process                                                          |
-| Unsure what to use         | Start with the process-level option                                                         |
+| Situation                             | Recommended action                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `.venv` activation blocked            | Use `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`                            |
+| Packaging script blocked              | Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1` |
+| Need to run pytest without activation | Use `.\.venv\Scripts\python.exe -m pytest`                                                  |
+| Corporate policy enforced             | Contact IT or use approved process                                                          |
+| Unsure what to use                    | Start with the process-level option                                                         |
 
 ---
 

@@ -14,7 +14,7 @@ Use this guide when:
 - cloning or opening the repository for the first time;
 - creating or recreating the `.venv`;
 - installing the project from `pyproject.toml`;
-- validating native execution, browser development mode, Ruff, and packaging.
+- validating native execution, browser development mode, settings persistence, tests, Ruff, and packaging.
 
 ---
 
@@ -32,8 +32,9 @@ flowchart TD
     F -- No --> H[Install project in editable mode]
     H --> I[Run nicegui-windows-base]
     I --> J[Run python dev_run.py]
-    J --> K[Run Ruff checks]
-    K --> L[Package Windows executable]
+    J --> K[Run pytest and coverage]
+    K --> L[Run Ruff checks]
+    L --> M[Package Windows executable]
 ```
 
 ---
@@ -78,7 +79,7 @@ Open the folder that contains:
 pyproject.toml
 ```
 
-Do not open only `src` or `docs`. Opening the root keeps `.venv`, `.vscode`, docs, scripts, and package metadata aligned.
+Do not open only `src`, `docs`, `scripts`, or `tests`. Opening the root keeps `.venv`, `.vscode`, docs, tests, scripts, package metadata, and relative documentation links aligned.
 
 ---
 
@@ -133,7 +134,7 @@ This installs:
 - the project in editable mode;
 - the internal `desktop_app` package from the `src` layout;
 - runtime dependencies from `pyproject.toml`;
-- Ruff through the `dev` extra;
+- Ruff, pytest, pytest-cov, and coverage through the `dev` extra;
 - PyInstaller through the `packaging` extra.
 
 The editable install exposes the internal `desktop_app` package. The public command name is configured separately in `pyproject.toml`. This separation is intentional for template reuse; see the root [README](../README.md#-naming-model).
@@ -160,15 +161,85 @@ Browser-based development mode:
 python dev_run.py
 ```
 
+Direct script diagnostic mode:
+
+```powershell
+python src\desktop_app\app.py
+```
+
 See:
 
 - [Execution modes](execution_modes.md)
 
 ---
 
-## 🧹 8. Validate code quality
+## ⚙️ 8. Validate settings behavior
+
+The application ships with:
+
+```text
+src\desktop_app\settings.toml
+```
+
+This file is the bundled default template.
+
+During normal Python execution, the persistent settings file is resolved as:
+
+```text
+<current-working-directory>\settings.toml
+```
+
+During packaged execution, it is resolved as:
+
+```text
+<executable-directory>\settings.toml
+```
+
+For isolated tests or manual diagnostics, set:
 
 ```powershell
+$env:DESKTOP_APP_ROOT = "C:\Temp\nicegui-windows-base-test"
+```
+
+Then run the application. This makes settings and logs resolve below that folder instead of the normal runtime root.
+
+See:
+
+- [Settings subsystem](settings.md)
+- [Application state](state.md)
+
+---
+
+## 🧪 9. Run tests
+
+Run the full test suite:
+
+```powershell
+pytest
+```
+
+Run with coverage:
+
+```powershell
+pytest --cov=desktop_app --cov-report=term-missing
+```
+
+Generate HTML coverage:
+
+```powershell
+pytest --cov=desktop_app --cov-report=html
+```
+
+See:
+
+- [Code quality](code_quality.md)
+
+---
+
+## 🧹 10. Validate code quality
+
+```powershell
+python -m compileall -q src dev_run.py
 ruff check .
 ruff format --check .
 ```
@@ -185,7 +256,7 @@ See:
 
 ---
 
-## 📦 9. Package for Windows
+## 📦 11. Package for Windows
 
 ```powershell
 .\scripts\package_windows.ps1
@@ -203,7 +274,7 @@ See:
 
 ---
 
-## ✅ 10. Validate the setup
+## ✅ 12. Validate the setup
 
 Use the complete checklist:
 
@@ -217,4 +288,6 @@ Use the complete checklist:
 - [VS Code setup](vscode_setup.md)
 - [PowerShell execution policy](powershell_execution_policy.md)
 - [Execution modes](execution_modes.md)
+- [Settings subsystem](settings.md)
+- [Code quality](code_quality.md)
 - [Troubleshooting](troubleshooting.md)

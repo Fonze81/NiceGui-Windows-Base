@@ -17,6 +17,7 @@ Use this guide when you need to understand startup logs, add new log messages, c
 The logging subsystem is designed to:
 
 - keep startup diagnostics available even before the final log file is ready;
+- read logging settings from the application settings model;
 - avoid duplicated handlers and duplicated log lines;
 - write readable runtime logs in normal Python execution and packaged execution;
 - rotate log files to avoid uncontrolled growth;
@@ -72,6 +73,8 @@ flowchart TD
     G --> I[BoundedMemoryHandler]
     G --> J[Console handler]
     G --> K[Rotating file handler]
+    L[settings mapper] --> E
+    M[byte_size.py] --> F
 ```
 
 | File                                                                          | Responsibility                                                              |
@@ -96,11 +99,14 @@ sequenceDiagram
     participant Module as Imported module
     participant Service as logger service
     participant Memory as Bounded memory handler
+    participant Settings as settings service
     participant App as app.py
     participant File as Rotating file handler
 
     Module->>Service: logger_get_logger(__name__)
-    Service->>Memory: bootstrap early memory-only logging
+    Service->>Memory: bootstrap early memory logging
+    App->>Settings: load_settings()
+    Settings->>App: AppState.log populated
     App->>Service: logger_bootstrap(LoggerConfig)
     Service->>Service: update or create bootstrapper
     App->>Service: logger_enable_file_logging()
@@ -114,25 +120,47 @@ Why this matters:
 1. Some modules create loggers during import.
 2. At that moment, the final log file path may not be known yet.
 3. Early records are kept in a bounded memory handler.
-4. Early bootstrap does not attach a console handler, so import-time diagnostics stay silent.
-5. Once `app.py` resolves the runtime log path, file logging is enabled.
-6. The early records are flushed into the rotating log file.
-7. Console logging is enabled only after final configuration allows it.
+4. `settings.toml` is loaded and mapped into `AppState.log`.
+5. `app.py` resolves the runtime log path and bootstraps the final logger configuration.
+6. File logging is enabled.
+7. The early records are flushed into the rotating log file.
 
-This prevents losing important startup records without allowing unbounded memory growth or noisy pre-configuration console output.
+This prevents losing important startup records without allowing unbounded memory growth.
+
+---
+
+## ⚙️ Settings integration
+
+Logging defaults are stored in:
+
+```text
+src\desktop_app\settings.toml
+```
+
+The supported log settings are:
+
+```toml
+[app.log]
+level = "INFO"
+enable_console = true
+buffer_capacity = 500
+file_path = "logs/app.log"
+rotate_max_bytes = "5 MB"
+rotate_backup_count = 3
+```
+
+`configure_logging()` loads settings first, then builds `LoggerConfig` from `AppState.log`.
+
+In packaged execution, console logging is disabled even if the setting allows console output, because the executable is built with PyInstaller `--windowed`.
 
 ---
 
 ## 📁 Log file location
 
-The runtime log file is configured by constants in:
-
-- [`src/desktop_app/constants.py`](../src/desktop_app/constants.py)
-
-Current default:
+The default relative log file is:
 
 ```python
-LOG_FILE_PATH = Path("logs") / "app.log"
+Path("logs") / "app.log"
 ```
 
 The logger package resolves the final location through [`paths.py`](../src/desktop_app/infrastructure/logger/paths.py). `app.py` calls that resolver during `configure_logging()` and then passes the resulting path to `LoggerConfig`.
@@ -142,9 +170,12 @@ The final location is resolved as follows:
 | Runtime                 | Log location                               |
 | ----------------------- | ------------------------------------------ |
 | Normal Python execution | `<current-working-directory>\logs\app.log` |
+| Environment override    | `%DESKTOP_APP_ROOT%\logs\app.log`          |
 | PyInstaller executable  | `<executable-directory>\logs\app.log`      |
 
-The packaged executable uses a log directory next to the executable so users and maintainers can inspect runtime diagnostics without opening a console window. Absolute log paths are preserved as provided; relative paths are anchored to the working directory during normal Python execution and to the executable directory during packaged execution.
+The packaged executable uses a log directory next to the executable so users and maintainers can inspect runtime diagnostics without opening a console window.
+
+Absolute log paths are preserved as provided. Relative paths are anchored to the settings runtime root.
 
 ---
 
@@ -165,17 +196,19 @@ Key behavior:
 
 ### 💻 Console handler
 
-The console handler is useful during normal Python execution after final logger configuration is applied.
+The console handler is useful during normal Python execution.
 
-Early import-time bootstrap is memory-only and intentionally silent, which allows settings to load before the final logger configuration is known. In packaged execution, console logging is disabled because the executable is built with PyInstaller `--windowed` and should not open an extra terminal window.
+In packaged execution, console logging is disabled because the executable is built with PyInstaller `--windowed` and should not open an extra terminal window.
 
 ### 📄 Rotating file handler
 
-The file handler writes UTF-8 logs and rotates them using values from `constants.py`:
+The file handler writes UTF-8 logs and rotates them using settings from `settings.toml`.
 
-```python
-DEFAULT_ROTATE_MAX_BYTES = 5 * 1024 * 1024
-DEFAULT_ROTATE_BACKUP_COUNT = 3
+Default values:
+
+```text
+rotate_max_bytes = "5 MB"
+rotate_backup_count = 3
 ```
 
 This keeps:
@@ -216,15 +249,6 @@ Recommended behavior:
 - increase the value only when diagnosing verbose `DEBUG` logs;
 - avoid values below `1 MiB`, because they are rejected by validation.
 
-Example:
-
-```python
-LoggerConfig(
-    rotate_max_bytes="5 MB",
-    rotate_backup_count=3,
-)
-```
-
 ---
 
 ## 📜 Log levels and narrative
@@ -246,7 +270,7 @@ Logging initialized for NiceGui Windows Base.
 Starting NiceGui Windows Base startup sequence.
 Startup source resolved: the packaged executable.
 Runtime mode resolved: native mode with reload disabled.
-Starting NiceGUI runtime in native mode on port 8000.
+Starting NiceGUI runtime in native mode on port 53124.
 NiceGUI runtime started.
 Application shutdown completed.
 ```
@@ -257,6 +281,7 @@ Examples of `DEBUG` evidence:
 Application working directory: ...
 Python executable in use: ...
 PyInstaller extraction directory marker: ...
+Settings file path resolved: ...
 Page image resolved for the main page: ...
 Native window lifecycle handlers registered.
 ```
@@ -264,6 +289,7 @@ Native window lifecycle handlers registered.
 See also:
 
 - [Execution modes](execution_modes.md#-runtime-log-narrative)
+- [Settings subsystem](settings.md)
 - [Troubleshooting](troubleshooting.md)
 
 ---
@@ -334,14 +360,6 @@ LoggerConfig(
 )
 ```
 
-The validator layer accepts sizes as integers or strings such as:
-
-```text
-5 MB
-512KB
-1 GB
-```
-
 The logger name cannot be changed after bootstrapper creation. This prevents handler duplication and keeps child logger names stable.
 
 ---
@@ -352,6 +370,7 @@ When changing the logger package, validate at least:
 
 ```powershell
 python -m compileall -q src dev_run.py
+pytest tests/infrastructure/logger
 ruff check .
 ruff format --check .
 ```
@@ -375,6 +394,7 @@ Confirm that:
 
 - `logs\app.log` is created;
 - startup records are not duplicated;
+- logger settings are loaded from `settings.toml`;
 - the packaged executable opens without an extra console window;
 - shutdown releases the log file;
 - `INFO` messages tell the main runtime story;
@@ -390,13 +410,15 @@ Likely causes:
 
 - a module added handlers directly through the standard `logging` API;
 - `logging.basicConfig(...)` was introduced somewhere else;
-- the global bootstrapper was bypassed.
+- the global bootstrapper was bypassed;
+- `reload=True` is being used outside `dev_run.py`.
 
 Fix:
 
 - use `logger_get_logger(__name__)`;
 - keep handler creation inside `handlers.py`;
-- keep global lifecycle control inside `service.py` and `bootstrapper.py`.
+- keep global lifecycle control inside `service.py` and `bootstrapper.py`;
+- keep reload limited to browser development mode.
 
 ### No log file is created
 
@@ -405,7 +427,8 @@ Check:
 - whether `logger_enable_file_logging()` returned `False`;
 - whether the target directory is writable;
 - whether the packaged executable can write next to `dist\nicegui-windows-base.exe`;
-- whether security software is blocking file creation.
+- whether security software is blocking file creation;
+- whether `app.log.file_path` points to an unexpected path.
 
 ### Log file is locked on Windows
 
@@ -422,6 +445,8 @@ This is currently wired through [lifecycle handlers](../src/desktop_app/infrastr
 ## 🔗 Related documents
 
 - [Documentation index](README.md)
+- [Settings subsystem](settings.md)
+- [Application state](state.md)
 - [Execution modes](execution_modes.md)
 - [Windows packaging](packaging_windows.md)
 - [Troubleshooting](troubleshooting.md)

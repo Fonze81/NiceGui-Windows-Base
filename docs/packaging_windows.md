@@ -6,24 +6,16 @@ This document explains how the **NiceGui Windows Base** project is packaged as a
 
 ## 🎯 Current decision
 
-The project now uses **direct PyInstaller packaging only**.
+The project uses **direct PyInstaller packaging only**.
 
-The previous comparison produced similar results:
+Direct PyInstaller is preferred and invoked through `python -m PyInstaller` because:
 
-| Packager     |     Size |    Time |
-| ------------ | -------: | ------: |
-| nicegui-pack | 41.26 MB | 80.54 s |
-| PyInstaller  | 40.37 MB | 78.36 s |
-
-Direct PyInstaller is now preferred and invoked through `python -m PyInstaller` because:
-
-- the executable size was slightly smaller in the comparison;
-- the packaging time was slightly faster in the comparison;
-- PyInstaller supports Windows version properties directly with `--version-file`;
-- PyInstaller supports splash screen configuration through `--splash`;
-- PyInstaller supports windowed desktop execution through `--windowed`;
-- PyInstaller can bundle the default `settings.toml` template with `--add-data`;
-- PyInstaller allows the splash module to be preserved with `--hidden-import pyi_splash`;
+- it supports Windows version properties directly with `--version-file`;
+- it supports splash screen configuration through `--splash`;
+- it supports windowed desktop execution through `--windowed`;
+- it preserves the optional splash module with `--hidden-import pyi_splash`;
+- it bundles runtime assets with `--add-data`;
+- it bundles the default `settings.toml` template with `--add-data`;
 - using one packager keeps the script simpler.
 
 The decision is also documented as a comment in:
@@ -112,7 +104,9 @@ The build uses:
 --windowed
 ```
 
-This prevents a console window from opening next to the native desktop window. Keep this option enabled for end-user desktop builds. If you need console output for packaging diagnostics, run the Python source directly or inspect the generated log file instead of removing `--windowed` permanently.
+This prevents a console window from opening next to the native desktop window. Keep this option enabled for end-user desktop builds.
+
+If you need console output for packaging diagnostics, run the Python source directly or inspect the generated log file instead of removing `--windowed` permanently.
 
 ---
 
@@ -142,15 +136,50 @@ This file controls Windows details such as:
 
 When the project version changes in `pyproject.toml`, update both the numeric tuples and string values in `scripts\version_info.txt`.
 
-Example:
+Current alignment:
 
 ```text
-pyproject.toml: version = "0.3.4"
-version_info.txt: filevers=(0, 3, 4, 0)
-version_info.txt: FileVersion = "0.3.4.0"
+pyproject.toml: version = "0.4.0"
+version_info.txt: filevers=(0, 4, 0, 0)
+version_info.txt: FileVersion = "0.4.0.0"
 ```
 
 When preparing a new release, also update the root [CHANGELOG](../CHANGELOG.md) with the relevant user-facing and maintenance changes.
+
+---
+
+## ⚙️ Bundled settings template
+
+The default settings template is bundled into the executable:
+
+```text
+src\desktop_app\settings.toml
+```
+
+PyInstaller includes it with:
+
+```powershell
+--add-data $settingsData
+```
+
+At runtime:
+
+- the bundled file provides defaults;
+- the persistent file is resolved next to the executable;
+- missing persistent settings are not an error;
+- future settings saves should update the persistent file, not the bundled template.
+
+Expected packaged runtime path:
+
+```text
+dist\settings.toml
+```
+
+The exact file may be created only after settings are saved. The application can start from bundled defaults before that persistent file exists.
+
+See:
+
+- [Settings subsystem](settings.md)
 
 ---
 
@@ -176,22 +205,6 @@ The assets directory is bundled with:
 ```
 
 This is required because `ui.run(favicon=...)` and `ui.image(...)` need the files at runtime, including when the application is running as a one-file executable.
-
-## ⚙️ Settings template
-
-The default settings template is bundled from:
-
-```text
-src\desktop_app\settings.toml
-```
-
-The script passes it to PyInstaller with:
-
-```powershell
---add-data $settingsData
-```
-
-At runtime, startup reads an existing persistent `settings.toml` when available. If the file is missing, the application keeps in-memory defaults and does not write anything during load. The persistent file is created next to `dist\nicegui-windows-base.exe` only when a settings save operation is requested. See [Settings and application state](settings.md).
 
 ---
 
@@ -263,8 +276,33 @@ The function also temporarily changes native command error handling while the ex
 
 ---
 
+## ✅ Packaging validation checklist
+
+After packaging, validate:
+
+```powershell
+Test-Path .\dist\nicegui-windows-base.exe
+Test-Path .\dist\packaging_report.md
+.\dist\nicegui-windows-base.exe
+```
+
+Then confirm:
+
+- the executable opens a native window;
+- no extra console window appears;
+- the executable icon is correct;
+- the splash screen appears and closes;
+- the page image appears;
+- `dist\logs\app.log` is created after startup;
+- runtime logs mention packaged execution;
+- settings defaults are loaded from the bundled template;
+- persistent settings resolve next to the executable.
+
+---
+
 ## 🔗 Related documents
 
 - [Documentation index](README.md)
+- [Settings subsystem](settings.md)
 - [Execution modes](execution_modes.md)
 - [Troubleshooting](troubleshooting.md)

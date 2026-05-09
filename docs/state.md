@@ -1,165 +1,258 @@
 # 🧠 Application State
 
-This guide explains the complete `AppState` model used by **NiceGui Windows Base**.
+This guide explains the shared application state model used by **NiceGui Windows Base**.
 
-Use this document when you need to add shared runtime values, diagnose startup behavior, connect future UI controls to state, or decide whether a value belongs in state, constants, settings, or infrastructure.
+The state implementation lives in:
+
+```text
+src\desktop_app\core\state.py
+```
 
 ---
 
 ## 🎯 Goals
 
-The application state model is designed to:
+`AppState` is designed to:
 
-- keep shared mutable runtime data in one typed place;
-- separate persisted preferences from transient runtime status;
-- support diagnostics without reading NiceGUI internals directly;
-- keep `core/state.py` free from file I/O, logger configuration, and UI element creation;
-- prepare future NiceGUI callbacks for small state updates;
-- avoid turning static constants or live infrastructure objects into mutable state.
-
----
-
-## 🧭 State sections
-
-| Section               | Persistence | Purpose                                                                                   |
-| --------------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| `meta`                | Yes         | User-facing application metadata.                                                         |
-| `runtime`             | No          | Startup source, startup message, runtime mode, reload flag, and selected port.            |
-| `paths`               | No          | Effective settings, log, executable, working directory, and PyInstaller extraction paths. |
-| `window`              | Yes         | Future native window position and size preferences.                                       |
-| `ui`                  | Yes         | User-editable visual preferences.                                                         |
-| `ui_session`          | No          | Transient UI session state such as active view and busy message.                          |
-| `assets`              | No          | Resolved icon, page image, and splash paths for diagnostics.                              |
-| `log`                 | Mixed       | Persisted logger preferences plus runtime status such as effective file path.             |
-| `behavior`            | Yes         | General behavior preferences such as auto-save.                                           |
-| `settings`            | No          | Settings file existence, default usage, latest scopes, and last error.                    |
-| `settings_validation` | No          | Warnings from the latest settings validation.                                             |
-| `lifecycle`           | No          | High-level application, native window, client, splash, and shutdown flags.                |
-| `status`              | No          | Current and recent status messages for future UI feedback.                                |
+- keep runtime diagnostics in one typed object;
+- provide a stable target for settings loading and saving;
+- avoid scattering global variables across modules;
+- keep UI callbacks small by giving them a simple state model;
+- make tests easier by allowing state reset and replacement;
+- separate persisted settings from runtime-only information.
 
 ---
 
-## 🧱 Persistence boundary
+## 🧭 Public API
 
-Only user-editable preferences should be written to `settings.toml`.
+Application modules should use the state helpers:
 
-Persisted groups:
+```python
+from desktop_app.core.state import get_app_state
 
-- `meta`
-- `window`
-- `ui`
-- `log` configuration fields
-- `behavior`
+state = get_app_state()
+```
 
-Runtime-only groups:
+Common helpers:
 
-- `runtime`
-- `paths`
-- `ui_session`
-- `assets`
-- `log.effective_file_path`
-- `settings`
-- `settings_validation`
-- `lifecycle`
-- `status`
-
-This avoids saving values that are valid only for the current process, current machine, current executable folder, or current client connection.
+| Symbol               | Purpose                                                            |
+| -------------------- | ------------------------------------------------------------------ |
+| `get_app_state()`    | Returns the shared application state singleton.                    |
+| `set_app_state(...)` | Replaces the shared state, mainly for tests or controlled startup. |
+| `reset_app_state()`  | Resets the shared state to defaults.                               |
+| `AppState`           | Root dataclass containing all state sections.                      |
+| `StatusLevel`        | Literal type for status severity values.                           |
+| `ThemeName`          | Literal type for supported UI themes.                              |
 
 ---
 
-## ⚙️ Settings file state
+## 🏗️ State sections
 
-`SettingsState` intentionally distinguishes these cases:
+`AppState` groups related data into focused dataclasses.
 
-| Field               | Meaning                                                                            |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| `file_exists`       | Whether `settings.toml` exists for the current runtime.                            |
-| `using_defaults`    | Whether the application is using in-memory defaults.                               |
-| `last_loaded_scope` | Last successful load scope, such as `all`, `group:ui`, or `property:app.ui.theme`. |
-| `last_saved_scope`  | Last successful save scope.                                                        |
+```mermaid
+flowchart TD
+    A[AppState] --> B[AppMetaState]
+    A --> C[RuntimeState]
+    A --> D[RuntimePathsState]
+    A --> E[WindowState]
+    A --> F[UiState]
+    A --> G[UiSessionState]
+    A --> H[AssetState]
+    A --> I[LogState]
+    A --> J[BehaviorState]
+    A --> K[SettingsState]
+    A --> L[SettingsValidationState]
+    A --> M[LifecycleState]
+    A --> N[StatusState]
+    N --> O[StatusMessage]
+```
 
-Loading missing settings is not an error. The application keeps default values in memory and creates `settings.toml` only when a save operation is explicitly requested.
+| Section               | Dataclass                 | Purpose                                                                                                         |
+| --------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `meta`                | `AppMetaState`            | Application name, version, language, and first-run flag.                                                        |
+| `runtime`             | `RuntimeState`            | Startup source, startup message, native mode flag, reload flag, and selected port.                              |
+| `paths`               | `RuntimePathsState`       | Resolved settings path, log path, executable path, working directory, and PyInstaller temp directory.           |
+| `window`              | `WindowState`             | Native window position, size, fullscreen/maximized flags, monitor, storage key, and last-save timestamp.        |
+| `ui`                  | `UiState`                 | Theme, font scale, dense mode, and accent color.                                                                |
+| `ui_session`          | `UiSessionState`          | Current view, busy state, busy message, page-build timestamp, and interaction timestamp.                        |
+| `assets`              | `AssetState`              | Resolved icon, page image, and splash image paths.                                                              |
+| `log`                 | `LogState`                | Logger level, console flag, buffer capacity, log file path, rotation settings, and runtime file logging status. |
+| `behavior`            | `BehaviorState`           | General behavior preferences, currently including auto-save.                                                    |
+| `settings`            | `SettingsState`           | Settings file path, existence/default flags, latest load/save scope, success flags, and latest error.           |
+| `settings_validation` | `SettingsValidationState` | Latest validation warnings, validated scope, and validation timestamp.                                          |
+| `lifecycle`           | `LifecycleState`          | NiceGUI handler registration, runtime, client, native window, splash, and shutdown status flags.                |
+| `status`              | `StatusState`             | Current status message and recent status history.                                                               |
 
 ---
 
-## 🖥️ UI session state
+## 💾 Persisted versus runtime-only data
 
-`UiSessionState` is transient and should be updated by future NiceGUI callbacks.
+Not every state value should be saved to `settings.toml`.
+
+| State area            | Persisted? | Reason                                                                               |
+| --------------------- | ---------- | ------------------------------------------------------------------------------------ |
+| `meta`                | Yes        | Contains application metadata and first-run information from `settings.toml`.        |
+| `window`              | Yes        | User window preferences should survive restarts.                                     |
+| `ui`                  | Yes        | User interface preferences should survive restarts.                                  |
+| `log`                 | Yes        | Logging behavior is configurable.                                                    |
+| `behavior`            | Yes        | User behavior preferences should survive restarts.                                   |
+| `settings`            | Partially  | Runtime metadata is derived from load/save operations, not manually edited by users. |
+| `settings_validation` | No         | Validation results are diagnostic data for the current process.                      |
+| `runtime`             | No         | Startup source, mode, message, and port are run-specific.                            |
+| `paths`               | No         | Paths are resolved per runtime environment.                                          |
+| `ui_session`          | No         | UI session values are transient.                                                     |
+| `assets`              | No         | Asset paths are resolved per runtime environment.                                    |
+| `lifecycle`           | No         | Lifecycle flags describe the current process only.                                   |
+| `status`              | No         | Status messages are run-specific diagnostics.                                        |
+
+The settings subsystem owns persistence. State objects should not write files directly.
+
+---
+
+## ⚙️ Relationship with settings
+
+The settings subsystem maps TOML values into `AppState`.
+
+```mermaid
+sequenceDiagram
+    participant TOML as settings.toml
+    participant Settings as settings mapper
+    participant State as AppState
+    participant Logger as LoggerConfig
+
+    TOML->>Settings: raw values
+    Settings->>Settings: convert and validate
+    Settings->>State: update meta/window/ui/log/behavior/settings
+    State->>Logger: build logger config from log state
+```
+
+See [Settings subsystem](settings.md) for load, save, validation, and path rules.
+
+---
+
+## 🖨️ Relationship with logging
+
+The log section stores the values used to build `LoggerConfig`.
 
 Examples:
 
-```python
-state.ui_session.is_busy = True
-state.ui_session.busy_message = "Saving settings..."
+- `state.log.level`;
+- `state.log.enable_console`;
+- `state.log.buffer_capacity`;
+- `state.log.file_path`;
+- `state.log.rotate_max_bytes`;
+- `state.log.rotate_backup_count`;
+- `state.log.effective_file_path`;
+- `state.log.file_logging_enabled`.
 
-save_settings_group("ui")
+After settings are loaded, `app.py` builds the logger configuration from state and enables rotating file logging.
 
-state.ui_session.is_busy = False
-state.ui_session.busy_message = None
-```
-
-Keep callbacks small. Let services perform file I/O or integration work, then update only the relevant state fields.
-
----
-
-## 🔁 NiceGUI binding recommendation
-
-NiceGUI supports binding UI element properties to model properties and provides `binding.bindable_dataclass()` for dataclass-based models.
-
-For this project, do **not** decorate the full `AppState` with NiceGUI binding. `AppState` contains runtime paths, lifecycle flags, validation lists, status history, and nested state groups. Binding all of it would increase coupling and create unnecessary observable fields.
-
-Recommended usage:
-
-- keep `core/state.py` as plain dataclasses;
-- use NiceGUI binding only for small UI-facing models when a screen needs automatic updates;
-- prefer binding transient view state, such as a settings form model or a future status panel model;
-- avoid binding infrastructure objects, large collections, or values that are not shown in the UI.
-
-A future screen may introduce a bindable model near the UI layer, for example:
-
-```python
-from dataclasses import dataclass
-
-from nicegui import binding
-
-
-@binding.bindable_dataclass
-@dataclass
-class SettingsFormState:
-    theme: str = "light"
-    dense_mode: bool = False
-    is_busy: bool = False
-```
-
-This keeps NiceGUI-specific behavior near the UI and keeps the central state model easy to test.
+See [Logging subsystem](logging.md).
 
 ---
 
-## ✅ Add a new state field
+## 🖥️ Relationship with the UI
 
-Before adding a field, ask:
+NiceGUI UI code should keep callbacks small.
 
-1. Does the value change during runtime?
-2. Is it shared across modules?
-3. Does the UI need to observe it?
-4. Should it be saved to `settings.toml`?
-5. Is it data rather than a live infrastructure object?
+Recommended pattern:
 
-If the field is persisted, update:
+```python
+from desktop_app.core.state import get_app_state
 
-- [`settings.toml`](../src/desktop_app/settings.toml)
-- [`schema.py`](../src/desktop_app/infrastructure/settings/schema.py)
-- [`mapper.py`](../src/desktop_app/infrastructure/settings/mapper.py)
-- [`toml_document.py`](../src/desktop_app/infrastructure/settings/toml_document.py)
-- [`settings.md`](settings.md)
+def update_status(message: str) -> None:
+    state = get_app_state()
+    state.status.push(message, level="info")
+```
 
-If the field is runtime-only, update only the module that resolves or owns that runtime event.
+Avoid putting business logic directly inside UI callbacks. For future SAP GUI, RPA, or SharePoint integrations, callbacks should delegate to services and update state only with the result.
+
+Blocking work must not run on the NiceGUI main thread.
+
+---
+
+## 📜 Status messages
+
+`StatusState` keeps one current message and a bounded history.
+
+```python
+state.status.push("Settings loaded successfully.", level="success")
+state.status.clear()
+```
+
+Supported status levels are:
+
+```text
+info
+success
+warning
+error
+```
+
+The history is capped by `max_history` to avoid unbounded memory growth.
+
+---
+
+## 🧪 Testing state
+
+Tests can isolate state with:
+
+```python
+from desktop_app.core.state import reset_app_state
+
+def test_something() -> None:
+    state = reset_app_state()
+    assert state.meta.name
+```
+
+Guidelines:
+
+- reset shared state between tests that mutate it;
+- avoid relying on state modified by a previous test;
+- prefer explicit state objects when testing pure mapping functions;
+- use temporary directories for settings path tests.
+
+---
+
+## 🧯 Common mistakes
+
+### Writing files from state objects
+
+State should stay as data. File I/O belongs in infrastructure services.
+
+### Storing runtime-only values in `settings.toml`
+
+Paths, selected port, frozen status, splash flags, lifecycle flags, and startup source should remain runtime diagnostics.
+
+### Updating state from long-running blocking work on the UI thread
+
+Long SAP GUI, RPA, SharePoint, or filesystem operations should run outside the NiceGUI main thread and report progress safely.
+
+### Bypassing typed values
+
+Use the settings conversion and mapper functions instead of assigning raw TOML values directly to state fields.
+
+---
+
+## 🛠️ Adding a new state field
+
+Use this checklist:
+
+1. Add the field to the correct dataclass in `core/state.py`.
+2. Keep the default safe for first startup.
+3. Decide whether the field is persisted or runtime-only.
+4. If persisted, update [Settings subsystem](settings.md) and settings mapper tests.
+5. If displayed in the UI, keep the UI callback small.
+6. Add or update tests.
+7. Update documentation links when the field changes project behavior.
 
 ---
 
 ## 🔗 Related documents
 
-- [Settings and application state](settings.md)
-- [Execution modes](execution_modes.md)
+- [Settings subsystem](settings.md)
 - [Logging subsystem](logging.md)
+- [Execution modes](execution_modes.md)
+- [Code quality](code_quality.md)
 - [Troubleshooting](troubleshooting.md)
