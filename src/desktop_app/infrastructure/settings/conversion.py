@@ -15,12 +15,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from desktop_app.infrastructure.byte_size import parse_byte_size
 
 
-def get_nested_value(mapping: Mapping[str, Any], path: str, default: Any) -> Any:
+def get_nested_value[T](
+    mapping: Mapping[str, object],
+    path: str,
+    default: T,
+) -> object | T:
     """Return a mapping value selected by a dotted path.
 
     Args:
@@ -31,18 +35,22 @@ def get_nested_value(mapping: Mapping[str, Any], path: str, default: Any) -> Any
     Returns:
         Found value or the provided default.
     """
-    cursor: Any = mapping
+    current_value: object = mapping
 
-    for part in path.split("."):
-        if not isinstance(cursor, Mapping) or part not in cursor:
+    for path_part in path.split("."):
+        if not isinstance(current_value, Mapping):
             return default
 
-        cursor = cursor[part]
+        current_mapping = cast(Mapping[str, object], current_value)
+        if path_part not in current_mapping:
+            return default
 
-    return cursor
+        current_value = current_mapping[path_part]
+
+    return current_value
 
 
-def to_bool(value: Any, default: bool) -> bool:
+def to_bool(value: object, default: bool) -> bool:
     """Convert an external value to bool.
 
     Args:
@@ -56,18 +64,18 @@ def to_bool(value: Any, default: bool) -> bool:
         return value
 
     if isinstance(value, str):
-        normalized = value.strip().lower()
+        normalized_value = value.strip().lower()
 
-        if normalized in {"true", "1", "yes", "y", "sim", "s"}:
+        if normalized_value in {"true", "1", "yes", "y", "sim", "s"}:
             return True
 
-        if normalized in {"false", "0", "no", "n", "nao", "não"}:
+        if normalized_value in {"false", "0", "no", "n", "nao", "não"}:
             return False
 
     return default
 
 
-def to_int(value: Any, default: int) -> int:
+def to_int(value: object, default: int) -> int:
     """Convert an external value to int.
 
     Args:
@@ -80,13 +88,16 @@ def to_int(value: Any, default: int) -> int:
     if isinstance(value, bool):
         return default
 
+    if not isinstance(value, int | float | str):
+        return default
+
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (OverflowError, ValueError):
         return default
 
 
-def to_float(value: Any, default: float) -> float:
+def to_float(value: object, default: float) -> float:
     """Convert an external value to float.
 
     Args:
@@ -99,13 +110,16 @@ def to_float(value: Any, default: float) -> float:
     if isinstance(value, bool):
         return default
 
+    if not isinstance(value, int | float | str):
+        return default
+
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except ValueError:
         return default
 
 
-def to_path(value: Any, default: Path) -> Path:
+def to_path(value: object, default: Path) -> Path:
     """Convert an external value to Path.
 
     Args:
@@ -124,7 +138,7 @@ def to_path(value: Any, default: Path) -> Path:
     return default
 
 
-def try_parse_byte_size(value: int | str) -> int | None:
+def try_parse_byte_size(value: object) -> int | None:
     """Convert a byte-size value without raising for invalid settings.
 
     Args:
@@ -133,6 +147,9 @@ def try_parse_byte_size(value: int | str) -> int | None:
     Returns:
         Integer size in bytes, or None when conversion is unsafe.
     """
+    if not isinstance(value, int | str):
+        return None
+
     try:
         return parse_byte_size(value)
     except (TypeError, ValueError):
