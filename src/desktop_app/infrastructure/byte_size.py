@@ -13,15 +13,19 @@
 from __future__ import annotations
 
 import re
+from typing import Final
 
-_SIZE_UNITS_TO_BYTES = {
+_SIZE_UNITS_TO_BYTES: Final[dict[str, int]] = {
     "B": 1,
     "KB": 1024,
     "MB": 1024 * 1024,
     "GB": 1024 * 1024 * 1024,
 }
 
-_SIZE_PATTERN = re.compile(r"^\s*(\d+)\s*([KMG]?B)\s*$", re.IGNORECASE)
+_SIZE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^\s*(\d+)\s*([KMG]?B)\s*$",
+    re.IGNORECASE,
+)
 
 
 def parse_byte_size(value: int | str) -> int:
@@ -46,24 +50,24 @@ def parse_byte_size(value: int | str) -> int:
         return value
 
     if isinstance(value, str):
-        normalized_value = value.strip()
-        if not normalized_value:
+        size_text = value.strip()
+        if not size_text:
             raise ValueError("Byte size string must not be empty.")
 
-        match = _SIZE_PATTERN.match(normalized_value)
+        match = _SIZE_PATTERN.match(size_text)
         if match is None:
             raise ValueError(
                 "Byte size string must use a valid format such as "
                 "'5 MB', '512KB' or '1 GB'."
             )
 
-        numeric_value = int(match.group(1))
+        amount = int(match.group(1))
         unit = match.group(2).upper()
-        size_in_bytes = numeric_value * _SIZE_UNITS_TO_BYTES[unit]
+        byte_count = amount * _SIZE_UNITS_TO_BYTES[unit]
 
-        if size_in_bytes < 1:
+        if byte_count < 1:
             raise ValueError("Byte size must be greater than zero.")
 
-        return size_in_bytes
+        return byte_count
 
     raise TypeError("Byte size must be an int or a string.")
