@@ -39,6 +39,8 @@ from desktop_app.infrastructure.settings.toml_document import (
     build_document_from_state,
 )
 
+type SettingsPath = str | Path
+
 logger = logger_get_logger(__name__)
 
 
@@ -72,7 +74,7 @@ def build_initial_settings_document(state: AppState) -> TOMLDocument:
 
 def load_settings(
     *,
-    settings_path: Path | None = None,
+    settings_path: SettingsPath | None = None,
     state: AppState | None = None,
     group: SettingsGroup | None = None,
     property_path: str | None = None,
@@ -92,45 +94,33 @@ def load_settings(
         True when loading completed successfully.
     """
     current_state = state if state is not None else get_app_state()
-    path = (settings_path or resolve_default_settings_path()).expanduser().resolve()
+    settings_file_path = _resolve_load_path(settings_path)
     scope_description = _describe_scope(group=group, property_path=property_path)
 
     # Validate scope even when the file does not exist, so invalid API usage does
     # not get hidden by the default-settings fallback path.
     get_settings_scope_paths(group=group, property_path=property_path)
 
-    current_state.settings.file_path = path
-    current_state.settings.file_exists = path.exists()
-    current_state.settings.last_error = None
-    current_state.settings.last_load_ok = False
-    current_state.settings_validation.warnings.clear()
-    current_state.settings_validation.last_validated_scope = scope_description
-    current_state.settings_validation.last_validated_at = datetime.now()
+    _mark_load_started(current_state, settings_file_path, scope_description)
 
     logger.debug(
         'Settings load started: path="%s", scope="%s"',
-        str(path),
+        str(settings_file_path),
         scope_description,
     )
 
-    if not path.exists():
-        current_state.settings.using_defaults = True
-        current_state.settings.last_load_ok = True
-        current_state.settings.last_loaded_scope = scope_description
-        current_state.status.push(
-            "settings.toml was not found. Default settings are being used.",
-            "info",
-        )
+    if not settings_file_path.exists():
+        _mark_missing_file_load(current_state, scope_description)
         logger.info(
             'Settings file not found. Using in-memory defaults: path="%s", scope="%s"',
-            str(path),
+            str(settings_file_path),
             scope_description,
         )
         return True
 
     try:
-        logger.debug('Reading settings file: path="%s"', str(path))
-        document = tomlkit.parse(path.read_text(encoding="utf-8"))
+        logger.debug('Reading settings file: path="%s"', str(settings_file_path))
+        document = tomlkit.parse(settings_file_path.read_text(encoding="utf-8"))
 
         logger.debug(
             'Applying settings document to AppState: scope="%s"',
@@ -143,28 +133,17 @@ def load_settings(
             property_path=property_path,
         )
 
-        current_state.settings.file_exists = True
-        current_state.settings.using_defaults = False
-        current_state.settings.last_load_ok = True
-        current_state.settings.last_loaded_scope = scope_description
-        current_state.settings.last_error = None
-        current_state.status.push("Settings loaded successfully.", "success")
-
+        _mark_load_succeeded(current_state, scope_description)
         logger.info(
             'Settings loaded successfully: path="%s", scope="%s"',
-            str(path),
+            str(settings_file_path),
             scope_description,
         )
         return True
     except SettingsScopeError:
         raise
     except Exception as exc:
-        current_state.settings.last_error = f"Failed to load settings: {exc}"
-        current_state.settings.using_defaults = True
-        current_state.status.push(
-            "settings.toml could not be loaded. Default settings are being used.",
-            "error",
-        )
+        _mark_load_failed(current_state, exc)
         logger.exception("Failed to load settings")
         return False
 
@@ -172,7 +151,7 @@ def load_settings(
 def load_settings_group(
     group: SettingsGroup,
     *,
-    settings_path: Path | None = None,
+    settings_path: SettingsPath | None = None,
     state: AppState | None = None,
 ) -> bool:
     """Load one settings group from settings.toml.
@@ -195,7 +174,7 @@ def load_settings_group(
 def load_setting_property(
     property_path: str,
     *,
-    settings_path: Path | None = None,
+    settings_path: SettingsPath | None = None,
     state: AppState | None = None,
 ) -> bool:
     """Load one settings property from settings.toml.
@@ -217,7 +196,7 @@ def load_setting_property(
 
 def save_settings(
     *,
-    settings_path: Path | None = None,
+    settings_path: SettingsPath | None = None,
     state: AppState | None = None,
     group: SettingsGroup | None = None,
     property_path: str | None = None,
@@ -234,34 +213,27 @@ def save_settings(
         True when saving completed successfully.
     """
     current_state = state if state is not None else get_app_state()
-    path = (
-        (
-            settings_path
-            or current_state.settings.file_path
-            or resolve_default_settings_path()
-        )
-        .expanduser()
-        .resolve()
-    )
+    settings_file_path = _resolve_save_path(settings_path, current_state)
     scope_description = _describe_scope(group=group, property_path=property_path)
 
     # Validate scope before touching the filesystem.
     get_settings_scope_paths(group=group, property_path=property_path)
 
-    current_state.settings.file_path = path
-    current_state.settings.last_error = None
-    current_state.settings.last_save_ok = False
+    _mark_save_started(current_state, settings_file_path)
 
     logger.debug(
         'Settings save started: path="%s", scope="%s"',
-        str(path),
+        str(settings_file_path),
         scope_description,
     )
 
     try:
-        if path.exists():
-            logger.debug('Existing settings file found: path="%s"', str(path))
-            document = tomlkit.parse(path.read_text(encoding="utf-8"))
+        if settings_file_path.exists():
+            logger.debug(
+                'Existing settings file found: path="%s"',
+                str(settings_file_path),
+            )
+            document = tomlkit.parse(settings_file_path.read_text(encoding="utf-8"))
         else:
             logger.debug(
                 "Settings file not found. Building initial document for first save."
@@ -278,24 +250,19 @@ def save_settings(
             group=group,
             property_path=property_path,
         )
-        atomic_write_text(path, tomlkit.dumps(document))
+        atomic_write_text(settings_file_path, tomlkit.dumps(document))
 
-        current_state.settings.file_exists = True
-        current_state.settings.using_defaults = False
-        current_state.settings.last_save_ok = True
-        current_state.settings.last_saved_scope = scope_description
-        current_state.status.push("Settings saved successfully.", "success")
+        _mark_save_succeeded(current_state, scope_description)
         logger.info(
             'Settings saved successfully: path="%s", scope="%s"',
-            str(path),
+            str(settings_file_path),
             scope_description,
         )
         return True
     except SettingsScopeError:
         raise
     except Exception as exc:
-        current_state.settings.last_error = f"Failed to save settings: {exc}"
-        current_state.status.push("settings.toml could not be saved.", "error")
+        _mark_save_failed(current_state, exc)
         logger.exception("Failed to save settings")
         return False
 
@@ -303,7 +270,7 @@ def save_settings(
 def save_settings_group(
     group: SettingsGroup,
     *,
-    settings_path: Path | None = None,
+    settings_path: SettingsPath | None = None,
     state: AppState | None = None,
 ) -> bool:
     """Save one settings group to settings.toml.
@@ -326,7 +293,7 @@ def save_settings_group(
 def save_setting_property(
     property_path: str,
     *,
-    settings_path: Path | None = None,
+    settings_path: SettingsPath | None = None,
     state: AppState | None = None,
 ) -> bool:
     """Save one settings property to settings.toml.
@@ -344,6 +311,150 @@ def save_setting_property(
         state=state,
         property_path=property_path,
     )
+
+
+def _resolve_load_path(settings_path: SettingsPath | None) -> Path:
+    """Resolve the settings path used by load operations.
+
+    Args:
+        settings_path: Explicit settings file path, when provided.
+
+    Returns:
+        Absolute settings file path.
+    """
+    selected_path = settings_path
+
+    if selected_path is None:
+        selected_path = resolve_default_settings_path()
+
+    return Path(selected_path).expanduser().resolve()
+
+
+def _resolve_save_path(
+    settings_path: SettingsPath | None,
+    state: AppState,
+) -> Path:
+    """Resolve the settings path used by save operations.
+
+    Args:
+        settings_path: Explicit settings file path, when provided.
+        state: Application state that may contain the latest settings path.
+
+    Returns:
+        Absolute settings file path.
+    """
+    if settings_path is not None:
+        selected_path: SettingsPath = settings_path
+    elif state.settings.file_path is not None:
+        selected_path = state.settings.file_path
+    else:
+        selected_path = resolve_default_settings_path()
+
+    return Path(selected_path).expanduser().resolve()
+
+
+def _mark_load_started(
+    state: AppState,
+    settings_file_path: Path,
+    scope_description: str,
+) -> None:
+    """Update state metadata before a settings load attempt.
+
+    Args:
+        state: Application state to update.
+        settings_file_path: Effective settings file path.
+        scope_description: Human-readable scope description.
+    """
+    state.settings.file_path = settings_file_path
+    state.settings.file_exists = settings_file_path.exists()
+    state.settings.last_error = None
+    state.settings.last_load_ok = False
+    state.settings_validation.warnings.clear()
+    state.settings_validation.last_validated_scope = scope_description
+    state.settings_validation.last_validated_at = datetime.now()
+
+
+def _mark_missing_file_load(state: AppState, scope_description: str) -> None:
+    """Update state metadata when settings.toml does not exist.
+
+    Args:
+        state: Application state to update.
+        scope_description: Human-readable scope description.
+    """
+    state.settings.using_defaults = True
+    state.settings.last_load_ok = True
+    state.settings.last_loaded_scope = scope_description
+    state.status.push(
+        "settings.toml was not found. Default settings are being used.",
+        "info",
+    )
+
+
+def _mark_load_succeeded(state: AppState, scope_description: str) -> None:
+    """Update state metadata after a successful settings load.
+
+    Args:
+        state: Application state to update.
+        scope_description: Human-readable scope description.
+    """
+    state.settings.file_exists = True
+    state.settings.using_defaults = False
+    state.settings.last_load_ok = True
+    state.settings.last_loaded_scope = scope_description
+    state.settings.last_error = None
+    state.status.push("Settings loaded successfully.", "success")
+
+
+def _mark_load_failed(state: AppState, error: Exception) -> None:
+    """Update state metadata after a failed settings load.
+
+    Args:
+        state: Application state to update.
+        error: Exception raised during the load operation.
+    """
+    state.settings.last_error = f"Failed to load settings: {error}"
+    state.settings.using_defaults = True
+    state.status.push(
+        "settings.toml could not be loaded. Default settings are being used.",
+        "error",
+    )
+
+
+def _mark_save_started(state: AppState, settings_file_path: Path) -> None:
+    """Update state metadata before a settings save attempt.
+
+    Args:
+        state: Application state to update.
+        settings_file_path: Effective settings file path.
+    """
+    state.settings.file_path = settings_file_path
+    state.settings.last_error = None
+    state.settings.last_save_ok = False
+
+
+def _mark_save_succeeded(state: AppState, scope_description: str) -> None:
+    """Update state metadata after a successful settings save.
+
+    Args:
+        state: Application state to update.
+        scope_description: Human-readable scope description.
+    """
+    state.settings.file_exists = True
+    state.settings.using_defaults = False
+    state.settings.last_save_ok = True
+    state.settings.last_saved_scope = scope_description
+    state.status.push("Settings saved successfully.", "success")
+
+
+def _mark_save_failed(state: AppState, error: Exception) -> None:
+    """Update state metadata after a failed settings save.
+
+    Args:
+        state: Application state to update.
+        error: Exception raised during the save operation.
+    """
+    state.settings.last_error = f"Failed to save settings: {error}"
+    state.status.push("settings.toml could not be saved.", "error")
 
 
 def _describe_scope(
