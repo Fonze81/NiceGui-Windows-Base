@@ -12,9 +12,13 @@
 # process state.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import sys
 from collections.abc import Sequence
-from pathlib import Path
+from logging import Logger
+from pathlib import Path, PureWindowsPath
+from typing import Final
 
 from desktop_app.constants import (
     APPLICATION_TITLE,
@@ -22,9 +26,9 @@ from desktop_app.constants import (
 )
 from desktop_app.infrastructure.logger import logger_get_logger
 
-logger = logger_get_logger(__name__)
+logger: Logger = logger_get_logger(__name__)
 
-STARTUP_SOURCE_DESCRIPTIONS = {
+STARTUP_SOURCE_DESCRIPTIONS: Final[dict[str, str]] = {
     "dev_run.py": "the development runner",
     "package": "the packaged executable",
     "pyproject command": "the pyproject command",
@@ -43,13 +47,16 @@ def is_frozen_executable(*, frozen: bool | None = None) -> bool:
     Returns:
         True when PyInstaller marks the process as frozen; otherwise False.
     """
-    return frozen if frozen is not None else bool(getattr(sys, "frozen", False))
+    if frozen is not None:
+        return frozen
+
+    return bool(getattr(sys, "frozen", False))
 
 
 def get_runtime_root(
     *,
-    meipass: str | None = None,
-    executable: str | None = None,
+    meipass: str | Path | None = None,
+    executable: str | Path | None = None,
     module_file: str | Path | None = None,
     frozen: bool | None = None,
 ) -> Path:
@@ -83,7 +90,7 @@ def get_runtime_root(
         )
         return runtime_root
 
-    runtime_executable = executable or sys.executable
+    runtime_executable = executable if executable is not None else sys.executable
 
     if is_frozen_executable(frozen=frozen):
         runtime_root = Path(runtime_executable).resolve().parent
@@ -161,7 +168,7 @@ def detect_startup_source(
         logger.debug("Startup source could not be detected because argv is empty.")
         return "unknown source"
 
-    entry_name = Path(runtime_argv[0]).name.lower()
+    entry_name = _extract_entry_name(runtime_argv[0])
     normalized_command_names = {name.lower() for name in pyproject_command_names}
 
     logger.debug("Startup entry point detected: %s", entry_name)
@@ -277,3 +284,20 @@ def get_startup_message(
         reload_enabled=reload_enabled,
         application_title=application_title,
     )
+
+
+def _extract_entry_name(entry_point: str) -> str:
+    """Return a normalized executable or script name from an argv entry.
+
+    Args:
+        entry_point: Raw argv entry that may contain a Windows or POSIX path.
+
+    Returns:
+        Lowercase file name without parent directories, or an empty string when
+        the entry is blank.
+    """
+    normalized_entry_point = entry_point.strip()
+    if not normalized_entry_point:
+        return ""
+
+    return PureWindowsPath(normalized_entry_point).name.lower()
