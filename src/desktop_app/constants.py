@@ -58,3 +58,18 @@ PYPROJECT_COMMAND_NAMES = (
     "nicegui-windows-base",
     "nicegui-windows-base.exe",
 )
+
+SETTINGS_FILE_NAME = "settings.toml"
+APP_ROOT_ENV_VAR = "DESKTOP_APP_ROOT"
+
+ALLOWED_LOG_LEVELS = {
+    "CRITICAL",
+    "ERROR",
+    "WARNING",
+    "WARN",
+    "INFO",
+    "DEBUG",
+    "NOTSET",
+}
+
+ALLOWED_THEMES = {"light", "dark", "system"}
