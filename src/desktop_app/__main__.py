@@ -10,5 +10,11 @@
 
 from desktop_app.app import main
 
-if __name__ == "__main__":
+
+def run() -> None:
+    """Run the application entry point."""
     main()
+
+
+if __name__ == "__main__":
+    run()
