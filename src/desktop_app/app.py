@@ -47,6 +47,10 @@ from desktop_app.infrastructure.logger import (
     logger_get_logger,
     resolve_log_file_path,
 )
+from desktop_app.infrastructure.native_window_state import (
+    apply_initial_native_window_options,
+    apply_native_window_args_from_state,
+)
 from desktop_app.infrastructure.settings import (
     build_logger_config_from_state,
     load_settings,
@@ -54,6 +58,27 @@ from desktop_app.infrastructure.settings import (
 from desktop_app.infrastructure.settings.paths import get_pyinstaller_temp_dir
 
 logger = logger_get_logger(__name__)
+
+
+def prepare_native_window_arguments_before_main(
+    *, state: AppState | None = None
+) -> None:
+    """Load persisted settings and apply native window arguments early.
+
+    NiceGUI native mode reads ``app.native.window_args`` while creating the
+    pywebview window. Applying these values at module import time keeps the
+    persisted x and y coordinates available before ``main`` reaches ``ui.run``.
+
+    Args:
+        state: Optional application state. Uses the global state when omitted.
+    """
+    current_state = state if state is not None else get_app_state()
+    if not current_state.settings.last_load_ok:
+        load_settings(state=current_state)
+    apply_native_window_args_from_state(state=current_state)
+
+
+prepare_native_window_arguments_before_main()
 
 
 def configure_logging(*, state: AppState | None = None) -> Path:
@@ -70,7 +95,8 @@ def configure_logging(*, state: AppState | None = None) -> Path:
     current_state.paths.executable_path = Path(sys.executable).resolve()
     current_state.paths.pyinstaller_temp_dir = get_pyinstaller_temp_dir()
 
-    load_settings(state=current_state)
+    if not current_state.settings.last_load_ok:
+        load_settings(state=current_state)
     current_state.paths.settings_file_path = current_state.settings.file_path
 
     frozen_executable = is_frozen_executable()
@@ -249,6 +275,9 @@ def main(*, development_mode: bool = False) -> None:
         "port": runtime_port,
         "host": "127.0.0.1",
     }
+
+    if native_mode:
+        apply_initial_native_window_options(ui_run_options, state=state)
 
     if reload_enabled:
         ui_run_options.update(

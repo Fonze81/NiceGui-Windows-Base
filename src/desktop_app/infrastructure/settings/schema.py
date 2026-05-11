@@ -33,6 +33,7 @@ GROUP_PROPERTY_PATHS: dict[SettingsGroup, tuple[SettingsPropertyPath, ...]] = {
         "app.window.maximized",
         "app.window.fullscreen",
         "app.window.monitor",
+        "app.window.persist_state",
         "app.window.storage_key",
     ),
     "ui": (

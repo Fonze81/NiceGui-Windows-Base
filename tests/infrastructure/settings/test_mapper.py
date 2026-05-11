@@ -83,6 +83,12 @@ def nested_settings(property_path: str, value: Any) -> dict[str, Any]:
         ),
         ("app.window.monitor", "2", lambda state: state.window.monitor, 2),
         (
+            "app.window.persist_state",
+            "false",
+            lambda state: state.window.persist_state,
+            False,
+        ),
+        (
             "app.window.storage_key",
             " custom_window_state ",
             lambda state: state.window.storage_key,

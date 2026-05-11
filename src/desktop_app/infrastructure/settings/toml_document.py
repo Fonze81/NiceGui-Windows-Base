@@ -179,6 +179,8 @@ def get_state_property_value(state: AppState, property_path: str) -> Any:
         return state.window.fullscreen
     if property_path == "app.window.monitor":
         return state.window.monitor
+    if property_path == "app.window.persist_state":
+        return state.window.persist_state
     if property_path == "app.window.storage_key":
         return state.window.storage_key
 

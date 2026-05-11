@@ -58,6 +58,7 @@ def build_custom_state() -> AppState:
     state.window.maximized = True
     state.window.fullscreen = False
     state.window.monitor = 2
+    state.window.persist_state = False
     state.window.storage_key = "custom_window_key"
 
     state.ui.theme = "dark"
@@ -212,6 +213,7 @@ def test_get_state_property_value_returns_every_supported_value() -> None:
         "app.window.maximized": True,
         "app.window.fullscreen": False,
         "app.window.monitor": 2,
+        "app.window.persist_state": False,
         "app.window.storage_key": "custom_window_key",
         "app.ui.theme": "dark",
         "app.ui.font_scale": 1.25,

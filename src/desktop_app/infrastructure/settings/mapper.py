@@ -298,6 +298,17 @@ def _apply_window_monitor(
         _record_settings_warning(state, "Invalid monitor index in settings.toml.")
 
 
+def _apply_window_persist_state(
+    state: AppState,
+    settings_data: SettingsData,
+    property_path: str,
+) -> None:
+    state.window.persist_state = to_bool(
+        _get_setting(settings_data, property_path, state.window.persist_state),
+        state.window.persist_state,
+    )
+
+
 def _apply_window_storage_key(
     state: AppState,
     settings_data: SettingsData,
@@ -569,6 +580,7 @@ _PROPERTY_APPLIERS: dict[str, PropertyApplier] = {
     "app.window.maximized": _apply_window_maximized,
     "app.window.fullscreen": _apply_window_fullscreen,
     "app.window.monitor": _apply_window_monitor,
+    "app.window.persist_state": _apply_window_persist_state,
     "app.window.storage_key": _apply_window_storage_key,
     "app.ui.theme": _apply_ui_theme,
     "app.ui.font_scale": _apply_ui_font_scale,

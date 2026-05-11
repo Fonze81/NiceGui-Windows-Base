@@ -77,7 +77,7 @@ It contains the default structure:
 ```toml
 [app]
 name = "NiceGui Windows Base"
-version = "0.4.0"
+version = "0.5.0"
 language = "en-US"
 first_run = true
 
@@ -89,6 +89,7 @@ height = 720
 maximized = false
 fullscreen = false
 monitor = 0
+persist_state = true
 storage_key = "nicegui_windows_base_window_state"
 
 [app.ui]
@@ -168,7 +169,7 @@ Settings are organized by groups in [`schema.py`](../src/desktop_app/infrastruct
 | Group      | Property paths                                                                                                                                                           |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `meta`     | `app.name`, `app.version`, `app.language`, `app.first_run`                                                                                                               |
-| `window`   | `app.window.x`, `app.window.y`, `app.window.width`, `app.window.height`, `app.window.maximized`, `app.window.fullscreen`, `app.window.monitor`, `app.window.storage_key` |
+| `window`   | `app.window.x`, `app.window.y`, `app.window.width`, `app.window.height`, `app.window.maximized`, `app.window.fullscreen`, `app.window.monitor`, `app.window.persist_state`, `app.window.storage_key` |
 | `ui`       | `app.ui.theme`, `app.ui.font_scale`, `app.ui.dense_mode`, `app.ui.accent_color`                                                                                          |
 | `log`      | `app.log.level`, `app.log.enable_console`, `app.log.buffer_capacity`, `app.log.file_path`, `app.log.rotate_max_bytes`, `app.log.rotate_backup_count`                     |
 | `behavior` | `app.behavior.auto_save`                                                                                                                                                 |
@@ -177,6 +178,46 @@ Legacy log paths are also recognized for cleanup and migration support:
 
 - `app.log.name`;
 - `app.log.console`.
+
+---
+
+## 🪟 Native window persistence
+
+The `window` settings group controls the initial native desktop window geometry
+and whether the latest geometry is saved when the application exits.
+
+When `app.window.persist_state = true`, the application:
+
+1. loads `x`, `y`, `width`, `height`, and `fullscreen` during early startup;
+2. normalizes persisted coordinates against the current Windows monitor work areas;
+3. assigns `x` and `y` to `app.native.window_args` before `main()` reaches `ui.run(...)`;
+4. passes `window_size` and `fullscreen` through `ui.run(...)` in native mode;
+5. updates `AppState.window` when native resize or move events are received;
+6. saves only the `window` settings group when the native window is closed or during application shutdown.
+
+When `app.window.persist_state = false`, the application resets saved geometry to
+`WindowState` defaults and persists the `window` group. This prevents stale
+coordinates from being reused if persistence is enabled again later.
+
+The native geometry layer is Windows-only and uses Win32 monitor APIs through
+`ctypes` instead of `tkinter` or external dependencies. It supports multiple
+monitors and negative virtual-screen coordinates by enumerating monitor work
+areas and clamping the persisted position to the most relevant monitor.
+
+The capture, restore, visibility guard, and persistence logic lives in:
+
+```text
+src\desktop_app\infrastructure\native_window_state.py
+```
+
+Lifecycle handlers call that module from:
+
+```text
+src\desktop_app\infrastructure\lifecycle.py
+```
+
+See [Native window persistence](native_window_persistence.md) for the complete
+flow and troubleshooting notes.
 
 ---
 
@@ -224,6 +265,7 @@ Examples:
 | -------------------------- | ------------------------------ |
 | `app.window.x`             | `int`                          |
 | `app.window.maximized`     | `bool`                         |
+| `app.window.persist_state` | `bool`                         |
 | `app.ui.theme`             | `light`, `dark`, or `system`   |
 | `app.ui.font_scale`        | `float`                        |
 | `app.log.level`            | logging level string           |
@@ -359,6 +401,12 @@ When this environment variable is set, it intentionally changes the runtime root
 ### Packaged executable ignores local edits
 
 Confirm that you edited the persistent file next to the executable, not the bundled template inside the source tree.
+
+### Window position is stale after disabling persistence
+
+Set `app.window.persist_state = false` in the persistent runtime file and start
+the application once. The application resets geometry fields to `WindowState`
+defaults and saves the `window` group so the old position is not reused later.
 
 ### Invalid theme is ignored
 

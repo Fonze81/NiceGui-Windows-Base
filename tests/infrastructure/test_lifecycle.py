@@ -140,14 +140,26 @@ def lifecycle_module(monkeypatch: pytest.MonkeyPatch) -> Generator[ModuleType]:
     reset_app_state()
     monkeypatch.setitem(sys.modules, "nicegui", fake_nicegui_module)
     sys.modules.pop("desktop_app.infrastructure.splash", None)
+    sys.modules.pop("desktop_app.infrastructure.native_window_state", None)
     sys.modules.pop("desktop_app.infrastructure.lifecycle", None)
 
     module = importlib.import_module("desktop_app.infrastructure.lifecycle")
     monkeypatch.setattr(module, "logger", fake_logger)
+    monkeypatch.setattr(
+        module,
+        "persist_native_window_state_on_exit",
+        lambda *_args, **_kwargs: True,
+    )
+    monkeypatch.setattr(
+        module,
+        "restore_native_window_state_after_show",
+        lambda *_args, **_kwargs: False,
+    )
 
     yield module
 
     sys.modules.pop("desktop_app.infrastructure.lifecycle", None)
+    sys.modules.pop("desktop_app.infrastructure.native_window_state", None)
     sys.modules.pop("desktop_app.infrastructure.splash", None)
     reset_app_state()
 

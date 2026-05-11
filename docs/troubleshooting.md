@@ -606,6 +606,61 @@ dist\packaging_report.md
 
 ---
 
+## 🪟 Native window opens outside the visible area
+
+The application clamps persisted coordinates against the current Windows monitor
+work areas before positioning the native window. If the window is still not
+reachable, disable persistence once in the persistent runtime file:
+
+```toml
+[app.window]
+persist_state = false
+```
+
+Start the application again. It resets geometry to `WindowState` defaults and
+saves the `window` settings group, while keeping `persist_state = false`.
+
+Edit the correct file for the runtime:
+
+| Runtime | File to edit |
+| ------- | ------------ |
+| Normal Python execution | `<repository-root>\settings.toml` |
+| Packaged executable | `<executable-directory>\settings.toml` |
+| Custom root | `%DESKTOP_APP_ROOT%\settings.toml` |
+
+Do not edit `src\desktop_app\settings.toml` expecting it to change an already
+created persistent settings file. That source file is the bundled default
+template.
+
+---
+
+## 🪟 Manual `x` and `y` changes are not reflected
+
+Confirm that native mode is being used. Browser development mode does not create
+a native desktop window, so native geometry is not applied there.
+
+Also confirm the log contains a line similar to:
+
+```text
+Native window options prepared: size=(1024, 720), position=(100, 100), fullscreen=False, persist_state=True.
+```
+
+If the line shows the old values, the edited file is not the runtime settings
+file that the application loaded.
+
+---
+
+## 🪟 Native window size is not saved
+
+Resize events update `AppState.window` during runtime, but the TOML file is only
+written when the native window closes or the application shuts down. Close the
+application normally and then inspect the `[app.window]` section.
+
+If `persist_state = false`, the application intentionally resets geometry and
+does not save the live window size.
+
+---
+
 ## 🔗 Related documents
 
 - [Python 3.13 setup on Windows](python_windows_setup.md)
@@ -613,5 +668,6 @@ dist\packaging_report.md
 - [Execution modes](execution_modes.md)
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
+- [Native window persistence](native_window_persistence.md)
 - [Logging subsystem](logging.md)
 - [Windows packaging](packaging_windows.md)

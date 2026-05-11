@@ -73,7 +73,7 @@ flowchart TD
 | `meta`                | `AppMetaState`            | Application name, version, language, and first-run flag.                                                        |
 | `runtime`             | `RuntimeState`            | Startup source, startup message, native mode flag, reload flag, and selected port.                              |
 | `paths`               | `RuntimePathsState`       | Resolved settings path, log path, executable path, working directory, and PyInstaller temp directory.           |
-| `window`              | `WindowState`             | Native window position, size, fullscreen/maximized flags, monitor, storage key, and last-save timestamp.        |
+| `window`              | `WindowState`             | Native window position, size, fullscreen/maximized flags, monitor, persistence flag, storage key, and last-save timestamp.        |
 | `ui`                  | `UiState`                 | Theme, font scale, dense mode, and accent color.                                                                |
 | `ui_session`          | `UiSessionState`          | Current view, busy state, busy message, page-build timestamp, and interaction timestamp.                        |
 | `assets`              | `AssetState`              | Resolved icon, page image, and splash image paths.                                                              |
@@ -128,6 +128,28 @@ sequenceDiagram
 ```
 
 See [Settings subsystem](settings.md) for load, save, validation, and path rules.
+
+---
+
+## 🪟 Relationship with native window persistence
+
+`WindowState` stores the persisted and runtime native window geometry:
+
+- `x` and `y` use Windows virtual-screen coordinates;
+- `width` and `height` store the latest native window size;
+- `maximized` and `fullscreen` describe window display state;
+- `monitor` is reserved for monitor-related diagnostics and future behavior;
+- `persist_state` controls whether geometry is restored and saved;
+- `last_saved_at` records when the window group was last persisted.
+
+The state object does not write the settings file directly. Native lifecycle
+handlers update `AppState.window`, then
+[`native_window_state.py`](../src/desktop_app/infrastructure/native_window_state.py)
+saves the `window` group on close or shutdown.
+
+Before geometry is applied, persisted coordinates are normalized against the
+current Windows monitor work areas so the window remains reachable after monitor
+changes. See [Native window persistence](native_window_persistence.md).
 
 ---
 

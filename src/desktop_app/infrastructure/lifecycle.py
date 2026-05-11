@@ -25,6 +25,12 @@ from nicegui import app
 
 from desktop_app.core.state import get_app_state
 from desktop_app.infrastructure.logger import logger_get_logger, logger_shutdown
+from desktop_app.infrastructure.native_window_state import (
+    persist_native_window_state_on_exit,
+    restore_native_window_state_after_show,
+    update_native_window_position,
+    update_native_window_size,
+)
 from desktop_app.infrastructure.splash import register_splash_handler
 
 logger: Final[Logger] = logger_get_logger(__name__)
@@ -122,10 +128,14 @@ def _handle_application_started(*_args: object) -> None:
     logger.info("NiceGUI runtime started.")
 
 
-def _handle_application_shutdown(*_args: object) -> None:
+def _handle_application_shutdown(*event_args: object) -> None:
     """Handle the NiceGUI application shutdown event."""
     state = get_app_state()
     state.lifecycle.shutdown_started = True
+
+    if state.runtime.native_mode:
+        persist_native_window_state_on_exit(*event_args, state=state)
+
     logger.info("Application shutdown completed.")
     state.lifecycle.shutdown_completed = True
     logger_shutdown()
@@ -159,17 +169,20 @@ def _handle_page_exception(*event_args: object) -> None:
     )
 
 
-def _handle_native_window_shown(*_args: object) -> None:
+def _handle_native_window_shown(*event_args: object) -> None:
     """Handle the native window shown event."""
     state = get_app_state()
     state.lifecycle.native_window_opened = True
     state.lifecycle.native_window_closed = False
+    restore_native_window_state_after_show(*event_args, state=state)
     logger.info("Native window opened.")
 
 
-def _handle_native_window_loaded(*_args: object) -> None:
+def _handle_native_window_loaded(*event_args: object) -> None:
     """Handle the native window loaded event."""
-    get_app_state().lifecycle.native_window_loaded = True
+    state = get_app_state()
+    state.lifecycle.native_window_loaded = True
+    restore_native_window_state_after_show(*event_args, state=state)
     logger.info("Native window finished loading.")
 
 
@@ -197,21 +210,24 @@ def _handle_native_window_restored(*_args: object) -> None:
     logger.info("The native window was restored by the user.")
 
 
-def _handle_native_window_resized(*_args: object) -> None:
+def _handle_native_window_resized(*event_args: object) -> None:
     """Handle the native window resized event."""
+    update_native_window_size(*event_args)
     logger.debug("The native window was resized.")
 
 
-def _handle_native_window_moved(*_args: object) -> None:
+def _handle_native_window_moved(*event_args: object) -> None:
     """Handle the native window moved event."""
+    update_native_window_position(*event_args)
     logger.debug("The native window was moved.")
 
 
-def _handle_native_window_closed(*_args: object) -> None:
+def _handle_native_window_closed(*event_args: object) -> None:
     """Handle the native window closed event."""
     state = get_app_state()
     state.lifecycle.native_window_closed = True
     state.lifecycle.native_window_opened = False
+    persist_native_window_state_on_exit(*event_args, state=state)
     logger.info("The native window was closed by the user.")
 
 
