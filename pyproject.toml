@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nicegui-windows-base"
-version = "0.4.3"
+version = "0.4.4"
 description = "A Windows base template for NiceGUI applications."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
@@ -17,7 +17,7 @@ dev = ["coverage[toml]>=7.10", "pytest>=8.0", "pytest-cov>=6.0", "ruff"]
 packaging = ["pyinstaller>=6.0"]
 
 [project.scripts]
-nicegui-windows-base = "desktop_app.app:main"
+nicegui-windows-base = "desktop_app.__main__:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]

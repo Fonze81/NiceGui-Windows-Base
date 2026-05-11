@@ -3,17 +3,21 @@
 # Purpose:
 # Provide module execution support for the NiceGui Windows Base package.
 # Behavior:
-# Delegates `python -m desktop_app` to the main application entry point.
+# Executes desktop_app.app with __main__ semantics so `python -m desktop_app`
+# uses the same Windows-safe entry point as direct app.py execution.
 # Notes:
-# Keep this file intentionally small; application logic belongs in app.py.
+# Keep this file intentionally small. Application startup belongs in app.py; this
+# module only routes package execution to that entry point.
 # -----------------------------------------------------------------------------
 
-from desktop_app.app import main
+from __future__ import annotations
+
+import runpy
 
 
 def run() -> None:
-    """Run the application entry point."""
-    main()
+    """Execute the application module as the current process entry point."""
+    runpy.run_module("desktop_app.app", run_name="__main__", alter_sys=True)
 
 
 if __name__ == "__main__":

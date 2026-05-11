@@ -33,6 +33,8 @@ class FakeWindow:
     height: int = 800
     moves: list[tuple[int, int]] = field(default_factory=list)
     resizes: list[tuple[int, int]] = field(default_factory=list)
+    show_calls: int = 0
+    maximize_calls: int = 0
 
     def move(self, x: int, y: int) -> None:
         """Record a native move request."""
@@ -45,6 +47,14 @@ class FakeWindow:
         self.resizes.append((width, height))
         self.width = width
         self.height = height
+
+    def show(self) -> None:
+        """Record a native show request."""
+        self.show_calls += 1
+
+    def maximize(self) -> None:
+        """Record a native maximize request."""
+        self.maximize_calls += 1
 
 
 @pytest.fixture()
@@ -82,15 +92,14 @@ def test_apply_initial_native_window_options_uses_persisted_geometry(
         state=state,
     )
 
-    assert options["window_size"] == (1440, 900)
-    assert "window_position" not in options
+    assert options == {}
     assert native_window_state_module.app.native.window_args == {
         "width": 1440,
         "height": 900,
+        "fullscreen": True,
         "x": 30,
         "y": 40,
     }
-    assert options["fullscreen"] is True
 
 
 def test_apply_native_window_args_from_state_can_run_before_main(
@@ -108,6 +117,7 @@ def test_apply_native_window_args_from_state_can_run_before_main(
     assert native_window_state_module.app.native.window_args == {
         "width": 1366,
         "height": 768,
+        "fullscreen": False,
         "x": 700,
         "y": 500,
     }
@@ -126,11 +136,11 @@ def test_apply_initial_native_window_options_omits_position_when_disabled(
         state=state,
     )
 
-    assert options["window_size"] == (1024, 720)
-    assert "window_position" not in options
+    assert options == {}
     assert native_window_state_module.app.native.window_args == {
         "width": 1024,
         "height": 720,
+        "fullscreen": False,
     }
 
 
@@ -154,46 +164,8 @@ def test_apply_initial_native_window_options_clears_stale_position_when_disabled
         "min_size": (400, 300),
         "width": 1024,
         "height": 720,
+        "fullscreen": False,
     }
-
-
-def test_restore_native_window_state_after_show_moves_and_resizes_window(
-    native_window_state_module: ModuleType,
-) -> None:
-    """Shown event explicitly applies persisted geometry to pywebview."""
-    state = AppState()
-    state.window.x = 222
-    state.window.y = 333
-    state.window.width = 1280
-    state.window.height = 740
-    window = FakeWindow()
-
-    restored = native_window_state_module.restore_native_window_state_after_show(
-        window,
-        state=state,
-    )
-
-    assert restored is True
-    assert window.moves == [(222, 333)]
-    assert window.resizes == [(1280, 740)]
-
-
-def test_restore_native_window_state_after_show_skips_when_disabled(
-    native_window_state_module: ModuleType,
-) -> None:
-    """Restore does not move or resize the native window when disabled."""
-    state = AppState()
-    state.window.persist_state = False
-    window = FakeWindow()
-
-    restored = native_window_state_module.restore_native_window_state_after_show(
-        window,
-        state=state,
-    )
-
-    assert restored is False
-    assert window.moves == []
-    assert window.resizes == []
 
 
 def test_update_native_window_size_uses_resize_payload(
@@ -281,6 +253,43 @@ def test_update_native_window_state_ignores_invalid_or_small_values(
     assert state.window.y == 25
     assert state.window.width == 1024
     assert state.window.height == 720
+
+
+def test_native_window_event_helpers_do_not_persist_settings(
+    native_window_state_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Move and resize helpers update state without writing settings."""
+    state = AppState()
+    save_calls = 0
+
+    def fail_if_saved(*_args: object, **_kwargs: object) -> bool:
+        """Fail the test when event helpers unexpectedly write settings."""
+        nonlocal save_calls
+        save_calls += 1
+        return False
+
+    monkeypatch.setattr(
+        native_window_state_module,
+        "save_settings_group",
+        fail_if_saved,
+    )
+
+    size_updated = native_window_state_module.update_native_window_size(
+        1280, 720, state=state
+    )
+    position_updated = native_window_state_module.update_native_window_position(
+        300, 250, state=state
+    )
+
+    assert size_updated is True
+    assert position_updated is True
+    assert state.window.width == 1280
+    assert state.window.height == 720
+    assert state.window.x == 300
+    assert state.window.y == 250
+    assert state.window.last_saved_at is None
+    assert save_calls == 0
 
 
 def test_persist_native_window_state_on_exit_skips_when_disabled(
@@ -445,8 +454,8 @@ def test_normalize_persisted_window_geometry_recovers_window_hidden_left_or_top(
     )
 
     assert changed is True
-    assert state.window.x == 100
-    assert state.window.y == 80
+    assert state.window.x == 0
+    assert state.window.y == 0
     assert save_calls == ["window"]
 
 
@@ -484,6 +493,7 @@ def test_apply_native_window_args_resets_geometry_when_persistence_is_disabled(
     assert native_window_state_module.app.native.window_args == {
         "width": 1024,
         "height": 720,
+        "fullscreen": False,
     }
     assert save_calls == ["window"]
 
@@ -594,3 +604,109 @@ def test_normalize_persisted_window_geometry_supports_negative_monitor_coordinat
     assert state.window.x == -1700
     assert state.window.y == 100
     assert save_calls == []
+
+
+def test_normalize_persisted_window_geometry_limits_start_position_after_90_percent(
+    native_window_state_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Coordinates after 90 percent of a work area are limited without resizing."""
+    state = AppState()
+    state.window.x = 800
+    state.window.y = 767
+    state.window.width = 400
+    state.window.height = 400
+    save_calls: list[str] = []
+
+    monkeypatch.setattr(
+        native_window_state_module,
+        "_get_windows_monitor_work_areas",
+        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+    )
+    monkeypatch.setattr(
+        native_window_state_module,
+        "save_settings_group",
+        lambda group, *, state: save_calls.append(group) or True,
+    )
+
+    changed = native_window_state_module.normalize_persisted_window_geometry(
+        state=state,
+    )
+
+    assert changed is True
+    assert state.window.x == 800
+    assert state.window.y == 720
+    assert state.window.width == 400
+    assert state.window.height == 400
+    assert save_calls == ["window"]
+
+
+def test_normalize_persisted_window_geometry_synchronizes_native_args(
+    native_window_state_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Corrected geometry is applied to current native args immediately."""
+    state = AppState()
+    state.window.x = 800
+    state.window.y = 767
+    state.window.width = 400
+    state.window.height = 400
+
+    monkeypatch.setattr(
+        native_window_state_module,
+        "_get_windows_monitor_work_areas",
+        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+    )
+    monkeypatch.setattr(
+        native_window_state_module,
+        "save_settings_group",
+        lambda _group, *, state: True,
+    )
+
+    changed = native_window_state_module.normalize_persisted_window_geometry(
+        state=state,
+    )
+
+    assert changed is True
+    assert native_window_state_module.app.native.window_args == {
+        "width": 400,
+        "height": 400,
+        "fullscreen": False,
+        "x": 800,
+        "y": 720,
+    }
+
+
+def test_normalize_persisted_window_geometry_preserves_oversized_window_dimensions(
+    native_window_state_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Monitor visibility correction does not reduce saved width or height."""
+    state = AppState()
+    state.window.x = 1400
+    state.window.y = 900
+    state.window.width = 2500
+    state.window.height = 1400
+    save_calls: list[str] = []
+
+    monkeypatch.setattr(
+        native_window_state_module,
+        "_get_windows_monitor_work_areas",
+        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+    )
+    monkeypatch.setattr(
+        native_window_state_module,
+        "save_settings_group",
+        lambda group, *, state: save_calls.append(group) or True,
+    )
+
+    changed = native_window_state_module.normalize_persisted_window_geometry(
+        state=state,
+    )
+
+    assert changed is True
+    assert state.window.x == 900
+    assert state.window.y == 720
+    assert state.window.width == 2500
+    assert state.window.height == 1400
+    assert save_calls == ["window"]

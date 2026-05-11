@@ -22,7 +22,7 @@ from typing import Any
 
 import pytest
 
-from desktop_app.core.state import get_app_state, reset_app_state
+from desktop_app.core.state import AppState, get_app_state, reset_app_state
 
 LifecycleCallback = Callable[..., None]
 
@@ -149,11 +149,6 @@ def lifecycle_module(monkeypatch: pytest.MonkeyPatch) -> Generator[ModuleType]:
         module,
         "persist_native_window_state_on_exit",
         lambda *_args, **_kwargs: True,
-    )
-    monkeypatch.setattr(
-        module,
-        "restore_native_window_state_after_show",
-        lambda *_args, **_kwargs: False,
     )
 
     yield module
@@ -435,15 +430,111 @@ def test_native_window_handlers_update_state(lifecycle_module: ModuleType) -> No
 
 def test_debug_only_native_window_handlers_log_events(
     lifecycle_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Resize and move callbacks emit debug diagnostics only."""
-    lifecycle_module._handle_native_window_resized()
-    lifecycle_module._handle_native_window_moved()
+    """Resize and move callbacks update state, refresh proxy data, and log only."""
+    refresh_calls: list[AppState] = []
 
+    async def refresh_proxy(*, state: AppState | None = None) -> bool:
+        """Capture native proxy refresh calls without opening a real window."""
+        assert state is not None
+        refresh_calls.append(state)
+        return False
+
+    monkeypatch.setattr(
+        lifecycle_module,
+        "refresh_native_window_state_from_proxy",
+        refresh_proxy,
+    )
+
+    import asyncio
+
+    asyncio.run(lifecycle_module._handle_native_window_resized(1280, 720))
+    asyncio.run(lifecycle_module._handle_native_window_moved(300, 250))
+
+    state = get_app_state()
+    assert state.window.width == 1280
+    assert state.window.height == 720
+    assert state.window.x == 300
+    assert state.window.y == 250
+    assert refresh_calls == [state, state]
     assert lifecycle_module.logger.calls[-2:] == [
         LoggedCall("debug", "The native window was resized."),
         LoggedCall("debug", "The native window was moved."),
     ]
+
+
+def test_native_window_events_do_not_write_settings_before_exit(
+    lifecycle_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Move and resize events do not persist TOML before close or shutdown."""
+    save_calls = 0
+
+    def fail_if_saved(*_args: object, **_kwargs: object) -> bool:
+        """Fail the test if event handling writes settings."""
+        nonlocal save_calls
+        save_calls += 1
+        return False
+
+    async def refresh_proxy(*, state: AppState | None = None) -> bool:
+        """Skip native proxy access during unit tests."""
+        return False
+
+    monkeypatch.setattr(
+        lifecycle_module, "persist_native_window_state_on_exit", fail_if_saved
+    )
+    monkeypatch.setattr(
+        lifecycle_module,
+        "refresh_native_window_state_from_proxy",
+        refresh_proxy,
+    )
+
+    import asyncio
+
+    asyncio.run(lifecycle_module._handle_native_window_resized(1280, 720))
+    asyncio.run(lifecycle_module._handle_native_window_moved(300, 250))
+
+    state = get_app_state()
+    assert state.window.width == 1280
+    assert state.window.height == 720
+    assert state.window.x == 300
+    assert state.window.y == 250
+    assert save_calls == 0
+
+
+def test_native_window_invalid_geometry_event_only_logs(
+    lifecycle_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Events without usable geometry do not persist TOML."""
+    save_calls = 0
+
+    def fail_if_saved(*_args: object, **_kwargs: object) -> bool:
+        """Fail the test if event handling writes settings."""
+        nonlocal save_calls
+        save_calls += 1
+        return False
+
+    async def refresh_proxy(*, state: AppState | None = None) -> bool:
+        """Skip native proxy access during unit tests."""
+        return False
+
+    monkeypatch.setattr(
+        lifecycle_module, "persist_native_window_state_on_exit", fail_if_saved
+    )
+    monkeypatch.setattr(
+        lifecycle_module,
+        "refresh_native_window_state_from_proxy",
+        refresh_proxy,
+    )
+
+    import asyncio
+
+    asyncio.run(lifecycle_module._handle_native_window_resized(object()))
+    asyncio.run(lifecycle_module._handle_native_window_moved(object()))
+
+    assert save_calls == 0
 
 
 def test_native_file_drop_logs_event(lifecycle_module: ModuleType) -> None:

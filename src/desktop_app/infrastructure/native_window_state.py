@@ -3,26 +3,30 @@
 # Purpose:
 # Capture, restore, and persist native desktop window geometry.
 # Behavior:
-# Applies persisted geometry before NiceGUI starts when possible, reapplies it
-# after the native window is shown, updates AppState from native resize and move
-# event payloads, and saves the window settings group during application exit.
+# Normalizes persisted coordinates against the current monitor work area, applies
+# all startup geometry through NiceGUI native window arguments before ui.run,
+# keeps native startup arguments synchronized with normalized state, and saves
+# the window settings group during application exit.
 # Notes:
 # NiceGUI delegates native windows to pywebview and forwards native events as
-# NativeEventArguments objects. Some backends ignore initial x/y values passed
-# through creation arguments, so this module also performs explicit move and
-# resize calls after the native window is available. Native event dictionaries
-# are preferred over window attributes because they carry the real width, height,
-# x, and y values reported by pywebview.
+# NativeEventArguments objects. Startup window information must have a single
+# source of truth: app.native.window_args. Do not also pass size or fullscreen
+# values through ui.run, because multiple sources can create backend-dependent
+# ordering issues. Native event dictionaries are preferred over window
+# attributes because they carry the real width, height, x, and y values reported
+# by pywebview.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
 import ctypes
-from collections.abc import Iterable
+import inspect
+from collections.abc import Callable, Iterable
+from ctypes import wintypes
 from dataclasses import dataclass, fields
 from datetime import datetime
 from logging import Logger
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from nicegui import app
 
@@ -34,8 +38,8 @@ logger: Final[Logger] = logger_get_logger(__name__)
 
 _MIN_WINDOW_WIDTH: Final[int] = 400
 _MIN_WINDOW_HEIGHT: Final[int] = 300
-_SCREEN_LOWER_VISIBLE_RATIO: Final[float] = 0.10
-_SCREEN_UPPER_POSITION_RATIO: Final[float] = 0.90
+_MAX_START_POSITION_RATIO: Final[float] = 0.90
+_MIN_VISIBLE_EDGE_RATIO: Final[float] = 0.10
 
 _X_ATTRIBUTE_NAMES: Final[tuple[str, ...]] = ("x", "left")
 _Y_ATTRIBUTE_NAMES: Final[tuple[str, ...]] = ("y", "top")
@@ -76,13 +80,24 @@ def apply_native_window_args_from_state(*, state: AppState | None = None) -> Non
     """
     current_state = state if state is not None else get_app_state()
     normalize_persisted_window_geometry(state=current_state)
+    _sync_native_window_args_from_state(current_state)
 
+
+def _sync_native_window_args_from_state(current_state: AppState) -> None:
+    """Synchronize NiceGUI native window arguments with AppState.
+
+    Args:
+        current_state: Application state containing normalized window values.
+    """
     width = _coerce_window_width(current_state.window.width)
     height = _coerce_window_height(current_state.window.height)
 
     window_args = _get_native_window_args()
     window_args["width"] = width
     window_args["height"] = height
+    window_args["fullscreen"] = current_state.window.fullscreen
+    window_args.pop("hidden", None)
+
     if current_state.window.persist_state:
         window_args["x"] = current_state.window.x
         window_args["y"] = current_state.window.y
@@ -91,7 +106,7 @@ def apply_native_window_args_from_state(*, state: AppState | None = None) -> Non
         window_args.pop("y", None)
 
     logger.debug(
-        "Native window arguments applied from state: size=(%s, %s), "
+        "Native window arguments synchronized from state: size=(%s, %s), "
         "position=(%s, %s), fullscreen=%s, persist_state=%s.",
         width,
         height,
@@ -106,8 +121,9 @@ def normalize_persisted_window_geometry(*, state: AppState | None = None) -> boo
     """Normalize persisted native window geometry before restoration.
 
     The persisted window position can become invalid when the user removes,
-    changes, or reorders monitors. This function keeps at least part of the
-    window in the available screen area before any native position is applied.
+    changes, or reorders monitors. This function keeps the window anchored to a
+    visible part of the selected monitor work area without resizing the saved
+    width or height.
     When persistence is disabled, persisted geometry is reset to defaults and
     saved so stale values are not reused later.
 
@@ -125,22 +141,23 @@ def normalize_persisted_window_geometry(*, state: AppState | None = None) -> boo
             _save_normalized_window_group(current_state)
         return changed
 
-    width = _coerce_window_width(current_state.window.width)
-    height = _coerce_window_height(current_state.window.height)
-    changed = _assign_if_different(current_state.window, "width", width)
-    changed = _assign_if_different(current_state.window, "height", height) or changed
+    safe_x, safe_y, safe_width, safe_height = _normalize_window_geometry(
+        x=current_state.window.x,
+        y=current_state.window.y,
+        width=current_state.window.width,
+        height=current_state.window.height,
+    )
 
-    safe_x, safe_y = _clamp_window_position_to_visible_area(
-        current_state.window.x,
-        current_state.window.y,
-        width,
-        height,
+    changed = _assign_if_different(current_state.window, "width", safe_width)
+    changed = (
+        _assign_if_different(current_state.window, "height", safe_height) or changed
     )
     changed = _assign_if_different(current_state.window, "x", safe_x) or changed
     changed = _assign_if_different(current_state.window, "y", safe_y) or changed
 
     if changed:
         _save_normalized_window_group(current_state)
+        _sync_native_window_args_from_state(current_state)
 
     return changed
 
@@ -150,85 +167,35 @@ def apply_initial_native_window_options(
     *,
     state: AppState | None = None,
 ) -> None:
-    """Apply initial native window options before ``ui.run`` starts.
+    """Prepare native window startup arguments before ``ui.run`` starts.
 
-    NiceGUI accepts the initial size and fullscreen state through ``ui.run``.
-    Native pywebview creation arguments are also populated as a best effort,
-    but some Windows backends may ignore initial x/y values. For that reason,
-    ``restore_native_window_state_after_show`` must still run when the native
-    window emits the ``shown`` event.
+    Window geometry has a single startup source of truth: ``app.native.window_args``.
+    This function intentionally does not add ``window_size``, ``fullscreen``,
+    ``window_position``, or other window-related keys to ``ui_run_options``.
+    Keeping those values out of ``ui.run`` avoids conflicts between NiceGUI run
+    options and pywebview native creation arguments.
 
     Args:
-        ui_run_options: Mutable options dictionary passed to ``ui.run``.
+        ui_run_options: Mutable options dictionary passed to ``ui.run``. It is
+            accepted for compatibility with the app startup flow and is not
+            modified with window geometry values.
         state: Optional application state. Uses the global state when omitted.
     """
     current_state = state if state is not None else get_app_state()
-    width = _coerce_window_width(current_state.window.width)
-    height = _coerce_window_height(current_state.window.height)
-
-    ui_run_options["window_size"] = (width, height)
-    ui_run_options["fullscreen"] = current_state.window.fullscreen
 
     apply_native_window_args_from_state(state=current_state)
-    window_args = _get_native_window_args()
 
+    window_args = _get_native_window_args()
     logger.debug(
-        "Native window options prepared: size=(%s, %s), position=(%s, %s), "
-        "fullscreen=%s, persist_state=%s.",
-        width,
-        height,
+        "Native window startup prepared through app.native.window_args only: "
+        "size=(%s, %s), position=(%s, %s), fullscreen=%s, persist_state=%s.",
+        window_args.get("width"),
+        window_args.get("height"),
         window_args.get("x"),
         window_args.get("y"),
-        current_state.window.fullscreen,
+        window_args.get("fullscreen"),
         current_state.window.persist_state,
     )
-
-
-def restore_native_window_state_after_show(
-    *event_args: object,
-    state: AppState | None = None,
-) -> bool:
-    """Restore persisted geometry after the native window is available.
-
-    Args:
-        event_args: Native lifecycle event arguments received from NiceGUI.
-        state: Optional application state. Uses the global state when omitted.
-
-    Returns:
-        True when at least one native move or resize operation was requested.
-    """
-    current_state = state if state is not None else get_app_state()
-
-    if not current_state.window.persist_state:
-        logger.debug("Native window geometry restore skipped by settings.")
-        return False
-
-    native_window = _select_native_window(event_args)
-    if native_window is None:
-        logger.debug("Native window geometry restore skipped; no window available.")
-        return False
-
-    width = _coerce_window_width(current_state.window.width)
-    height = _coerce_window_height(current_state.window.height)
-    moved = _call_window_method(
-        native_window,
-        "move",
-        current_state.window.x,
-        current_state.window.y,
-    )
-    resized = _call_window_method(native_window, "resize", width, height)
-
-    if moved or resized:
-        logger.debug(
-            "Native window geometry restored after show: x=%s, y=%s, "
-            "width=%s, height=%s.",
-            current_state.window.x,
-            current_state.window.y,
-            width,
-            height,
-        )
-
-    return moved or resized
 
 
 def update_native_window_size(
@@ -358,6 +325,68 @@ def update_native_window_state(
     return position_updated or size_updated
 
 
+async def refresh_native_window_state_from_proxy(
+    *,
+    state: AppState | None = None,
+) -> bool:
+    """Refresh AppState from the NiceGUI native main window proxy.
+
+    NiceGUI forwards ``moved`` events with x/y and ``resized`` events with
+    width/height, but a resize from the left or top border can also change the
+    window position. The main window proxy exposes asynchronous
+    ``get_position`` and ``get_size`` calls, so event handlers can use this
+    helper after move and resize events to persist the complete geometry.
+
+    Args:
+        state: Optional application state. Uses the global state when omitted.
+
+    Returns:
+        True when at least one geometry field was updated.
+    """
+    current_state = state if state is not None else get_app_state()
+    native_window = getattr(app.native, "main_window", None)
+
+    if native_window is None:
+        logger.debug("Native window proxy state was not refreshed; no window found.")
+        return False
+
+    position = await _request_native_window_pair(native_window, "get_position")
+    size = await _request_native_window_pair(native_window, "get_size")
+
+    was_updated = False
+    if position is not None:
+        x, y = position
+        was_updated = _assign_if_different(current_state.window, "x", x) or was_updated
+        was_updated = _assign_if_different(current_state.window, "y", y) or was_updated
+
+    if size is not None:
+        width, height = size
+        if width >= _MIN_WINDOW_WIDTH:
+            was_updated = (
+                _assign_if_different(current_state.window, "width", width)
+                or was_updated
+            )
+        if height >= _MIN_WINDOW_HEIGHT:
+            was_updated = (
+                _assign_if_different(current_state.window, "height", height)
+                or was_updated
+            )
+
+    if was_updated:
+        logger.debug(
+            "Native window state refreshed from proxy: "
+            "x=%s, y=%s, width=%s, height=%s.",
+            current_state.window.x,
+            current_state.window.y,
+            current_state.window.width,
+            current_state.window.height,
+        )
+    else:
+        logger.debug("Native window proxy refresh did not change geometry.")
+
+    return was_updated
+
+
 def persist_native_window_state_on_exit(
     *event_args: object,
     state: AppState | None = None,
@@ -379,9 +408,20 @@ def persist_native_window_state_on_exit(
         return True
 
     update_native_window_state(*event_args, state=current_state)
-    current_state.window.last_saved_at = datetime.now()
+    return _save_native_window_group(current_state)
 
-    saved = save_settings_group("window", state=current_state)
+
+def _save_native_window_group(state: AppState) -> bool:
+    """Persist the current native window group to settings.toml.
+
+    Args:
+        state: Application state whose window group should be saved.
+
+    Returns:
+        True when the settings file was saved successfully.
+    """
+    state.window.last_saved_at = datetime.now()
+    saved = save_settings_group("window", state=state)
     if saved:
         logger.info("Native window state persisted successfully.")
         return True
@@ -464,13 +504,14 @@ def _save_normalized_window_group(state: AppState) -> bool:
     return False
 
 
-def _clamp_window_position_to_visible_area(
+def _normalize_window_geometry(
+    *,
     x: int,
     y: int,
     width: int,
     height: int,
-) -> tuple[int, int]:
-    """Clamp a window position so it remains reachable on current monitors.
+) -> tuple[int, int, int, int]:
+    """Normalize persisted geometry against the current monitor layout.
 
     Args:
         x: Persisted horizontal window position in virtual-screen coordinates.
@@ -479,52 +520,60 @@ def _clamp_window_position_to_visible_area(
         height: Persisted window height.
 
     Returns:
-        Safe ``x`` and ``y`` values. When Windows monitor detection fails, the
-        original coordinates are returned unchanged.
+        Safe ``x``, ``y``, ``width``, and ``height`` values. Monitor correction
+        changes only ``x`` and ``y``; width and height are preserved.
     """
+    safe_width = int(width)
+    safe_height = int(height)
+
     work_areas = _get_windows_monitor_work_areas()
     if not work_areas:
         logger.debug(
-            "Native window position was not clamped; no monitor work area found."
+            "Native window position was not clamped to monitors; "
+            "no work area was found."
         )
-        return x, y
+        return x, y, safe_width, safe_height
 
     work_area = _select_relevant_work_area(
         x=x,
         y=y,
-        width=width,
-        height=height,
+        width=safe_width,
+        height=safe_height,
         work_areas=work_areas,
     )
     safe_x = _clamp_axis_position(
         position=x,
-        size=width,
+        size=safe_width,
         available_start=work_area.left,
         available_size=work_area.width,
     )
     safe_y = _clamp_axis_position(
         position=y,
-        size=height,
+        size=safe_height,
         available_start=work_area.top,
         available_size=work_area.height,
     )
 
-    if safe_x != x or safe_y != y:
+    if (safe_x, safe_y, safe_width, safe_height) != (x, y, width, height):
         logger.info(
-            "Persisted native window position adjusted to visible monitor area: "
-            "original=(%s, %s), adjusted=(%s, %s), "
+            "Persisted native window geometry adjusted to visible monitor area: "
+            "original=(%s, %s, %s, %s), adjusted=(%s, %s, %s, %s), "
             "work_area=(%s, %s, %s, %s).",
             x,
             y,
+            width,
+            height,
             safe_x,
             safe_y,
+            safe_width,
+            safe_height,
             work_area.left,
             work_area.top,
             work_area.right,
             work_area.bottom,
         )
 
-    return safe_x, safe_y
+    return safe_x, safe_y, safe_width, safe_height
 
 
 def _select_relevant_work_area(
@@ -621,7 +670,15 @@ def _clamp_axis_position(
     available_start: int,
     available_size: int,
 ) -> int:
-    """Clamp one persisted window axis using monitor-aware guard rails.
+    """Clamp one persisted window coordinate to the expected visible range.
+
+    The rule preserves the window size and only changes the coordinate when the
+    saved position would make the window hard to recover:
+
+    * if the start coordinate is beyond 90% of the work area, move it back to
+      the 90% mark;
+    * if the end edge is before the first 10% of the work area, move the window
+      to the beginning of that work area.
 
     Args:
         position: Persisted coordinate for one axis.
@@ -630,16 +687,23 @@ def _clamp_axis_position(
         available_size: Available monitor work-area size on the same axis.
 
     Returns:
-        Coordinate clamped to the allowed visible range.
+        Coordinate adjusted to keep a recoverable visible part of the window.
     """
-    lower_limit = available_start + round(available_size * _SCREEN_LOWER_VISIBLE_RATIO)
-    upper_limit = available_start + round(available_size * _SCREEN_UPPER_POSITION_RATIO)
+    if available_size <= 0:
+        return position
 
-    if position > upper_limit:
-        return upper_limit
+    maximum_start_position = available_start + round(
+        available_size * _MAX_START_POSITION_RATIO
+    )
+    minimum_visible_edge = available_start + round(
+        available_size * _MIN_VISIBLE_EDGE_RATIO
+    )
 
-    if position + size < lower_limit:
-        return lower_limit
+    if position > maximum_start_position:
+        return maximum_start_position
+
+    if position + size < minimum_visible_edge:
+        return available_start
 
     return position
 
@@ -661,33 +725,46 @@ def _get_windows_monitor_work_areas() -> tuple[MonitorWorkArea, ...]:
 
     class Rect(ctypes.Structure):
         _fields_ = [
-            ("left", ctypes.c_long),
-            ("top", ctypes.c_long),
-            ("right", ctypes.c_long),
-            ("bottom", ctypes.c_long),
+            ("left", wintypes.LONG),
+            ("top", wintypes.LONG),
+            ("right", wintypes.LONG),
+            ("bottom", wintypes.LONG),
         ]
 
     class MonitorInfo(ctypes.Structure):
         _fields_ = [
-            ("cbSize", ctypes.c_ulong),
+            ("cbSize", wintypes.DWORD),
             ("rcMonitor", Rect),
             ("rcWork", Rect),
-            ("dwFlags", ctypes.c_ulong),
+            ("dwFlags", wintypes.DWORD),
         ]
 
     monitor_enum_proc = ctypes.WINFUNCTYPE(
-        ctypes.c_int,
-        ctypes.c_void_p,
-        ctypes.c_void_p,
+        wintypes.BOOL,
+        wintypes.HMONITOR,
+        wintypes.HDC,
         ctypes.POINTER(Rect),
-        ctypes.c_double,
+        wintypes.LPARAM,
     )
+
+    user32.GetMonitorInfoW.argtypes = [
+        wintypes.HMONITOR,
+        ctypes.POINTER(MonitorInfo),
+    ]
+    user32.GetMonitorInfoW.restype = wintypes.BOOL
+    user32.EnumDisplayMonitors.argtypes = [
+        wintypes.HDC,
+        ctypes.c_void_p,
+        monitor_enum_proc,
+        wintypes.LPARAM,
+    ]
+    user32.EnumDisplayMonitors.restype = wintypes.BOOL
 
     def collect_monitor(
         monitor_handle: int,
         _device_context: int,
-        _rect: ctypes.POINTER(Rect),
-        _data: float,
+        _rect: object,
+        _data: int,
     ) -> int:
         """Collect one monitor work area from the Windows callback."""
         monitor_info = MonitorInfo()
@@ -720,6 +797,37 @@ def _get_windows_monitor_work_areas() -> tuple[MonitorWorkArea, ...]:
         return ()
 
     return tuple(monitors)
+
+
+async def _request_native_window_pair(
+    native_window: object,
+    method_name: str,
+) -> tuple[int, int] | None:
+    """Request an integer pair from a NiceGUI native window proxy.
+
+    Args:
+        native_window: NiceGUI native main window proxy.
+        method_name: Async method name to call on the proxy.
+
+    Returns:
+        A pair of integers when the proxy returns valid geometry, otherwise
+        None.
+    """
+    method = getattr(native_window, method_name, None)
+    if not callable(method):
+        logger.debug("Native window proxy does not expose %s.", method_name)
+        return None
+
+    try:
+        request_pair = cast(Callable[[], object], method)
+        raw_pair = request_pair()
+        if inspect.isawaitable(raw_pair):
+            raw_pair = await raw_pair
+    except Exception:
+        logger.debug("Native window proxy %s call failed.", method_name, exc_info=True)
+        return None
+
+    return _coerce_pair(raw_pair)
 
 
 def _get_native_window_args() -> dict[str, Any]:
@@ -822,10 +930,23 @@ def _coerce_optional_int(value: object) -> int | None:
     if value is None or isinstance(value, bool):
         return None
 
-    try:
+    if isinstance(value, int):
+        return value
+
+    if isinstance(value, float):
         return int(value)
-    except (TypeError, ValueError):
-        return None
+
+    if isinstance(value, str):
+        stripped_value = value.strip()
+        if not stripped_value:
+            return None
+
+        try:
+            return int(stripped_value)
+        except ValueError:
+            return None
+
+    return None
 
 
 def _extract_pair(event_args: Iterable[object]) -> tuple[int | None, int | None]:
@@ -837,16 +958,44 @@ def _extract_pair(event_args: Iterable[object]) -> tuple[int | None, int | None]
     Returns:
         A pair of integers when available, otherwise ``None`` values.
     """
-    values: list[int] = []
-    for event_arg in event_args:
-        value = _coerce_optional_int(event_arg)
-        if value is not None:
-            values.append(value)
+    direct_pair = _coerce_pair(event_args)
+    if direct_pair is not None:
+        return direct_pair
 
-        if len(values) == 2:
-            return values[0], values[1]
+    for event_arg in event_args:
+        args_pair = _coerce_pair(getattr(event_arg, "args", None))
+        if args_pair is not None:
+            return args_pair
 
     return None, None
+
+
+def _coerce_pair(value: object) -> tuple[int, int] | None:
+    """Convert a two-item iterable to an integer pair when possible.
+
+    Args:
+        value: Candidate pair value.
+
+    Returns:
+        Integer pair when both values are valid geometry numbers, otherwise
+        None.
+    """
+    if isinstance(value, dict | str | bytes) or not isinstance(value, Iterable):
+        return None
+
+    values: list[int] = []
+    for item in value:
+        coerced_value = _coerce_optional_int(item)
+        if coerced_value is None:
+            return None
+        values.append(coerced_value)
+        if len(values) > 2:
+            return None
+
+    if len(values) != 2:
+        return None
+
+    return values[0], values[1]
 
 
 def _read_int_attribute(value: object, attribute_names: Iterable[str]) -> int | None:
@@ -862,12 +1011,11 @@ def _read_int_attribute(value: object, attribute_names: Iterable[str]) -> int | 
     """
     for attribute_name in attribute_names:
         raw_value = getattr(value, attribute_name, None)
-        if raw_value is None:
-            continue
+        coerced_value = _coerce_optional_int(raw_value)
+        if coerced_value is not None:
+            return coerced_value
 
-        try:
-            return int(raw_value)
-        except (TypeError, ValueError):
+        if raw_value is not None:
             logger.debug(
                 "Ignored non-integer native window attribute: %s=%r.",
                 attribute_name,
@@ -875,31 +1023,6 @@ def _read_int_attribute(value: object, attribute_names: Iterable[str]) -> int | 
             )
 
     return None
-
-
-def _call_window_method(window: object, method_name: str, *args: int) -> bool:
-    """Call a native window method when it exists.
-
-    Args:
-        window: Native window candidate.
-        method_name: Method name to call.
-        args: Integer arguments passed to the method.
-
-    Returns:
-        True when the method existed and was called successfully.
-    """
-    method = getattr(window, method_name, None)
-    if not callable(method):
-        logger.debug("Native window method is unavailable: %s.", method_name)
-        return False
-
-    try:
-        method(*args)
-    except Exception:
-        logger.exception("Native window method failed: %s.", method_name)
-        return False
-
-    return True
 
 
 def _coerce_window_width(value: int) -> int:

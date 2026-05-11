@@ -1,11 +1,30 @@
+# -----------------------------------------------------------------------------
+# File: tests/infrastructure/test_splash.py
+# Purpose:
+# Validate the optional PyInstaller splash screen integration.
+# Behavior:
+# Uses fake modules to test splash loading and closing without requiring the
+# real NiceGUI package during test collection.
+# Notes:
+# The pyi_splash module only exists in packaged builds, so tests must cover
+# missing-module, failure, and success paths without opening a graphical UI.
+# -----------------------------------------------------------------------------
+
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
+from types import SimpleNamespace
 
 import pytest
 
-from desktop_app.core.state import AppState
-from desktop_app.infrastructure import splash
+# Ensure the splash module can be imported in test environments where NiceGUI
+# is not installed yet. When the real NiceGUI package exists, it is not replaced.
+_fake_nicegui_app = SimpleNamespace(on_connect=lambda _callback: None)
+sys.modules.setdefault("nicegui", SimpleNamespace(app=_fake_nicegui_app))
+
+from desktop_app.core.state import AppState  # noqa: E402
+from desktop_app.infrastructure import splash  # noqa: E402
 
 
 class FakeSplashModule:

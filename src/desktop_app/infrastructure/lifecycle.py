@@ -27,7 +27,7 @@ from desktop_app.core.state import get_app_state
 from desktop_app.infrastructure.logger import logger_get_logger, logger_shutdown
 from desktop_app.infrastructure.native_window_state import (
     persist_native_window_state_on_exit,
-    restore_native_window_state_after_show,
+    refresh_native_window_state_from_proxy,
     update_native_window_position,
     update_native_window_size,
 )
@@ -169,20 +169,17 @@ def _handle_page_exception(*event_args: object) -> None:
     )
 
 
-def _handle_native_window_shown(*event_args: object) -> None:
+def _handle_native_window_shown(*_args: object) -> None:
     """Handle the native window shown event."""
     state = get_app_state()
     state.lifecycle.native_window_opened = True
     state.lifecycle.native_window_closed = False
-    restore_native_window_state_after_show(*event_args, state=state)
     logger.info("Native window opened.")
 
 
-def _handle_native_window_loaded(*event_args: object) -> None:
+def _handle_native_window_loaded(*_args: object) -> None:
     """Handle the native window loaded event."""
-    state = get_app_state()
-    state.lifecycle.native_window_loaded = True
-    restore_native_window_state_after_show(*event_args, state=state)
+    get_app_state().lifecycle.native_window_loaded = True
     logger.info("Native window finished loading.")
 
 
@@ -210,15 +207,19 @@ def _handle_native_window_restored(*_args: object) -> None:
     logger.info("The native window was restored by the user.")
 
 
-def _handle_native_window_resized(*event_args: object) -> None:
+async def _handle_native_window_resized(*event_args: object) -> None:
     """Handle the native window resized event."""
-    update_native_window_size(*event_args)
+    state = get_app_state()
+    update_native_window_size(*event_args, state=state)
+    await refresh_native_window_state_from_proxy(state=state)
     logger.debug("The native window was resized.")
 
 
-def _handle_native_window_moved(*event_args: object) -> None:
+async def _handle_native_window_moved(*event_args: object) -> None:
     """Handle the native window moved event."""
-    update_native_window_position(*event_args)
+    state = get_app_state()
+    update_native_window_position(*event_args, state=state)
+    await refresh_native_window_state_from_proxy(state=state)
     logger.debug("The native window was moved.")
 
 
