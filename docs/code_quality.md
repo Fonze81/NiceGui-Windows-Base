@@ -193,6 +193,10 @@ The test suite follows the source package structure:
 
 ```text
 tests
+├── application
+│   ├── test_bootstrap.py
+│   ├── test_run_options.py
+│   └── test_runtime_context.py
 ├── core
 │   ├── test_core_init.py
 │   ├── test_runtime.py
@@ -204,7 +208,10 @@ tests
 │   ├── test_byte_size.py
 │   ├── test_file_system.py
 │   ├── test_lifecycle.py
+│   ├── test_native_window_state.py
 │   └── test_splash.py
+├── ui
+│   └── test_main_page.py
 ├── test_app.py
 ├── test_constants.py
 └── test_desktop_app_main.py
