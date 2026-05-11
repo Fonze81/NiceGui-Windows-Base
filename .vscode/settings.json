@@ -32,7 +32,7 @@
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
-    "python.analysis.typeCheckingMode": "standard",
+    "python.analysis.typeCheckingMode": "strict",
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
     "python.testing.cwd": "${workspaceFolder}",
@@ -51,12 +51,6 @@
         ".gitignore": true,
         "LICENSE": true,
         "NiceGui Windows Base.code-workspace": true,
-        "docs/vscode_setup.md": true,
-        "scripts/package_windows.ps1": true,
-        "src/desktop_app/__init__.py": true,
-        "src/desktop_app/__main__.py": true,
-        "src/desktop_app/infrastructure/logger": true,
-        "src/nicegui_windows_base.egg-info": true
     },
     "search.exclude": {
         "**/__pycache__": true,

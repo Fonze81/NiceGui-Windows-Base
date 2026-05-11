@@ -52,12 +52,15 @@ sequenceDiagram
     participant App as app.py
     participant Settings as settings service
     participant State as AppState
+    participant Native as native window state
     participant Logger as logger service
     participant NiceGUI as ui.run
 
-    Entry->>App: main(...)
+    Entry->>App: import app.py
     App->>Settings: load_settings()
     Settings->>State: apply_settings_to_state(...)
+    App->>Native: apply_native_window_args_from_state()
+    Entry->>App: main(...)
     App->>Logger: logger_bootstrap(...)
     App->>Logger: logger_enable_file_logging()
     App->>State: store runtime diagnostics
@@ -66,7 +69,7 @@ sequenceDiagram
     App->>NiceGUI: ui.run(...)
 ```
 
-The startup message is built once and reused by terminal output, logs, state, and the visible page.
+The startup message is built once and reused by logs, state, and the visible page. When console logging is enabled, the same message also appears in the terminal.
 
 ---
 
@@ -82,7 +85,8 @@ Expected behavior:
 - reload disabled;
 - startup source reported as `pyproject command`;
 - port selected dynamically for native mode;
-- settings loaded before logging is finalized.
+- settings loaded before logging is finalized;
+- native window position prepared before `ui.run(...)` creates the desktop window.
 
 Expected message shape:
 
@@ -233,7 +237,7 @@ src\desktop_app\core\runtime.py
 | `module`            | `python -m desktop_app` starts the app                    |
 | `script`            | `src\desktop_app\app.py` starts directly                  |
 
-`app.py` only orchestrates the result: it logs the resolved source, builds the startup message once, prints it to the terminal, stores runtime state, and passes it to the page builder.
+`app.py` only orchestrates the result. Runtime details are resolved in `application/runtime_context.py`, `ui.run(...)` options are built in `application/run_options.py`, and the page itself is composed by `ui/main_page.py`.
 
 ---
 
@@ -264,6 +268,28 @@ See:
 
 ---
 
+## 🪟 Native window geometry during execution
+
+In native mode, the application uses the `window` settings group to restore and
+persist geometry.
+
+`x`, `y`, `width`, `height`, and `fullscreen` are assigned to `app.native.window_args` before `main()` starts so the values are available before the native pywebview window is created. Window geometry is intentionally not passed through `ui.run(...)` to avoid competing startup sources.
+
+During runtime, native `moved` and `resized` events update `AppState.window`.
+The settings file is not written for every event. The application saves only the
+`window` group when the native window closes or when shutdown runs.
+
+Before applying saved coordinates, Windows monitor work areas are enumerated.
+Only `x` and `y` are adjusted: values beyond 90% of the selected work area are
+limited to that 90% point, and values that would leave less than 10% visible to
+the left or above are moved to the start of the selected work area. Saved width
+and height are not reduced by this monitor safety check. Browser development
+mode skips this behavior because no native desktop window is created.
+
+See [Native window persistence](native_window_persistence.md).
+
+---
+
 ## 🧊 Packaged execution entry point
 
 The packaged executable uses the standard Windows-safe entry point with `freeze_support()`:
@@ -280,15 +306,15 @@ if __name__ == "__main__":
 
 ## 🖨️ Startup message in the page
 
-`app.py` builds the startup message once in `main(...)`.
+`application/runtime_context.py` builds the startup message once during `main(...)`.
 
 The same message is used for:
 
-- terminal output through `print(...)`;
-- `AppState.status.current_message`;
+- logger output through the configured console/file handlers;
+- `AppState.runtime.startup_message`;
 - the NiceGUI page, displayed after `NiceGui Windows Base`.
 
-This avoids duplicated formatting logic and keeps terminal diagnostics aligned with the visible UI.
+This avoids duplicated formatting logic and keeps runtime diagnostics aligned with the visible UI.
 
 ---
 
@@ -300,6 +326,7 @@ Typical packaged execution flow:
 
 ```text
 Logging initialized for NiceGui Windows Base.
+Native window startup prepared through app.native.window_args only: size=(1024, 720), position=(100, 100), fullscreen=False, persist_state=True.
 Starting NiceGui Windows Base startup sequence.
 Startup source resolved: the packaged executable.
 Runtime mode resolved: native mode with reload disabled.
@@ -309,12 +336,13 @@ Native window opened.
 Building the main page for the connected client.
 Main page built successfully.
 Native window finished loading.
+Native window state persisted successfully.
 The native window was closed by the user.
 Client disconnected from the application.
 Application shutdown completed.
 ```
 
-Repeated native window events such as resize and move are logged at `DEBUG` to keep the main story readable. In browser development mode, native window handlers are skipped because no native desktop window is active.
+Repeated native window events such as resize and move are logged at `DEBUG` to keep the main story readable. Geometry updates are captured in `AppState.window` and saved on close or shutdown. In browser development mode, native window handlers are skipped because no native desktop window is active.
 
 For the internal logger architecture, early startup buffering, settings integration, and file rotation behavior, see [Logging subsystem](logging.md).
 
@@ -322,7 +350,7 @@ For the internal logger architecture, early startup buffering, settings integrat
 
 ## 🖼️ Application icon
 
-`app.py` passes the project icon to NiceGUI with `ui.run(favicon=...)`.
+`application/run_options.py` passes the project icon to NiceGUI with `ui.run(favicon=...)`.
 
 The icon path is resolved by `get_application_icon_path()` so it works in normal execution and in the packaged executable.
 
@@ -340,7 +368,7 @@ src\desktop_app\assets\page_image.png
 
 The UI uses a centered card layout with the image, the application title, a short description, and the startup status message.
 
-`app.py` resolves the image path through `resolve_asset_path(...)`, which supports both normal execution and packaged execution.
+`ui/main_page.py` resolves the image path through `resolve_asset_path(...)`, which supports both normal execution and packaged execution.
 
 ---
 
@@ -361,5 +389,6 @@ The splash screen is configured by [Windows packaging](packaging_windows.md). Wh
 - [Development environment](development_environment.md)
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
+- [Native window persistence](native_window_persistence.md)
 - [Windows packaging](packaging_windows.md)
 - [Troubleshooting](troubleshooting.md)

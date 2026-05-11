@@ -139,9 +139,9 @@ When the project version changes in `pyproject.toml`, update both the numeric tu
 Current alignment:
 
 ```text
-pyproject.toml: version = "0.4.0"
-version_info.txt: filevers=(0, 4, 0, 0)
-version_info.txt: FileVersion = "0.4.0.0"
+pyproject.toml: version = "0.5.0"
+version_info.txt: filevers=(0, 5, 0, 0)
+version_info.txt: FileVersion = "0.5.0.0"
 ```
 
 When preparing a new release, also update the root [CHANGELOG](../CHANGELOG.md) with the relevant user-facing and maintenance changes.

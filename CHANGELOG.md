@@ -6,6 +6,71 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
+## [0.5.0] - 2026-05-11
+
+### ✨ Added
+
+- Added native window size and position persistence for NiceGUI native mode.
+- Added `app.window.persist_state` to control whether native window geometry is restored and saved.
+- Added `desktop_app.infrastructure.native_window_state` to isolate native geometry restore, event capture, multi-monitor validation, and scoped window settings persistence.
+- Added Windows multi-monitor visibility guards using Win32 monitor work areas so persisted coordinates remain reachable after monitor changes without shrinking saved window dimensions.
+- Added focused tests for native geometry extraction from NiceGUI event arguments, restore behavior, close/shutdown persistence behavior, disabled persistence resets, and multi-monitor position correction.
+- Added orchestration tests for startup bootstrap, top-level `app.py`, and main page composition using fake NiceGUI objects.
+- Added `docs/native_window_persistence.md` with startup flow, multi-monitor behavior, save rules, validation commands, and troubleshooting guidance.
+- Added focused `desktop_app.application` startup modules for logging bootstrap, runtime context resolution, and NiceGUI run option construction.
+- Added `desktop_app.ui.main_page` to keep page composition outside the application entry point.
+- Added `docs/review_0_5_0.md` with the applied review checklist and validation summary.
+
+### 🔄 Changed
+
+- Changed the project version from `0.4.0` to `0.5.0`.
+- Updated Windows version metadata in `scripts/version_info.txt` to `0.5.0.0`.
+- Updated application constants and the bundled default settings template to version `0.5.0`.
+- Updated startup to load settings and apply `app.native.window_args` before `main()` starts, keeping persisted `x` and `y` available before the native window is created.
+- Updated native lifecycle handlers so `moved` and `resized` events update `AppState.window` and the `window` settings group is saved on close or shutdown.
+- Updated README, documentation index, execution modes, settings, state, first-run checklist, and troubleshooting documentation for native window persistence.
+- Refactored `src/desktop_app/app.py` into a smaller entry point that delegates logging bootstrap, runtime setup, and UI composition to dedicated modules.
+- Centralized native window startup geometry in `app.native.window_args` and kept window geometry options out of `ui.run(...)`.
+- Changed startup diagnostics to use configured logging instead of raw `print(...)` in `app.py`.
+
+### 🐞 Fixed
+
+- Fixed persisted native window size and position capture when NiceGUI move and resize events arrive as event-argument objects.
+- Fixed persisted `x` and `y` being ignored by applying native window arguments earlier in module initialization.
+- Fixed the risk of opening the application outside a recoverable visible desktop area after monitor removal, monitor reordering, or resolution changes while preserving saved width and height.
+- Fixed stale persisted geometry being reused after `app.window.persist_state` is changed to `false` by resetting geometry to defaults and saving the `window` group.
+- Preserved the working TOML save behavior by keeping move and resize events in-memory only and saving the `window` group on close or shutdown.
+- Kept `ui.run(...)` free of window geometry arguments while capturing valid runtime window updates from native event payloads and the native window proxy.
+- Fixed `test_splash.py` collection in environments where NiceGUI is not installed by using a minimal test fake.
+- Fixed the Ruff `E402` warning in `test_splash.py` while preserving the fake NiceGUI import guard used during test collection.
+- Removed an unnecessary `type: ignore[arg-type]` in native window pair coercion.
+- Narrowed file-system atomic write cleanup handling to documented I/O and encoding exceptions.
+
+### 🧭 Migration notes
+
+- Reinstall the project after upgrading so the package metadata and bundled settings template are refreshed:
+
+```powershell
+python -m pip install -e ".[dev,packaging]"
+```
+
+- If a persistent `settings.toml` already exists, add the new setting or let the application save the `window` group:
+
+```toml
+[app.window]
+persist_state = true
+```
+
+- To clear stale geometry from an existing runtime settings file, set `persist_state = false` once and start the application. The application resets geometry fields to defaults and saves the `window` group.
+
+- Rebuild the executable so Windows file properties show version `0.5.0.0` and the updated bundled settings template is included:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+---
+
 ## [0.4.0] - 2026-05-09
 
 ### ✨ Added

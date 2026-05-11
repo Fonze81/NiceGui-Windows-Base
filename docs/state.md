@@ -68,21 +68,21 @@ flowchart TD
     N --> O[StatusMessage]
 ```
 
-| Section               | Dataclass                 | Purpose                                                                                                         |
-| --------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `meta`                | `AppMetaState`            | Application name, version, language, and first-run flag.                                                        |
-| `runtime`             | `RuntimeState`            | Startup source, startup message, native mode flag, reload flag, and selected port.                              |
-| `paths`               | `RuntimePathsState`       | Resolved settings path, log path, executable path, working directory, and PyInstaller temp directory.           |
-| `window`              | `WindowState`             | Native window position, size, fullscreen/maximized flags, monitor, persistence flag, storage key, and last-save timestamp.        |
-| `ui`                  | `UiState`                 | Theme, font scale, dense mode, and accent color.                                                                |
-| `ui_session`          | `UiSessionState`          | Current view, busy state, busy message, page-build timestamp, and interaction timestamp.                        |
-| `assets`              | `AssetState`              | Resolved icon, page image, and splash image paths.                                                              |
-| `log`                 | `LogState`                | Logger level, console flag, buffer capacity, log file path, rotation settings, and runtime file logging status. |
-| `behavior`            | `BehaviorState`           | General behavior preferences, currently including auto-save.                                                    |
-| `settings`            | `SettingsState`           | Settings file path, existence/default flags, latest load/save scope, success flags, and latest error.           |
-| `settings_validation` | `SettingsValidationState` | Latest validation warnings, validated scope, and validation timestamp.                                          |
-| `lifecycle`           | `LifecycleState`          | NiceGUI handler registration, runtime, client, native window, splash, and shutdown status flags.                |
-| `status`              | `StatusState`             | Current status message and recent status history.                                                               |
+| Section               | Dataclass                 | Purpose                                                                                                                    |
+| --------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `meta`                | `AppMetaState`            | Application name, version, language, and first-run flag.                                                                   |
+| `runtime`             | `RuntimeState`            | Startup source, startup message, native mode flag, reload flag, and selected port.                                         |
+| `paths`               | `RuntimePathsState`       | Resolved settings path, log path, executable path, working directory, and PyInstaller temp directory.                      |
+| `window`              | `WindowState`             | Native window position, size, fullscreen/maximized flags, monitor, persistence flag, storage key, and last-save timestamp. |
+| `ui`                  | `UiState`                 | Theme, font scale, dense mode, and accent color.                                                                           |
+| `ui_session`          | `UiSessionState`          | Current view, busy state, busy message, page-build timestamp, and interaction timestamp.                                   |
+| `assets`              | `AssetState`              | Resolved icon, page image, and splash image paths.                                                                         |
+| `log`                 | `LogState`                | Logger level, console flag, buffer capacity, log file path, rotation settings, and runtime file logging status.            |
+| `behavior`            | `BehaviorState`           | General behavior preferences, currently including auto-save.                                                               |
+| `settings`            | `SettingsState`           | Settings file path, existence/default flags, latest load/save scope, success flags, and latest error.                      |
+| `settings_validation` | `SettingsValidationState` | Latest validation warnings, validated scope, and validation timestamp.                                                     |
+| `lifecycle`           | `LifecycleState`          | NiceGUI handler registration, runtime, client, native window, splash, and shutdown status flags.                           |
+| `status`              | `StatusState`             | Current status message and recent status history.                                                                          |
 
 ---
 
@@ -168,7 +168,7 @@ Examples:
 - `state.log.effective_file_path`;
 - `state.log.file_logging_enabled`.
 
-After settings are loaded, `app.py` builds the logger configuration from state and enables rotating file logging.
+After settings are loaded, `application/bootstrap.py` builds the logger configuration from state and enables rotating file logging.
 
 See [Logging subsystem](logging.md).
 

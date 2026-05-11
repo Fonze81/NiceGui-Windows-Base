@@ -92,7 +92,7 @@ flowchart TD
 
 ## 🚀 Startup flow
 
-`app.py` configures logging through `configure_logging()` before the application startup sequence continues.
+`app.py` delegates logging setup to `application/bootstrap.py` through `configure_logging()` before the application startup sequence continues.
 
 ```mermaid
 sequenceDiagram
@@ -101,15 +101,17 @@ sequenceDiagram
     participant Memory as Bounded memory handler
     participant Settings as settings service
     participant App as app.py
+    participant Bootstrap as application/bootstrap.py
     participant File as Rotating file handler
 
     Module->>Service: logger_get_logger(__name__)
     Service->>Memory: bootstrap early memory logging
-    App->>Settings: load_settings()
-    Settings->>App: AppState.log populated
-    App->>Service: logger_bootstrap(LoggerConfig)
+    App->>Bootstrap: configure_logging(state)
+    Bootstrap->>Settings: load_settings()
+    Settings->>Bootstrap: AppState.log populated
+    Bootstrap->>Service: logger_bootstrap(LoggerConfig)
     Service->>Service: update or create bootstrapper
-    App->>Service: logger_enable_file_logging()
+    Bootstrap->>Service: logger_enable_file_logging()
     Service->>File: create rotating file handler
     Memory->>File: flush buffered records
     Service->>Memory: remove and close memory handler
@@ -121,7 +123,7 @@ Why this matters:
 2. At that moment, the final log file path may not be known yet.
 3. Early records are kept in a bounded memory handler.
 4. `settings.toml` is loaded and mapped into `AppState.log`.
-5. `app.py` resolves the runtime log path and bootstraps the final logger configuration.
+5. `application/bootstrap.py` resolves the runtime log path and bootstraps the final logger configuration.
 6. File logging is enabled.
 7. The early records are flushed into the rotating log file.
 
@@ -149,7 +151,7 @@ rotate_max_bytes = "5 MB"
 rotate_backup_count = 3
 ```
 
-`configure_logging()` loads settings first, then builds `LoggerConfig` from `AppState.log`.
+`application/bootstrap.py::configure_logging()` loads settings first, then builds `LoggerConfig` from `AppState.log`.
 
 In packaged execution, console logging is disabled even if the setting allows console output, because the executable is built with PyInstaller `--windowed`.
 
@@ -163,7 +165,7 @@ The default relative log file is:
 Path("logs") / "app.log"
 ```
 
-The logger package resolves the final location through [`paths.py`](../src/desktop_app/infrastructure/logger/paths.py). `app.py` calls that resolver during `configure_logging()` and then passes the resulting path to `LoggerConfig`.
+The logger package resolves the final location through [`paths.py`](../src/desktop_app/infrastructure/logger/paths.py). `application/bootstrap.py` calls that resolver during `configure_logging()` and then passes the resulting path to `LoggerConfig`.
 
 The final location is resolved as follows:
 

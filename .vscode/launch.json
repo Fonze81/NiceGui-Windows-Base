@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug pyproject command",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "desktop_app",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    },
+    {
+      "name": "Debug app.py directly",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/desktop_app/app.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    },
+    {
+      "name": "Debug dev_run.py with reload",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/dev_run.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    }
+  ]
+}

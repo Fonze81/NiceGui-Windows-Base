@@ -25,8 +25,8 @@ Native window persistence is designed to:
 - restore the last native window size and position when the application starts;
 - keep callbacks in `lifecycle.py` small and delegate geometry logic to infrastructure code;
 - update `AppState.window` from real native move and resize events;
-- save only the `window` settings group when the application exits;
-- avoid writing the settings file on every resize or move event;
+- save only the `window` settings group when the native window closes or the application shuts down;
+- avoid writing the settings file on every native move or resize event;
 - prevent monitor changes from leaving the application outside the visible desktop;
 - support multi-monitor Windows setups, including monitors with negative virtual-screen coordinates.
 
@@ -49,7 +49,7 @@ When the value is `false`, the application resets persisted geometry to the defa
 
 ## 🧭 Startup flow
 
-The application applies native window position before `main()` starts.
+The application applies native window geometry before `main()` starts.
 
 ```mermaid
 sequenceDiagram
@@ -57,19 +57,20 @@ sequenceDiagram
     participant Settings as settings service
     participant State as AppState.window
     participant Native as app.native.window_args
+    participant Options as application/run_options.py
     participant Run as ui.run
     participant Window as native pywebview window
 
     App->>Settings: load_settings(state)
-    Settings->>State: apply x, y, width, height, persist_state
+    Settings->>State: apply x, y, width, height, fullscreen, persist_state
     App->>State: normalize persisted geometry
-    State->>Native: apply x and y early
-    App->>Run: pass window_size and fullscreen
-    Run->>Window: create native window
+    State->>Native: apply x, y, width, height, fullscreen early
+    Options->>Run: pass non-geometry runtime options
+    Run->>Window: create native window from app.native.window_args
     Window->>State: moved/resized events update state
 ```
 
-Important detail: `x` and `y` are applied through `app.native.window_args` before `ui.run(...)` creates the native window. `window_size` and `fullscreen` remain part of the `ui.run(...)` options.
+Important detail: `x`, `y`, `width`, `height`, and `fullscreen` are applied through `app.native.window_args` before `ui.run(...)` creates the native window. The application intentionally does not pass window geometry through `ui.run(...)`; this keeps one startup source of truth for the native backend.
 
 ---
 
@@ -83,48 +84,53 @@ The application handles this by using Windows monitor work areas:
 2. read each monitor `rcWork` through `GetMonitorInfoW`;
 3. select the monitor that most overlaps the persisted window;
 4. if the persisted window is outside every monitor, select the nearest monitor;
-5. clamp `x` and `y` inside safe 10% and 90% guard rails for that monitor.
+5. adjust only `x` and `y` when the saved position would make the window hard to recover.
 
-The guard rails are applied per axis:
+The guard rails are applied per axis and intentionally preserve the saved width and height. Only the starting coordinate is adjusted:
 
-| Axis | Rule |
-| ---- | ---- |
-| `x`  | If `x` is greater than 90% of the monitor work-area width, clamp it to 90%. |
-| `x`  | If `x + width` is before 10% of the monitor work-area width, move `x` to 10%. |
-| `y`  | If `y` is greater than 90% of the monitor work-area height, clamp it to 90%. |
-| `y`  | If `y + height` is before 10% of the monitor work-area height, move `y` to 10%. |
+| Situation                                                                   | Rule                                                            |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `x` is greater than 90% of the selected work-area width                     | Move `x` back to the 90% mark of that work area.                |
+| `y` is greater than 90% of the selected work-area height                    | Move `y` back to the 90% mark of that work area.                |
+| `x + width` leaves less than 10% of the work area visible on the left side  | Move `x` to the selected work-area left edge.                   |
+| `y + height` leaves less than 10% of the work area visible above the screen | Move `y` to the selected work-area top edge.                    |
+| width and height                                                            | Preserve the saved values during monitor visibility correction. |
 
-The calculation uses the monitor work-area origin, so it supports monitors positioned to the left or above the primary monitor where coordinates can be negative.
+For the primary monitor, the work-area left and top edges are normally `0`. In multi-monitor layouts, the same rule uses the selected monitor origin, so monitors positioned to the left or above the primary monitor can still use negative virtual-screen coordinates safely.
 
 ---
 
 ## 🔄 Runtime event flow
 
-Native lifecycle handlers update in-memory state only. They do not save the file on every event.
+Native lifecycle handlers keep in-memory geometry current while the application is running. Move and resize events update `AppState.window` from the event payload and then try to refresh the complete geometry from the NiceGUI native window proxy. This matters because resizing from the left or top border can change both position and size.
+
+The settings file is intentionally not written on each move or resize event. This avoids frequent TOML writes while the user drags the window and preserves the current working behavior where the `window` settings group is saved during close or shutdown.
 
 ```mermaid
 flowchart TD
     A[Native window moved] --> B[update_native_window_position]
     C[Native window resized] --> D[update_native_window_size]
-    B --> E[AppState.window]
+    B --> E[refresh_native_window_state_from_proxy]
     D --> E
-    F[Native window closed] --> G[persist_native_window_state_on_exit]
-    H[Application shutdown] --> G
-    G --> I[save_settings_group window]
+    E --> F[AppState.window updated in memory]
+    F --> G[No TOML write during move or resize]
+    H[Native window closed] --> I[persist_native_window_state_on_exit]
+    J[Application shutdown] --> I
+    I --> K[save_settings_group window]
 ```
 
-This avoids excessive disk writes while keeping the final state ready for persistence.
-
----
+This keeps runtime geometry accurate without turning high-frequency native events into repeated file writes.
 
 ## 💾 Save behavior
 
-On native window close and application shutdown, the application:
+On native move and resize events, the application:
 
-1. refreshes `AppState.window` from the latest native event or native window object when possible;
-2. updates `last_saved_at`;
-3. saves only the `window` settings group;
-4. keeps unrelated settings untouched.
+1. updates `AppState.window` from the event payload when available;
+2. refreshes the latest position and size from the native window proxy when available;
+3. keeps `last_saved_at` unchanged;
+4. does not write `settings.toml`.
+
+On native window close and application shutdown, the application tries to refresh `AppState.window` from the latest native event or native window object before saving only the `window` settings group.
 
 The saved values are:
 
@@ -188,11 +194,11 @@ Start the application once. The geometry should be reset to defaults and saved b
 
 Confirm you edited the correct runtime file:
 
-| Runtime | File to edit |
-| ------- | ------------ |
-| Normal Python execution | `<repository-root>\settings.toml` |
-| Packaged executable | `<executable-directory>\settings.toml` |
-| Custom root | `%DESKTOP_APP_ROOT%\settings.toml` |
+| Runtime                 | File to edit                           |
+| ----------------------- | -------------------------------------- |
+| Normal Python execution | `<repository-root>\settings.toml`      |
+| Packaged executable     | `<executable-directory>\settings.toml` |
+| Custom root             | `%DESKTOP_APP_ROOT%\settings.toml`     |
 
 The bundled file at `src\desktop_app\settings.toml` is the default template, not the normal runtime settings file.
 

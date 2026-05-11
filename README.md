@@ -18,9 +18,12 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 - browser development execution through `python dev_run.py`;
 - centralized typed `AppState` for runtime, UI, settings, assets, logging, lifecycle, and status information;
 - persistent `settings.toml` support with full-file, group, and single-property load/save operations;
+- native window size and position persistence controlled by `app.window.persist_state`;
+- multi-monitor guard rails that keep restored native windows visible after monitor changes;
 - bundled default settings template at `src/desktop_app/settings.toml`;
 - defensive settings conversion for manually edited TOML values;
-- narrative startup diagnostics shown in terminal, UI, and rotating log file;
+- narrative startup diagnostics shown in console logs when available, UI, and rotating log file;
+- slim application entry point with startup bootstrap, runtime option building, and page composition split into focused modules;
 - structured logger package with early startup buffering, rotating file logs, and safe shutdown;
 - packaged and normal asset resolution for icon, page image, and splash image;
 - optional PyInstaller splash screen support that closes after the first client connects;
@@ -48,6 +51,7 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
 │   ├── python_windows_setup.md
+│   ├── review_0_5_0.md
 │   ├── settings.md
 │   ├── state.md
 │   ├── troubleshooting.md
@@ -64,6 +68,11 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   ├── splash.svg
 │       │   ├── splash_dark.png
 │       │   └── splash_light.png
+│       ├── application/
+│       │   ├── __init__.py
+│       │   ├── bootstrap.py
+│       │   ├── run_options.py
+│       │   └── runtime_context.py
 │       ├── core/
 │       │   ├── __init__.py
 │       │   ├── runtime.py
@@ -76,15 +85,24 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   ├── byte_size.py
 │       │   ├── file_system.py
 │       │   ├── lifecycle.py
+│       │   ├── native_window_state.py
 │       │   └── splash.py
+│       ├── ui/
+│       │   ├── __init__.py
+│       │   └── main_page.py
 │       ├── __init__.py
 │       ├── __main__.py
 │       ├── app.py
 │       ├── constants.py
 │       └── settings.toml
 ├── tests/
+│   ├── application/
 │   ├── core/
-│   └── infrastructure/
+│   ├── infrastructure/
+│   ├── ui/
+│   ├── test_app.py
+│   ├── test_constants.py
+│   └── test_desktop_app_main.py
 ├── CHANGELOG.md
 ├── dev_run.py
 ├── pyproject.toml
@@ -192,7 +210,7 @@ All runtime commands assume the virtual environment is active and the editable i
 
 ## 🖨️ Startup diagnostics
 
-The application builds one startup message and reuses it in terminal output, UI, and logs.
+The application builds one startup message and reuses it in console logs when available, UI, and rotating logs.
 
 Examples:
 
@@ -204,7 +222,7 @@ NiceGui Windows Base is starting from the development runner in web mode with re
 NiceGui Windows Base is starting from the packaged executable in native mode with reload disabled.
 ```
 
-The runtime log records the operational story of the run: settings load, logger configuration, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, client connections, native window events, exceptions, and shutdown. See [Logging subsystem](docs/logging.md).
+The runtime log records the operational story of the run: settings load, native window geometry preparation, logger configuration, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, client connections, native window events, window settings persistence, exceptions, and shutdown. See [Logging subsystem](docs/logging.md).
 
 ---
 
@@ -228,7 +246,15 @@ Persistent settings are resolved to:
 
 Loading a missing settings file is intentionally read-only and keeps in-memory defaults. The file is created only when a save operation runs.
 
-See [Settings persistence](docs/settings.md) and [Application state](docs/state.md).
+### 🪟 Native window persistence
+
+When `app.window.persist_state = true`, the application restores native window size and position from `settings.toml`, updates `AppState.window` from native move and resize events, and saves the `window` group when the application exits.
+
+Before applying persisted coordinates, the Windows monitor work areas are enumerated through Win32 APIs. The saved position is clamped against the most relevant monitor so a monitor change cannot leave the window unreachable. This supports secondary monitors and negative virtual-screen coordinates.
+
+When `app.window.persist_state = false`, saved geometry is reset to `WindowState` defaults and persisted back to TOML so stale coordinates are not reused later.
+
+See [Settings persistence](docs/settings.md), [Application state](docs/state.md), and [Native window persistence](docs/native_window_persistence.md).
 
 ---
 
@@ -264,6 +290,7 @@ Main guides:
 - [Logging subsystem](docs/logging.md)
 - [Settings persistence](docs/settings.md)
 - [Application state](docs/state.md)
+- [Native window persistence](docs/native_window_persistence.md)
 - [Code quality and tests](docs/code_quality.md)
 - [Troubleshooting](docs/troubleshooting.md)
 

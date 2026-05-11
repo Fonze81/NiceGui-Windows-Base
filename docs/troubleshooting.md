@@ -364,7 +364,7 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 ---
 
-## 📦 Packaged executable prints startup messages twice
+## 📦 Packaged executable logs startup messages twice
 
 Likely cause: a frozen multiprocessing child process is re-entering the application startup flow.
 
@@ -388,15 +388,15 @@ Remove-Item -Force *.spec -ErrorAction SilentlyContinue
 
 ---
 
-## 🖨️ Startup message differs between terminal and page
+## 🖨️ Startup message differs between logs and page
 
-The startup message should be built once in `main(...)` and reused for terminal output, state, logs, and the NiceGUI page.
+The startup message should be built once in `main(...)` and reused for state, logs, and the NiceGUI page.
 
 Expected pattern:
 
 ```python
 startup_message = build_startup_message(...)
-print(startup_message)
+logger.info("Startup status: %s", startup_message)
 
 ui.run(
     partial(build_main_page, startup_message=startup_message),
@@ -404,7 +404,7 @@ ui.run(
 )
 ```
 
-Avoid rebuilding the message separately inside `build_main_page(...)`, because that can cause the terminal and page text to drift over time.
+Avoid rebuilding the message separately inside `build_main_page(...)`, because that can cause the log and page text to drift over time.
 
 ---
 
@@ -608,8 +608,9 @@ dist\packaging_report.md
 
 ## 🪟 Native window opens outside the visible area
 
-The application clamps persisted coordinates against the current Windows monitor
-work areas before positioning the native window. If the window is still not
+The application adjusts persisted coordinates against the current Windows monitor
+work areas before positioning the native window. This safety check changes only
+`x` and `y`; it does not reduce saved width or height. If the window is still not
 reachable, disable persistence once in the persistent runtime file:
 
 ```toml
@@ -622,11 +623,11 @@ saves the `window` settings group, while keeping `persist_state = false`.
 
 Edit the correct file for the runtime:
 
-| Runtime | File to edit |
-| ------- | ------------ |
-| Normal Python execution | `<repository-root>\settings.toml` |
-| Packaged executable | `<executable-directory>\settings.toml` |
-| Custom root | `%DESKTOP_APP_ROOT%\settings.toml` |
+| Runtime                 | File to edit                           |
+| ----------------------- | -------------------------------------- |
+| Normal Python execution | `<repository-root>\settings.toml`      |
+| Packaged executable     | `<executable-directory>\settings.toml` |
+| Custom root             | `%DESKTOP_APP_ROOT%\settings.toml`     |
 
 Do not edit `src\desktop_app\settings.toml` expecting it to change an already
 created persistent settings file. That source file is the bundled default

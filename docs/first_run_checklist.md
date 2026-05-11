@@ -146,11 +146,12 @@ Test-Path .\src\desktop_app\settings.toml
 - [ ] The template version is aligned with `pyproject.toml`:
 
 ```text
-0.4.0
+0.5.0
 ```
 
 - [ ] Normal execution can start even when `<repository-root>\settings.toml` does not exist.
 - [ ] When settings are saved later, they are written to the runtime root.
+- [ ] `app.window.persist_state` exists in the `[app.window]` section.
 - [ ] For isolated diagnostics, `DESKTOP_APP_ROOT` can point to a temporary folder.
 
 Example:
@@ -164,6 +165,26 @@ After the diagnostic, clear it:
 
 ```powershell
 Remove-Item Env:\DESKTOP_APP_ROOT
+```
+
+---
+
+## 🪟 Native window persistence
+
+- [ ] Normal native execution restores size from `[app.window]`.
+- [ ] Normal native execution restores position from `[app.window]`.
+- [ ] Moving and resizing the native window updates `settings.toml` after close.
+- [ ] Setting `app.window.persist_state = false` resets geometry to defaults after one run.
+- [ ] A manually invalid off-screen position is clamped back to a visible monitor area.
+- [ ] Multi-monitor setups with a monitor to the left or above the primary display keep the window reachable.
+
+Useful focused tests:
+
+```powershell
+pytest tests/application
+pytest tests/infrastructure/test_native_window_state.py
+pytest tests/infrastructure/test_lifecycle.py
+pytest tests/ui
 ```
 
 ---
@@ -241,7 +262,7 @@ dist\nicegui-windows-base.exe
 - [ ] `dist\logs\app.log` is created after the packaged executable starts.
 - [ ] Packaged settings resolve next to the executable.
 - [ ] The bundled default `settings.toml` is included in the packaged build.
-- [ ] The log contains startup source, runtime mode, settings path, NiceGUI startup, page build, and shutdown narrative.
+- [ ] The log contains startup source, runtime mode, settings path, native window geometry, NiceGUI startup, page build, window persistence, and shutdown narrative.
 
 ---
 
@@ -252,5 +273,6 @@ dist\nicegui-windows-base.exe
 - [Execution modes](execution_modes.md)
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
+- [Native window persistence](native_window_persistence.md)
 - [Logging subsystem](logging.md)
 - [Troubleshooting](troubleshooting.md)

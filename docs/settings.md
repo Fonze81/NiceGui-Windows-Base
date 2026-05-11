@@ -35,7 +35,8 @@ The settings subsystem is designed to:
 
 ```mermaid
 flowchart TD
-    A[app.py] --> B[service.py]
+    A[app.py] --> Z[application/bootstrap.py]
+    Z --> B[service.py]
     B --> C[paths.py]
     B --> D[toml_document.py]
     B --> E[mapper.py]
@@ -140,24 +141,26 @@ Bundled defaults are searched in packaging-safe candidate paths, including the P
 
 ## 🚀 Startup flow
 
-`app.py` calls `configure_logging()` early during startup. That function loads settings before final logger setup.
+`app.py` calls `configure_logging()` from `application/bootstrap.py` early during startup. That function loads settings before final logger setup.
 
 ```mermaid
 sequenceDiagram
     participant App as app.py
+    participant Bootstrap as application/bootstrap.py
     participant Settings as settings service
     participant Paths as settings paths
     participant Mapper as settings mapper
     participant State as AppState
     participant Logger as logger
 
-    App->>Settings: load_settings(state)
+    App->>Bootstrap: configure_logging(state)
+    Bootstrap->>Settings: load_settings(state)
     Settings->>Paths: resolve persistent and bundled paths
     Settings->>Settings: read persistent or bundled TOML
     Settings->>Mapper: apply_settings_to_state(...)
     Mapper->>State: update settings-backed fields
-    App->>Mapper: build_logger_config_from_state(...)
-    App->>Logger: bootstrap logger
+    Bootstrap->>Mapper: build_logger_config_from_state(...)
+    Bootstrap->>Logger: bootstrap logger
 ```
 
 ---
@@ -166,13 +169,13 @@ sequenceDiagram
 
 Settings are organized by groups in [`schema.py`](../src/desktop_app/infrastructure/settings/schema.py).
 
-| Group      | Property paths                                                                                                                                                           |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `meta`     | `app.name`, `app.version`, `app.language`, `app.first_run`                                                                                                               |
+| Group      | Property paths                                                                                                                                                                                       |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `meta`     | `app.name`, `app.version`, `app.language`, `app.first_run`                                                                                                                                           |
 | `window`   | `app.window.x`, `app.window.y`, `app.window.width`, `app.window.height`, `app.window.maximized`, `app.window.fullscreen`, `app.window.monitor`, `app.window.persist_state`, `app.window.storage_key` |
-| `ui`       | `app.ui.theme`, `app.ui.font_scale`, `app.ui.dense_mode`, `app.ui.accent_color`                                                                                          |
-| `log`      | `app.log.level`, `app.log.enable_console`, `app.log.buffer_capacity`, `app.log.file_path`, `app.log.rotate_max_bytes`, `app.log.rotate_backup_count`                     |
-| `behavior` | `app.behavior.auto_save`                                                                                                                                                 |
+| `ui`       | `app.ui.theme`, `app.ui.font_scale`, `app.ui.dense_mode`, `app.ui.accent_color`                                                                                                                      |
+| `log`      | `app.log.level`, `app.log.enable_console`, `app.log.buffer_capacity`, `app.log.file_path`, `app.log.rotate_max_bytes`, `app.log.rotate_backup_count`                                                 |
+| `behavior` | `app.behavior.auto_save`                                                                                                                                                                             |
 
 Legacy log paths are also recognized for cleanup and migration support:
 
@@ -190,8 +193,8 @@ When `app.window.persist_state = true`, the application:
 
 1. loads `x`, `y`, `width`, `height`, and `fullscreen` during early startup;
 2. normalizes persisted coordinates against the current Windows monitor work areas;
-3. assigns `x` and `y` to `app.native.window_args` before `main()` reaches `ui.run(...)`;
-4. passes `window_size` and `fullscreen` through `ui.run(...)` in native mode;
+3. assigns `x`, `y`, `width`, `height`, and `fullscreen` to `app.native.window_args` before `main()` reaches `ui.run(...)`;
+4. keeps window geometry out of `ui.run(...)` so native startup has one source of truth;
 5. updates `AppState.window` when native resize or move events are received;
 6. saves only the `window` settings group when the native window is closed or during application shutdown.
 
