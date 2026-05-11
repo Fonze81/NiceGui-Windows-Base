@@ -54,7 +54,7 @@ def atomic_write_text(
     try:
         temporary_path.write_text(content, encoding=encoding)
         temporary_path.replace(target_path)
-    except Exception:
+    except (OSError, UnicodeError):
         with suppress(OSError):
             temporary_path.unlink(missing_ok=True)
 

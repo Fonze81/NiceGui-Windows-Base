@@ -66,6 +66,7 @@ def test_app_state_builds_expected_default_groups() -> None:
     assert app_state.window.maximized is False
     assert app_state.window.fullscreen is False
     assert app_state.window.monitor == 0
+    assert app_state.window.persist_state is True
     assert app_state.window.storage_key == "nicegui_windows_base_window_state"
     assert app_state.window.last_saved_at is None
 

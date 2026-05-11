@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Final
 
 APPLICATION_TITLE: Final[str] = "NiceGui Windows Base"
-APPLICATION_VERSION: Final[str] = "0.4.1"
+APPLICATION_VERSION: Final[str] = "0.4.2"
 APP_ICON_FILENAME: Final[str] = "app_icon.ico"
 PAGE_IMAGE_FILENAME: Final[str] = "page_image.png"
 SPLASH_IMAGE_FILENAME: Final[str] = "splash_light.png"

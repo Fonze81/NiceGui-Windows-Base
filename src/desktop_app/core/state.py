@@ -34,6 +34,24 @@ type StatusLevel = Literal["info", "success", "warning", "error"]
 type ThemeName = Literal["light", "dark", "system"]
 
 
+def _create_warning_list() -> list[str]:
+    """Create a typed list for settings validation warnings.
+
+    Returns:
+        Empty warning list.
+    """
+    return []
+
+
+def _create_status_history() -> list[StatusMessage]:
+    """Create a typed list for status message history.
+
+    Returns:
+        Empty status history list.
+    """
+    return []
+
+
 @dataclass(slots=True)
 class AppMetaState:
     """Store user-facing application metadata and preferences.
@@ -91,7 +109,7 @@ class RuntimePathsState:
 
 @dataclass(slots=True)
 class WindowState:
-    """Store future native window size and position preferences.
+    """Store persisted and runtime native window preferences.
 
     Attributes:
         x: Preferred horizontal window position.
@@ -101,6 +119,7 @@ class WindowState:
         maximized: Whether the window should start maximized.
         fullscreen: Whether the window should start in fullscreen mode.
         monitor: Preferred monitor index.
+        persist_state: Whether native window geometry should be saved on exit.
         storage_key: Key reserved for future local UI persistence.
         last_saved_at: Last time the window state was persisted.
     """
@@ -112,6 +131,7 @@ class WindowState:
     maximized: bool = False
     fullscreen: bool = False
     monitor: int = 0
+    persist_state: bool = True
     storage_key: str = "nicegui_windows_base_window_state"
     last_saved_at: datetime | None = None
 
@@ -240,7 +260,7 @@ class SettingsValidationState:
         last_validated_at: Timestamp of the latest validation attempt.
     """
 
-    warnings: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=_create_warning_list)
     last_validated_scope: str | None = None
     last_validated_at: datetime | None = None
 
@@ -308,7 +328,7 @@ class StatusState:
     """
 
     current_message: StatusMessage | None = None
-    history: list[StatusMessage] = field(default_factory=list)
+    history: list[StatusMessage] = field(default_factory=_create_status_history)
     max_history: int = 50
 
     def push(self, text: str, level: StatusLevel = "info") -> StatusMessage:
@@ -378,7 +398,7 @@ class AppState:
     status: StatusState = field(default_factory=StatusState)
 
 
-_APP_STATE: AppState | None = None
+_app_state: AppState | None = None
 
 
 def get_app_state() -> AppState:
@@ -387,12 +407,12 @@ def get_app_state() -> AppState:
     Returns:
         Shared AppState instance for the current process.
     """
-    global _APP_STATE
+    global _app_state
 
-    if _APP_STATE is None:
-        _APP_STATE = AppState()
+    if _app_state is None:
+        _app_state = AppState()
 
-    return _APP_STATE
+    return _app_state
 
 
 def set_app_state(state: AppState) -> None:
@@ -401,9 +421,9 @@ def set_app_state(state: AppState) -> None:
     Args:
         state: New AppState instance.
     """
-    global _APP_STATE
+    global _app_state
 
-    _APP_STATE = state
+    _app_state = state
 
 
 def reset_app_state() -> AppState:
@@ -412,7 +432,7 @@ def reset_app_state() -> AppState:
     Returns:
         Newly created default AppState instance.
     """
-    global _APP_STATE
+    global _app_state
 
-    _APP_STATE = AppState()
-    return _APP_STATE
+    _app_state = AppState()
+    return _app_state

@@ -8,7 +8,9 @@
 # without interrupting the application during logging cleanup.
 # Notes:
 # The bounded memory handler keeps only the most recent records to avoid
-# unbounded growth before file logging is enabled.
+# unbounded growth before file logging is enabled. Public factory functions
+# return logging.Handler-compatible types so callers do not depend on generic
+# handler implementation details.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
@@ -48,7 +50,7 @@ class BoundedMemoryHandler(MemoryHandler):
             del self.buffer[:overflow_count]
 
 
-def create_console_handler(level: int) -> StreamHandler:
+def create_console_handler(level: int) -> Handler:
     """Create the handler responsible for console log output.
 
     Args:
@@ -57,7 +59,7 @@ def create_console_handler(level: int) -> StreamHandler:
     Returns:
         Configured console handler.
     """
-    handler = StreamHandler()
+    handler: Handler = StreamHandler()
     handler.setLevel(level)
     handler.setFormatter(
         logging.Formatter(

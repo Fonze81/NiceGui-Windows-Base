@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 
 import tomlkit
+from tomlkit.exceptions import ParseError
 from tomlkit.toml_document import TOMLDocument
 
 from desktop_app.core.state import AppState, get_app_state
@@ -64,7 +65,7 @@ def build_initial_settings_document(state: AppState) -> TOMLDocument:
 
     try:
         return tomlkit.parse(bundled_text)
-    except Exception:
+    except ParseError:
         logger.exception(
             "Bundled settings template could not be parsed. Generated settings "
             "from defaults."

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Final
 
 from desktop_app.constants import (
     MAX_BUFFER_CAPACITY,
@@ -26,6 +27,17 @@ from desktop_app.constants import (
 from desktop_app.infrastructure.byte_size import parse_byte_size
 from desktop_app.infrastructure.logger.config import LoggerConfig
 from desktop_app.infrastructure.logger.exceptions import LoggerValidationError
+
+_STANDARD_LOG_LEVELS: Final[dict[str, int]] = {
+    "CRITICAL": logging.CRITICAL,
+    "FATAL": logging.FATAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "WARN": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "NOTSET": logging.NOTSET,
+}
 
 
 def normalize_logger_name(name: object) -> str:
@@ -75,8 +87,8 @@ def normalize_logger_level(level: object) -> int:
         if not normalized_level:
             raise LoggerValidationError("Logger level string must not be empty.")
 
-        resolved_level = logging.getLevelName(normalized_level)
-        if isinstance(resolved_level, int):
+        resolved_level = _STANDARD_LOG_LEVELS.get(normalized_level)
+        if resolved_level is not None:
             return resolved_level
 
         raise LoggerValidationError(
