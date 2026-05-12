@@ -23,7 +23,7 @@ import ctypes
 import inspect
 from collections.abc import Callable, Iterable
 from ctypes import wintypes
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from datetime import datetime
 from logging import Logger
 from typing import Any, Final, cast
@@ -451,10 +451,7 @@ def _reset_window_geometry_to_defaults(window_state: WindowState) -> bool:
         "monitor",
     )
 
-    available_field_names = {field.name for field in fields(WindowState)}
     for field_name in reset_field_names:
-        if field_name not in available_field_names:
-            continue
         changed = (
             _assign_if_different(
                 window_state,

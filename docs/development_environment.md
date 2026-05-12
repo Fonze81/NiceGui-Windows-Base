@@ -34,7 +34,8 @@ flowchart TD
     I --> J[Run python dev_run.py]
     J --> K[Run pytest and coverage]
     K --> L[Run Ruff checks]
-    L --> M[Package Windows executable]
+    L --> M[Clean generated files when needed]
+    M --> N[Package Windows executable]
 ```
 
 ---
@@ -256,7 +257,33 @@ See:
 
 ---
 
-## 📦 11. Package for Windows
+## 🧽 11. Clean generated files when needed
+
+Preview cleanup candidates:
+
+```powershell
+.\scripts\clean_project.ps1 -DryRun
+```
+
+Run the default cleanup:
+
+```powershell
+.\scripts\clean_project.ps1
+```
+
+The default cleanup removes reproducible build artifacts such as `build`, `dist`, and generated `*.spec` files because `IncludeBuildArtifacts` defaults to `true`. Preserve them only when needed:
+
+```powershell
+.\scripts\clean_project.ps1 -IncludeBuildArtifacts:$false
+```
+
+See:
+
+- [Code quality](code_quality.md#-workspace-cleanup)
+
+---
+
+## 📦 12. Package for Windows
 
 ```powershell
 .\scripts\package_windows.ps1
@@ -274,7 +301,7 @@ See:
 
 ---
 
-## ✅ 12. Validate the setup
+## ✅ 13. Validate the setup
 
 Use the complete checklist:
 

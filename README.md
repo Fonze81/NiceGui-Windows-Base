@@ -15,6 +15,7 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 - project metadata, dependencies, CLI entry point, package data, pytest, coverage, and Ruff configuration in `pyproject.toml`;
 - normal native execution through `nicegui-windows-base`;
 - module execution through `python -m desktop_app`;
+- a Windows cleanup script for generated caches, coverage outputs, egg-info metadata, and build artifacts;
 - browser development execution through `python dev_run.py`;
 - centralized typed `AppState` for runtime, UI, settings, assets, logging, lifecycle, and status information;
 - persistent `settings.toml` support with full-file, group, and single-property load/save operations;
@@ -40,6 +41,7 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 .
 ├── .vscode/
 │   ├── extensions.json
+│   ├── launch.json
 │   └── settings.json
 ├── docs/
 │   ├── README.md
@@ -48,19 +50,25 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   ├── execution_modes.md
 │   ├── first_run_checklist.md
 │   ├── logging.md
+│   ├── native_window_persistence.md
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
 │   ├── python_windows_setup.md
-│   ├── review_0_5_0.md
 │   ├── settings.md
 │   ├── state.md
 │   ├── troubleshooting.md
 │   └── vscode_setup.md
 ├── scripts/
+│   ├── clean_project.ps1
 │   ├── package_windows.ps1
 │   └── version_info.txt
 ├── src/
 │   └── desktop_app/
+│       ├── application/
+│       │   ├── __init__.py
+│       │   ├── bootstrap.py
+│       │   ├── run_options.py
+│       │   └── runtime_context.py
 │       ├── assets/
 │       │   ├── app_icon.ico
 │       │   ├── logo.png
@@ -68,11 +76,6 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   ├── splash.svg
 │       │   ├── splash_dark.png
 │       │   └── splash_light.png
-│       ├── application/
-│       │   ├── __init__.py
-│       │   ├── bootstrap.py
-│       │   ├── run_options.py
-│       │   └── runtime_context.py
 │       ├── core/
 │       │   ├── __init__.py
 │       │   ├── runtime.py
@@ -88,8 +91,14 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   ├── native_window_state.py
 │       │   └── splash.py
 │       ├── ui/
+│       │   ├── pages/
+│       │   │   ├── __init__.py
+│       │   │   ├── index.py
+│       │   │   ├── not_found.py
+│       │   │   └── routes.py
 │       │   ├── __init__.py
-│       │   └── main_page.py
+│       │   ├── layout.py
+│       │   └── router.py
 │       ├── __init__.py
 │       ├── __main__.py
 │       ├── app.py
@@ -100,12 +109,14 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   ├── core/
 │   ├── infrastructure/
 │   ├── ui/
+│   │   └── test_pages_and_router.py
 │   ├── test_app.py
 │   ├── test_constants.py
 │   └── test_desktop_app_main.py
 ├── CHANGELOG.md
 ├── dev_run.py
 ├── pyproject.toml
+├── settings.toml
 └── README.md
 ```
 
@@ -179,6 +190,18 @@ ruff check .
 ruff format --check .
 ```
 
+Clean generated files when caches or build outputs need to be removed:
+
+```powershell
+.\scripts\clean_project.ps1
+```
+
+Preview cleanup without deleting files:
+
+```powershell
+.\scripts\clean_project.ps1 -DryRun
+```
+
 Package the Windows executable:
 
 ```powershell
@@ -201,6 +224,8 @@ Package the Windows executable:
 | Check code              | `ruff check .`                                       |
 | Check formatting        | `ruff format --check .`                              |
 | Format code             | `ruff format .`                                      |
+| Clean generated files   | `.\scripts\clean_project.ps1`                        |
+| Preview cleanup         | `.\scripts\clean_project.ps1 -DryRun`                |
 | Package for Windows     | `.\scripts\package_windows.ps1`                      |
 | Run packaged executable | `.\dist\nicegui-windows-base.exe`                    |
 
@@ -212,15 +237,17 @@ All runtime commands assume the virtual environment is active and the editable i
 
 The application builds one startup message and reuses it in console logs when available, UI, and rotating logs.
 
-Examples:
+Current confirmed message shapes:
 
 ```text
-NiceGui Windows Base is starting from the pyproject command in native mode with reload disabled.
-NiceGui Windows Base is starting from module execution in native mode with reload disabled.
 NiceGui Windows Base is starting from direct script execution in native mode with reload disabled.
 NiceGui Windows Base is starting from the development runner in web mode with reload enabled.
 NiceGui Windows Base is starting from the packaged executable in native mode with reload disabled.
 ```
+
+The public command `nicegui-windows-base` and `python -m desktop_app` currently route through `src\desktop_app\__main__.py`, which executes `desktop_app.app` with `__main__` semantics. This preserves the same Windows-safe startup path used by direct `app.py` execution; therefore the visible startup source may be reported as direct script execution for those non-frozen paths.
+
+The lower-level startup detector still knows how to describe a raw `__main__.py` argument as module execution and a raw console-script name as the pyproject command, but the current public entry point intentionally normalizes execution through `desktop_app.app`. See [Execution modes](docs/execution_modes.md) for details.
 
 The runtime log records the operational story of the run: settings load, native window geometry preparation, logger configuration, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, client connections, native window events, window settings persistence, exceptions, and shutdown. See [Logging subsystem](docs/logging.md).
 

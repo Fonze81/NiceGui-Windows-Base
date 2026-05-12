@@ -6,6 +6,46 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
+## [0.6.0] - 2026-05-12
+
+### ✨ Added
+
+- Added a NiceGUI SPA shell using `ui.sub_pages`, with route registration in `desktop_app.ui.router`, shared layout in `desktop_app.ui.layout`, and page modules under `desktop_app.ui.pages`.
+- Added the in-app fallback page for unknown SPA paths.
+- Added focused UI tests for layout mounting, route registration, index page rendering, and fallback page rendering.
+- Added additional native window tests for proxy geometry refresh, Win32 monitor enumeration edge cases, failed persistence paths, and geometry coercion helpers.
+- Added `scripts/clean_project.ps1` documentation coverage for cache, coverage, egg-info, build artifact, dry-run, and optional log cleanup workflows.
+
+### 🔄 Changed
+
+- Changed the project version from `0.5.0` to `0.6.0`.
+- Updated Windows version metadata in `scripts/version_info.txt` to `0.6.0.0`.
+- Updated the bundled and root `settings.toml` version values to `0.6.0`.
+- Renamed the default page builder from `build_main_page` to `build_index_page` to match the `ui/pages/index.py` SPA structure.
+- Updated README and maintenance documentation to reflect the SPA package layout, the current `__main__.py` execution routing, and generated-file cleanup workflow.
+- Simplified native window default reset logic by removing an unreachable dataclass-field guard.
+
+### 🐞 Fixed
+
+- Fixed documentation drift between `pyproject.toml`, `scripts/version_info.txt`, `settings.toml`, README, the SPA UI package layout, and cleanup tooling.
+- Updated test coverage scope for UI modules and native window edge cases so maintainers can run the documented `--cov-fail-under=100` validation command.
+
+### 🧭 Migration notes
+
+- Reinstall the project after upgrading so package metadata and package data are refreshed:
+
+```powershell
+python -m pip install -e ".[dev,packaging]"
+```
+
+- Rebuild the executable so Windows file properties show version `0.6.0.0` and the updated bundled settings template is included:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+---
+
 ## [0.5.0] - 2026-05-11
 
 ### ✨ Added
@@ -18,8 +58,7 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 - Added orchestration tests for startup bootstrap, top-level `app.py`, and main page composition using fake NiceGUI objects.
 - Added `docs/native_window_persistence.md` with startup flow, multi-monitor behavior, save rules, validation commands, and troubleshooting guidance.
 - Added focused `desktop_app.application` startup modules for logging bootstrap, runtime context resolution, and NiceGUI run option construction.
-- Added `desktop_app.ui.main_page` to keep page composition outside the application entry point.
-- Added `docs/review_0_5_0.md` with the applied review checklist and validation summary.
+- Added a dedicated UI page module to keep page composition outside the application entry point.
 
 ### 🔄 Changed
 

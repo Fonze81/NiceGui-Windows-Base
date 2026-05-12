@@ -161,7 +161,7 @@ class UiSessionState:
         active_view: Logical view currently displayed by the application.
         is_busy: Whether the UI is performing a blocking or long-running action.
         busy_message: Optional user-facing message for the active busy state.
-        last_page_built_at: Last time the main page was built for a client.
+        last_page_built_at: Last time the SPA shell was built for a client.
         last_interaction_at: Last time a UI interaction updated the session state.
     """
 
@@ -178,7 +178,7 @@ class AssetState:
 
     Attributes:
         icon_path: Application icon path passed to NiceGUI.
-        page_image_path: Image path shown in the main page.
+        page_image_path: Image path shown in the index page.
         splash_image_path: Splash image path used by the packaged executable.
     """
 

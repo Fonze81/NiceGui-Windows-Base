@@ -89,28 +89,28 @@ function Invoke-PyInstallerBuild {
         -StepName "PyInstaller" `
         -Command "python" `
         -Arguments @(
-            "-m"
-            "PyInstaller"
-            "--onefile"
-            "--windowed"
-            "--clean"
-            "--noconfirm"
-            "--icon"
-            $iconPath
-            "--add-data"
-            $assetsData
-            "--add-data"
-            $settingsData
-            "--splash"
-            $splashImagePath
-            "--hidden-import"
-            "pyi_splash"
-            "--version-file"
-            $versionInfoPath
-            "--name"
-            $appName
-            $entryPoint
-        )
+        "-m"
+        "PyInstaller"
+        "--onefile"
+        "--windowed"
+        "--clean"
+        "--noconfirm"
+        "--icon"
+        $iconPath
+        "--add-data"
+        $assetsData
+        "--add-data"
+        $settingsData
+        "--splash"
+        $splashImagePath
+        "--hidden-import"
+        "pyi_splash"
+        "--version-file"
+        $versionInfoPath
+        "--name"
+        $appName
+        $entryPoint
+    )
 
     $stopwatch.Stop()
     return $stopwatch.Elapsed
@@ -169,22 +169,22 @@ Invoke-NativeCommand `
     -StepName "Editable installation" `
     -Command "python" `
     -Arguments @(
-        "-m",
-        "pip",
-        "install",
-        "-e",
-        ".[packaging]"
-    )
+    "-m",
+    "pip",
+    "install",
+    "-e",
+    ".[packaging]"
+)
 
 Write-Host "Checking PyInstaller availability..."
 Invoke-NativeCommand `
     -StepName "PyInstaller availability check" `
     -Command "python" `
     -Arguments @(
-        "-m"
-        "PyInstaller"
-        "--version"
-    )
+    "-m"
+    "PyInstaller"
+    "--version"
+)
 
 if (-not (Test-Path $iconPath)) {
     throw "Application icon was not found: $iconPath"

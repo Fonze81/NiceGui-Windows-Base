@@ -6,18 +6,16 @@
 # Imports app.py with a fake NiceGUI module and monkeypatched startup helpers so
 # tests can exercise main() without starting a real server or desktop window.
 # Notes:
-# Keep these tests focused on orchestration. Runtime-context and run-option
-# details are covered by application package tests.
+# Keep these tests focused on orchestration. Runtime-context, run-option, and SPA
+# routing details are covered by focused application and UI package tests.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
 import importlib
 import sys
-from functools import partial
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import Any
 
 import pytest
 
@@ -58,6 +56,7 @@ def app_module(monkeypatch: pytest.MonkeyPatch) -> tuple[ModuleType, FakeUi]:
         "desktop_app.application.runtime_context",
         "desktop_app.infrastructure.lifecycle",
         "desktop_app.infrastructure.native_window_state",
+        "desktop_app.ui.router",
     ):
         sys.modules.pop(module_name, None)
 
@@ -87,7 +86,7 @@ def test_main_orchestrates_runtime_startup(
     app_module: tuple[ModuleType, FakeUi],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """main resolves runtime context and forwards final options to ui.run."""
+    """main resolves runtime context, registers SPA routes, and runs NiceGUI."""
     module, fake_ui = app_module
     context = SimpleNamespace(
         startup_source="dev_run.py",
@@ -100,6 +99,7 @@ def test_main_orchestrates_runtime_startup(
     )
     lifecycle_calls: list[bool] = []
     run_option_states: list[object] = []
+    registered_routes: list[dict[str, str]] = []
 
     monkeypatch.setattr(
         module,
@@ -116,24 +116,25 @@ def test_main_orchestrates_runtime_startup(
         "build_ui_run_options",
         lambda context, *, state: run_option_states.append(state) or {"native": False},
     )
-
-    def fake_build_main_page(**_kwargs: Any) -> None:
-        """Stand in for UI composition."""
-
-    monkeypatch.setattr(module, "build_main_page", fake_build_main_page)
+    monkeypatch.setattr(
+        module,
+        "register_spa_routes",
+        lambda *, application_name, startup_message: registered_routes.append(
+            {
+                "application_name": application_name,
+                "startup_message": startup_message,
+            }
+        ),
+    )
 
     module.main(development_mode=True)
 
     assert lifecycle_calls == [False]
     assert len(run_option_states) == 1
-    assert len(fake_ui.run_calls) == 1
-    args, kwargs = fake_ui.run_calls[0]
-    assert kwargs == {"native": False}
-    assert len(args) == 1
-    page_callback = args[0]
-    assert isinstance(page_callback, partial)
-    assert page_callback.func is fake_build_main_page
-    assert page_callback.keywords == {
-        "application_name": "NiceGui Windows Base",
-        "startup_message": context.startup_message,
-    }
+    assert registered_routes == [
+        {
+            "application_name": "NiceGui Windows Base",
+            "startup_message": context.startup_message,
+        }
+    ]
+    assert fake_ui.run_calls == [((), {"native": False})]

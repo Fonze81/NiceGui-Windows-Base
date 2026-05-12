@@ -129,7 +129,7 @@ def normalize_file_path(file_path: object) -> Path:
         TypeError: If the value type is not supported.
         LoggerValidationError: If a string path is empty.
     """
-    if not isinstance(file_path, (str, Path)):
+    if not isinstance(file_path, str | Path):
         raise TypeError("Log file path must be a string or pathlib.Path.")
 
     if isinstance(file_path, str) and not file_path.strip():
@@ -154,7 +154,7 @@ def normalize_size_to_bytes(size: object) -> int:
     if isinstance(size, bool):
         raise TypeError("Size must be an int or a string, not bool.")
 
-    if not isinstance(size, (int, str)):
+    if not isinstance(size, int | str):
         raise TypeError("Size must be an int or a string.")
 
     try:

@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
-# File: src/desktop_app/ui/main_page.py
+# File: src/desktop_app/ui/pages/index.py
 # Purpose:
-# Build the main NiceGUI page shown by the application.
+# Build the index NiceGUI page shown by the application.
 # Behavior:
 # Updates transient UI session state, resolves the page illustration asset, and
 # composes the centered card shown when a client connects.
@@ -27,8 +27,8 @@ from desktop_app.infrastructure.logger import logger_get_logger
 logger: Final[Logger] = logger_get_logger(__name__)
 
 
-def build_main_page(*, application_name: str, startup_message: str) -> None:
-    """Build the main NiceGUI interface.
+def build_index_page(*, application_name: str, startup_message: str) -> None:
+    """Build the index NiceGUI interface.
 
     Args:
         application_name: Application name shown in the page.
@@ -40,7 +40,7 @@ def build_main_page(*, application_name: str, startup_message: str) -> None:
     state.ui_session.is_busy = False
     state.ui_session.busy_message = None
 
-    logger.info("Building the main page for the connected client.")
+    logger.info("Building the index page for the connected client.")
 
     ui.query("body").classes("bg-slate-100")
 
@@ -55,7 +55,7 @@ def build_main_page(*, application_name: str, startup_message: str) -> None:
     ):
         page_image_path = resolve_asset_path(PAGE_IMAGE_FILENAME)
         state.assets.page_image_path = Path(page_image_path)
-        logger.debug("Page image resolved for the main page: %s", page_image_path)
+        logger.debug("Page image resolved for the index page: %s", page_image_path)
 
         ui.image(page_image_path).classes("h-40 w-40 rounded-2xl object-contain")
 
@@ -76,4 +76,4 @@ def build_main_page(*, application_name: str, startup_message: str) -> None:
                 "mt-1 text-sm leading-relaxed text-slate-700"
             )
 
-    logger.info("Main page built successfully.")
+    logger.info("Index page built successfully.")

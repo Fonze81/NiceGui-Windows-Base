@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug pyproject command",
+      "name": "Debug module execution",
       "type": "debugpy",
       "request": "launch",
       "module": "desktop_app",

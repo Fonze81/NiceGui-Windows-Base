@@ -42,6 +42,30 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_window
 
 ---
 
+## 🧽 Cleaning packaging outputs
+
+The packaging script removes previous `build`, `dist`, and `*.spec` outputs before creating a new executable. For a broader workspace cleanup, use:
+
+```powershell
+.\scripts\clean_project.ps1
+```
+
+Preview cleanup first when you only want to inspect candidates:
+
+```powershell
+.\scripts\clean_project.ps1 -DryRun
+```
+
+`IncludeBuildArtifacts` defaults to `true`, so the cleanup script removes `build`, `dist`, and generated `*.spec` files unless explicitly disabled:
+
+```powershell
+.\scripts\clean_project.ps1 -IncludeBuildArtifacts:$false
+```
+
+See [Code quality](code_quality.md#-workspace-cleanup) for the full cleanup behavior.
+
+---
+
 ## 🧱 PyInstaller command
 
 The script invokes PyInstaller through the active Python environment:
@@ -139,9 +163,9 @@ When the project version changes in `pyproject.toml`, update both the numeric tu
 Current alignment:
 
 ```text
-pyproject.toml: version = "0.5.0"
-version_info.txt: filevers=(0, 5, 0, 0)
-version_info.txt: FileVersion = "0.5.0.0"
+pyproject.toml: version = "0.6.0"
+version_info.txt: filevers=(0, 6, 0, 0)
+version_info.txt: FileVersion = "0.6.0.0"
 ```
 
 When preparing a new release, also update the root [CHANGELOG](../CHANGELOG.md) with the relevant user-facing and maintenance changes.
@@ -306,3 +330,4 @@ Then confirm:
 - [Settings subsystem](settings.md)
 - [Execution modes](execution_modes.md)
 - [Troubleshooting](troubleshooting.md)
+- [Code quality](code_quality.md)

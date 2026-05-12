@@ -35,6 +35,10 @@ MANIFEST
 # Runtime logs
 logs/
 
+# Runtime settings generated next to the application root
+/settings.toml
+!src/desktop_app/settings.toml
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

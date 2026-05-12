@@ -148,9 +148,12 @@ Possible causes:
 Fix:
 
 ```powershell
-Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
+.\scripts\clean_project.ps1 -DryRun
+.\scripts\clean_project.ps1
 pytest
 ```
+
+Use `-IncludeBuildArtifacts:$false` if you need to preserve existing `build`, `dist`, or `*.spec` files during cleanup.
 
 The project config uses:
 
@@ -182,6 +185,32 @@ If a new package or module is not shown, confirm that:
 - it is imported by tests;
 - tests are not skipped;
 - the command is running inside the correct `.venv`.
+
+---
+
+## 🧽 Cleanup removed files I wanted to keep
+
+By default, the cleanup script removes reproducible build artifacts because `IncludeBuildArtifacts` defaults to `true`. This includes:
+
+```text
+build
+dist
+*.spec
+```
+
+Preview cleanup before deleting files:
+
+```powershell
+.\scripts\clean_project.ps1 -DryRun
+```
+
+Preserve build artifacts:
+
+```powershell
+.\scripts\clean_project.ps1 -IncludeBuildArtifacts:$false
+```
+
+Logs are preserved by default. They are removed only when `-IncludeLogs` is provided.
 
 ---
 
@@ -354,11 +383,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_window
 
 ## 🧊 Old executable is still being tested
 
-Clean old outputs:
+Clean old outputs and rebuild:
 
 ```powershell
-Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
-Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+.\scripts\clean_project.ps1
 .\scripts\package_windows.ps1
 ```
 
@@ -395,16 +423,17 @@ The startup message should be built once in `main(...)` and reused for state, lo
 Expected pattern:
 
 ```python
-startup_message = build_startup_message(...)
-logger.info("Startup status: %s", startup_message)
+runtime_context = resolve_runtime_launch_context(...)
+logger.info("Startup status: %s", runtime_context.startup_message)
 
-ui.run(
-    partial(build_main_page, startup_message=startup_message),
-    ...
+register_spa_routes(
+    application_name=state.meta.name,
+    startup_message=runtime_context.startup_message,
 )
+ui.run(**build_ui_run_options(runtime_context, state=state))
 ```
 
-Avoid rebuilding the message separately inside `build_main_page(...)`, because that can cause the log and page text to drift over time.
+Avoid rebuilding the message inside page modules such as `ui/pages/index.py`, because that can cause logs, state, and page text to drift over time.
 
 ---
 
@@ -672,3 +701,4 @@ does not save the live window size.
 - [Native window persistence](native_window_persistence.md)
 - [Logging subsystem](logging.md)
 - [Windows packaging](packaging_windows.md)
+- [Code quality](code_quality.md)

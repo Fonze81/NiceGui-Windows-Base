@@ -16,6 +16,7 @@ The quality workflow is designed to:
 - validate behavior through pytest;
 - measure test coverage through coverage.py and pytest-cov;
 - keep Markdown documents readable and linked consistently;
+- remove generated caches, coverage outputs, packaging outputs, and local metadata safely;
 - avoid accidental drift between code, tests, and documentation.
 
 ---
@@ -47,21 +48,66 @@ Run these commands from the repository root with `.venv` active:
 
 ```powershell
 python -m compileall -q src dev_run.py
-pytest
+pytest tests --cov=desktop_app --cov-report=term-missing --cov-fail-under=100
 ruff check .
 ruff format --check .
 ```
 
 Purpose:
 
-| Command                                  | Purpose                                                                           |
-| ---------------------------------------- | --------------------------------------------------------------------------------- |
-| `python -m compileall -q src dev_run.py` | Detect syntax errors without starting NiceGUI.                                    |
-| `pytest`                                 | Run the full test suite.                                                          |
-| `ruff check .`                           | Validate linting, import order, modernization, bugbear, and simplification rules. |
-| `ruff format --check .`                  | Confirm that Python formatting is already applied.                                |
+| Command                                                                         | Purpose                                                                           |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `python -m compileall -q src dev_run.py`                                        | Detect syntax errors without starting NiceGUI.                                    |
+| `pytest tests --cov=desktop_app --cov-report=term-missing --cov-fail-under=100` | Run the full test suite and enforce the project coverage gate.                    |
+| `ruff check .`                                                                  | Validate linting, import order, modernization, bugbear, and simplification rules. |
+| `ruff format --check .`                                                         | Confirm that Python formatting is already applied.                                |
 
 Use modifying commands only when you intentionally want tools to edit files.
+
+---
+
+## 🧽 Workspace cleanup
+
+Use the project cleanup script when generated files need to be removed before a clean validation, packaging run, or source archive.
+
+Preview what would be deleted without changing files:
+
+```powershell
+.\scripts\clean_project.ps1 -DryRun
+```
+
+Run the default cleanup:
+
+```powershell
+.\scripts\clean_project.ps1
+```
+
+The default cleanup removes reproducible build artifacts because `IncludeBuildArtifacts` defaults to `true`. This includes `build`, `dist`, and generated `*.spec` files, in addition to Python/test/tooling caches and coverage outputs.
+
+Preserve build artifacts when needed:
+
+```powershell
+.\scripts\clean_project.ps1 -IncludeBuildArtifacts:$false
+```
+
+Remove logs only when that is intentional:
+
+```powershell
+.\scripts\clean_project.ps1 -IncludeLogs
+```
+
+Current default cleanup targets include:
+
+| Type        | Examples                                                                |
+| ----------- | ----------------------------------------------------------------------- |
+| Directories | `__pycache__`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache`, `htmlcov` |
+| Metadata    | `*.egg-info`                                                            |
+| Coverage    | `.coverage`, `.coverage.*`, `coverage.xml`, `junit.xml`                 |
+| Bytecode    | `*.pyc`, `*.pyo`                                                        |
+| Build files | `build`, `dist`, `*.spec` when `IncludeBuildArtifacts` is `true`        |
+| Logs        | `logs` only when `-IncludeLogs` is provided                             |
+
+Protected directories are not traversed, including `.git`, `.venv`, `venv`, `env`, and `node_modules`.
 
 ---
 
@@ -101,7 +147,7 @@ pytest tests/infrastructure/settings/test_service.py::test_load_settings_uses_bu
 Run coverage for the whole package:
 
 ```powershell
-pytest --cov=desktop_app --cov-report=term-missing
+pytest tests --cov=desktop_app --cov-report=term-missing --cov-fail-under=100
 ```
 
 Generate HTML coverage:
@@ -182,7 +228,7 @@ ruff format .
 Ruff does not replace tests. After applying fixes or formatting, run:
 
 ```powershell
-pytest
+pytest tests --cov=desktop_app --cov-report=term-missing --cov-fail-under=100
 ```
 
 ---
@@ -211,7 +257,7 @@ tests
 │   ├── test_native_window_state.py
 │   └── test_splash.py
 ├── ui
-│   └── test_main_page.py
+│   └── test_pages_and_router.py
 ├── test_app.py
 ├── test_constants.py
 └── test_desktop_app_main.py
@@ -293,3 +339,4 @@ Recommended Markdown checks during review:
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
 - [Troubleshooting](troubleshooting.md)
+- [Windows packaging](packaging_windows.md)

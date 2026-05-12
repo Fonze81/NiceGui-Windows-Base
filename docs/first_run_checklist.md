@@ -14,6 +14,7 @@ Use this checklist to validate a new clone or a new Windows machine.
 - [ ] The folder contains `docs`.
 - [ ] The folder contains `tests`.
 - [ ] The folder contains `dev_run.py`.
+- [ ] The folder contains `scripts\clean_project.ps1`.
 - [ ] The folder contains `scripts\package_windows.ps1`.
 - [ ] The folder contains `scripts\version_info.txt`.
 - [ ] The folder contains `src\desktop_app\settings.toml`.
@@ -146,7 +147,7 @@ Test-Path .\src\desktop_app\settings.toml
 - [ ] The template version is aligned with `pyproject.toml`:
 
 ```text
-0.5.0
+0.6.0
 ```
 
 - [ ] Normal execution can start even when `<repository-root>\settings.toml` does not exist.
@@ -225,6 +226,14 @@ ruff check .
 ruff format --check .
 ```
 
+- [ ] Cleanup preview works without deleting files:
+
+```powershell
+.\scripts\clean_project.ps1 -DryRun
+```
+
+- [ ] Default cleanup behavior is understood: `IncludeBuildArtifacts` is `true`, so `build`, `dist`, and generated `*.spec` files are removed unless `-IncludeBuildArtifacts:$false` is used.
+
 ---
 
 ## 📦 Packaging
@@ -275,4 +284,5 @@ dist\nicegui-windows-base.exe
 - [Application state](state.md)
 - [Native window persistence](native_window_persistence.md)
 - [Logging subsystem](logging.md)
+- [Code quality](code_quality.md)
 - [Troubleshooting](troubleshooting.md)

@@ -639,3 +639,39 @@ def test_register_lifecycle_handlers_in_web_mode(
     assert state.lifecycle.native_handlers_registered is False
     assert splash_registered is True
     assert lifecycle_module.app.native.handlers == {}
+
+
+def test_application_shutdown_skips_native_persistence_in_web_mode(
+    lifecycle_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Web-mode shutdown does not persist native window geometry."""
+    state = get_app_state()
+    state.runtime.native_mode = False
+    persist_calls = 0
+    shutdown_calls = 0
+
+    def persist_state(*_args: object, **_kwargs: object) -> bool:
+        """Record unexpected persistence calls."""
+        nonlocal persist_calls
+        persist_calls += 1
+        return True
+
+    def shutdown_logger() -> None:
+        """Record logger shutdown calls."""
+        nonlocal shutdown_calls
+        shutdown_calls += 1
+
+    monkeypatch.setattr(
+        lifecycle_module,
+        "persist_native_window_state_on_exit",
+        persist_state,
+    )
+    monkeypatch.setattr(lifecycle_module, "logger_shutdown", shutdown_logger)
+
+    lifecycle_module._handle_application_shutdown("event")
+
+    assert persist_calls == 0
+    assert shutdown_calls == 1
+    assert state.lifecycle.shutdown_started is True
+    assert state.lifecycle.shutdown_completed is True

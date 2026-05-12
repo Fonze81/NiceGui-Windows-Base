@@ -13,7 +13,6 @@
 
 from __future__ import annotations
 
-from functools import partial
 from multiprocessing import freeze_support
 
 from nicegui import ui
@@ -28,7 +27,7 @@ from desktop_app.constants import APPLICATION_TITLE
 from desktop_app.core.state import get_app_state
 from desktop_app.infrastructure.lifecycle import register_lifecycle_handlers
 from desktop_app.infrastructure.logger import logger_get_logger
-from desktop_app.ui.main_page import build_main_page
+from desktop_app.ui.router import register_spa_routes
 
 logger = logger_get_logger(__name__)
 
@@ -60,14 +59,12 @@ def main(*, development_mode: bool = False) -> None:
         runtime_context.port,
     )
 
-    ui.run(
-        partial(
-            build_main_page,
-            application_name=state.meta.name or APPLICATION_TITLE,
-            startup_message=runtime_context.startup_message,
-        ),
-        **build_ui_run_options(runtime_context, state=state),
+    register_spa_routes(
+        application_name=state.meta.name or APPLICATION_TITLE,
+        startup_message=runtime_context.startup_message,
     )
+
+    ui.run(**build_ui_run_options(runtime_context, state=state))
 
 
 if __name__ == "__main__":

@@ -247,7 +247,7 @@ def test_status_clear_removes_current_message_and_preserves_history() -> None:
 
 def test_get_app_state_creates_and_reuses_singleton() -> None:
     """Create the singleton lazily and return the same object afterward."""
-    state_module._APP_STATE = None
+    state_module._app_state = None
 
     first_state = get_app_state()
     second_state = get_app_state()

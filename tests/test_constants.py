@@ -61,7 +61,7 @@ def test_public_api_exports_only_supported_constants() -> None:
 def test_application_identity_and_asset_constants() -> None:
     """Verify application metadata and asset file names."""
     assert constants.APPLICATION_TITLE == "NiceGui Windows Base"
-    assert constants.APPLICATION_VERSION == "0.5.0"
+    assert constants.APPLICATION_VERSION == "0.6.0"
     assert constants.APP_ICON_FILENAME == "app_icon.ico"
     assert constants.PAGE_IMAGE_FILENAME == "page_image.png"
     assert constants.SPLASH_IMAGE_FILENAME == "splash_light.png"

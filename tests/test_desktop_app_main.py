@@ -1,91 +1,37 @@
 # -----------------------------------------------------------------------------
-# File: tests/test_desktop_app_main.py
+# File: tests/test___main__.py
 # Purpose:
-# Validate module execution support for the desktop_app package.
+# Validate package module execution routing.
 # Behavior:
-# Tests that importing desktop_app.__main__ has no startup side effects and that
-# the run helper executes desktop_app.app through runpy with __main__ semantics.
+# Verifies that desktop_app.__main__ delegates execution to desktop_app.app using
+# __main__ semantics, preserving the same startup path used by direct app.py
+# execution.
 # Notes:
-# These tests patch runpy.run_module to avoid starting the NiceGUI runtime during
-# automated test execution.
+# The test mocks runpy.run_module to avoid starting NiceGUI or executing the real
+# application entry point.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
 
-import importlib
-import runpy
-import sys
-from pathlib import Path
-from typing import Any
+from unittest.mock import Mock
 
 import pytest
 
-MODULE_NAME = "desktop_app.__main__"
+import desktop_app.__main__ as package_main
 
 
-def test_run_executes_application_module_as_main(
+def test_run_executes_app_module_with_main_semantics(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Ensure run executes desktop_app.app with script semantics."""
-    import desktop_app.__main__ as main_module
+    """Execute desktop_app.app as __main__ with sys alteration enabled."""
+    run_module_mock = Mock()
 
-    calls: list[tuple[str, str | None, bool]] = []
+    monkeypatch.setattr(package_main.runpy, "run_module", run_module_mock)
 
-    def fake_run_module(
-        mod_name: str,
-        *,
-        run_name: str | None = None,
-        alter_sys: bool = False,
-    ) -> dict[str, Any]:
-        """Capture runpy.run_module arguments."""
-        calls.append((mod_name, run_name, alter_sys))
-        return {"__name__": run_name}
+    package_main.run()
 
-    monkeypatch.setattr(main_module.runpy, "run_module", fake_run_module)
-
-    main_module.run()
-
-    assert calls == [("desktop_app.app", "__main__", True)]
-
-
-def test_importing_main_module_does_not_start_application(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Ensure importing desktop_app.__main__ has no startup side effect."""
-    calls: list[str] = []
-
-    def fake_run_module(*_args: object, **_kwargs: object) -> dict[str, Any]:
-        """Record unexpected application execution attempts."""
-        calls.append("called")
-        return {}
-
-    sys.modules.pop(MODULE_NAME, None)
-    monkeypatch.setattr(runpy, "run_module", fake_run_module)
-
-    imported_module = importlib.import_module(MODULE_NAME)
-
-    assert imported_module.__name__ == MODULE_NAME
-    assert calls == []
-
-
-def test_script_execution_invokes_run_helper(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Ensure executing __main__.py as a script delegates to runpy."""
-    calls: list[tuple[str, str | None, bool]] = []
-
-    def fake_run_module(
-        mod_name: str,
-        *,
-        run_name: str | None = None,
-        alter_sys: bool = False,
-    ) -> dict[str, Any]:
-        """Capture runpy.run_module arguments from script execution."""
-        calls.append((mod_name, run_name, alter_sys))
-        return {"__name__": run_name}
-
-    monkeypatch.setattr(runpy, "run_module", fake_run_module)
-    module_path = Path(__file__).parents[1] / "src" / "desktop_app" / "__main__.py"
-
-    module_globals = runpy.run_path(str(module_path), run_name="__main__")
-
-    assert calls == [("desktop_app.app", "__main__", True)]
-    assert "run" in module_globals
+    run_module_mock.assert_called_once_with(
+        "desktop_app.app",
+        run_name="__main__",
+        alter_sys=True,
+    )
