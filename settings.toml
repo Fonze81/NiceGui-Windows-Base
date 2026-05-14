@@ -1,12 +1,12 @@
-# Default settings template for NiceGui Windows Base.
+# Persistent development settings for NiceGui Windows Base.
 #
-# On first run, the application copies this template to settings.toml in the
-# persistent application root. During normal Python execution this is the current
-# working directory. In a packaged executable, it is the executable directory.
+# This file represents the runtime settings.toml used from the repository root
+# during normal Python execution. The bundled default template lives at
+# src/desktop_app/settings.toml and is used when this persistent file is missing.
 
 [app]
 name = "NiceGui Windows Base"
-version = "0.5.0"
+version = "0.6.1"
 language = "en-US"
 first_run = true
 

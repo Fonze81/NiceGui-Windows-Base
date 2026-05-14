@@ -3,8 +3,7 @@
 # Purpose:
 # Compose the shared NiceGUI single-page application shell.
 # Behavior:
-# Updates transient UI session state, applies global page styling and dark mode,
-# renders the common application header, and mounts ui.sub_pages for content.
+# Updates transient UI session state and mounts ui.sub_pages for page content.
 # Notes:
 # The layout should stay independent from page business logic. Add new views by
 # updating the page route table in ui/pages/routes.py.
@@ -29,7 +28,7 @@ def build_app_layout(*, application_name: str, startup_message: str) -> None:
     """Build the shared SPA layout.
 
     Args:
-        application_name: Application name shown in the shared header.
+        application_name: Application name passed to sub-page routes.
         startup_message: Startup diagnostic message passed to page routes.
     """
     state = get_app_state()
