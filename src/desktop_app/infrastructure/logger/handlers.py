@@ -21,13 +21,12 @@ from logging import Handler, Logger, LogRecord, StreamHandler
 from logging.handlers import MemoryHandler, RotatingFileHandler
 from pathlib import Path
 
-from desktop_app.constants import (
+from desktop_app.infrastructure.logger.defaults import (
     CONSOLE_DATE_FORMAT,
     CONSOLE_LOG_FORMAT,
     FILE_DATE_FORMAT,
     FILE_LOG_FORMAT,
 )
-from desktop_app.infrastructure.file_system import ensure_parent_dir
 
 
 class BoundedMemoryHandler(MemoryHandler):
@@ -106,7 +105,7 @@ def create_rotating_file_handler(
     Returns:
         Configured rotating file handler.
     """
-    ensure_parent_dir(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
 
     handler = RotatingFileHandler(
         filename=file_path,

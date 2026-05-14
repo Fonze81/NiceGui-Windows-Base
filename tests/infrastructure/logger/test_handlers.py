@@ -8,7 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from desktop_app.constants import CONSOLE_LOG_FORMAT, FILE_LOG_FORMAT
+from desktop_app.infrastructure.logger.defaults import (
+    CONSOLE_LOG_FORMAT,
+    FILE_LOG_FORMAT,
+)
 from desktop_app.infrastructure.logger.handlers import (
     BoundedMemoryHandler,
     close_handler_safely,

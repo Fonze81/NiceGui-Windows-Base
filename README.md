@@ -82,6 +82,16 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   └── state.py
 │       ├── infrastructure/
 │       │   ├── logger/
+│       │   │   ├── __init__.py
+│       │   │   ├── bootstrapper.py
+│       │   │   ├── byte_size.py
+│       │   │   ├── config.py
+│       │   │   ├── defaults.py
+│       │   │   ├── exceptions.py
+│       │   │   ├── handlers.py
+│       │   │   ├── paths.py
+│       │   │   ├── service.py
+│       │   │   └── validators.py
 │       │   ├── settings/
 │       │   ├── __init__.py
 │       │   ├── asset_paths.py
@@ -137,7 +147,8 @@ This repository is a template, so it intentionally separates public project name
 When this template is reused, prefer changing public metadata first:
 
 - project name, description, authors, and script command in [`pyproject.toml`](pyproject.toml);
-- `APPLICATION_TITLE`, `APPLICATION_VERSION`, command names, and shared constants in [`src/desktop_app/constants.py`](src/desktop_app/constants.py);
+- `APPLICATION_TITLE`, `APPLICATION_VERSION`, command names, and application-level constants in [`src/desktop_app/constants.py`](src/desktop_app/constants.py);
+- logger package defaults in [`src/desktop_app/infrastructure/logger/defaults.py`](src/desktop_app/infrastructure/logger/defaults.py), if the logging package itself is reused or renamed;
 - default settings in [`src/desktop_app/settings.toml`](src/desktop_app/settings.toml);
 - executable name and version metadata in [`scripts/package_windows.ps1`](scripts/package_windows.ps1) and [`scripts/version_info.txt`](scripts/version_info.txt);
 - README text, documentation titles, and visual assets.

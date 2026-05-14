@@ -11,10 +11,10 @@ language = "en-US"
 first_run = true
 
 [app.window]
-x = 778
-y = 82
-width = 634
-height = 366
+x = -6
+y = -6
+width = 1453
+height = 865
 maximized = false
 fullscreen = false
 monitor = 0

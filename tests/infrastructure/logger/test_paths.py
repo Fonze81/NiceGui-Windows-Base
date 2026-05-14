@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pytest import MonkeyPatch
 
-from desktop_app.constants import DEFAULT_LOG_FILE_PATH
+from desktop_app.infrastructure.logger.defaults import DEFAULT_LOG_FILE_PATH
 from desktop_app.infrastructure.logger.paths import resolve_log_file_path
 
 

@@ -5,7 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from desktop_app.constants import (
+from desktop_app.infrastructure.logger.config import LoggerConfig
+from desktop_app.infrastructure.logger.defaults import (
     MAX_BUFFER_CAPACITY,
     MAX_ROTATE_BACKUP_COUNT,
     MAX_ROTATE_MAX_BYTES,
@@ -13,7 +14,6 @@ from desktop_app.constants import (
     MIN_ROTATE_BACKUP_COUNT,
     MIN_ROTATE_MAX_BYTES,
 )
-from desktop_app.infrastructure.logger.config import LoggerConfig
 from desktop_app.infrastructure.logger.exceptions import LoggerValidationError
 from desktop_app.infrastructure.logger.validators import (
     normalize_buffer_capacity,

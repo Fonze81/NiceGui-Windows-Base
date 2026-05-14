@@ -15,7 +15,7 @@ import sys
 from os import PathLike
 from pathlib import Path
 
-from desktop_app.constants import DEFAULT_LOG_FILE_PATH
+from desktop_app.infrastructure.logger.defaults import DEFAULT_LOG_FILE_PATH
 
 type _PathInput = str | PathLike[str]
 

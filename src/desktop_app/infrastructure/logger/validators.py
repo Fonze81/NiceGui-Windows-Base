@@ -16,7 +16,9 @@ import logging
 from pathlib import Path
 from typing import Final
 
-from desktop_app.constants import (
+from desktop_app.infrastructure.logger.byte_size import parse_byte_size
+from desktop_app.infrastructure.logger.config import LoggerConfig
+from desktop_app.infrastructure.logger.defaults import (
     MAX_BUFFER_CAPACITY,
     MAX_ROTATE_BACKUP_COUNT,
     MAX_ROTATE_MAX_BYTES,
@@ -24,8 +26,6 @@ from desktop_app.constants import (
     MIN_ROTATE_BACKUP_COUNT,
     MIN_ROTATE_MAX_BYTES,
 )
-from desktop_app.infrastructure.byte_size import parse_byte_size
-from desktop_app.infrastructure.logger.config import LoggerConfig
 from desktop_app.infrastructure.logger.exceptions import LoggerValidationError
 
 _STANDARD_LOG_LEVELS: Final[dict[str, int]] = {

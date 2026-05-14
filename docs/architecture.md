@@ -109,14 +109,15 @@ Key points:
 
 ## 📦 Application package responsibilities
 
-| Module                                           | Responsibility                                                                                               |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `src/desktop_app/app.py`                         | Coordinates startup, lifecycle registration, SPA route registration, and `ui.run(...)`.                      |
-| `src/desktop_app/__main__.py`                    | Captures the original command or module startup source and routes execution through `runpy.run_module(...)`. |
-| `src/desktop_app/application/bootstrap.py`       | Loads settings, resolves runtime paths, applies early native window arguments, and configures logging.       |
-| `src/desktop_app/application/runtime_context.py` | Resolves startup source hints, mode, port, startup message, icon path, and splash path.                      |
-| `src/desktop_app/application/run_options.py`     | Builds the final dictionary passed to `ui.run(...)`.                                                         |
-| `src/desktop_app/constants.py`                   | Stores shared application constants, asset names, default logger values, and version values.                 |
+| Module                                              | Responsibility                                                                                                   |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `src/desktop_app/app.py`                            | Coordinates startup, lifecycle registration, SPA route registration, and `ui.run(...)`.                          |
+| `src/desktop_app/__main__.py`                       | Captures the original command or module startup source and routes execution through `runpy.run_module(...)`.     |
+| `src/desktop_app/application/bootstrap.py`          | Loads settings, resolves runtime paths, applies early native window arguments, and configures logging.           |
+| `src/desktop_app/application/runtime_context.py`    | Resolves startup source hints, mode, port, startup message, icon path, and splash path.                          |
+| `src/desktop_app/application/run_options.py`        | Builds the final dictionary passed to `ui.run(...)`.                                                             |
+| `src/desktop_app/constants.py`                      | Stores shared application constants, asset names, compatibility aliases for logger defaults, and version values. |
+| `src/desktop_app/infrastructure/logger/defaults.py` | Stores defaults owned by the logger package so the logger does not depend on application constants.              |
 
 `application/run_options.py` intentionally does not pass window geometry through `ui.run(...)`. Native geometry is centralized in `app.native.window_args` through `infrastructure/native_window_state.py` to avoid conflicting startup sources.
 

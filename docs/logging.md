@@ -69,12 +69,15 @@ flowchart TD
     D --> E[config.py]
     D --> F[validators.py]
     D --> G[handlers.py]
-    F --> H[LoggerValidationError]
-    G --> I[BoundedMemoryHandler]
-    G --> J[Console handler]
-    G --> K[Rotating file handler]
-    L[settings mapper] --> E
-    M[byte_size.py] --> F
+    E --> H[defaults.py]
+    F --> H
+    F --> I[byte_size.py]
+    G --> H
+    F --> J[LoggerValidationError]
+    G --> K[BoundedMemoryHandler]
+    G --> L[Console handler]
+    G --> M[Rotating file handler]
+    N[settings mapper] --> E
 ```
 
 | File                                                                          | Responsibility                                                              |
@@ -83,6 +86,8 @@ flowchart TD
 | [`service.py`](../src/desktop_app/infrastructure/logger/service.py)           | Owns the global bootstrapper instance and helper functions.                 |
 | [`bootstrapper.py`](../src/desktop_app/infrastructure/logger/bootstrapper.py) | Coordinates logger setup, handler lifecycle, file activation, and shutdown. |
 | [`config.py`](../src/desktop_app/infrastructure/logger/config.py)             | Defines the `LoggerConfig` data container.                                  |
+| [`defaults.py`](../src/desktop_app/infrastructure/logger/defaults.py)         | Stores logger-owned defaults, formats, and validation limits.               |
+| [`byte_size.py`](../src/desktop_app/infrastructure/logger/byte_size.py)       | Parses logger rotation sizes without depending on shared infrastructure.    |
 | [`validators.py`](../src/desktop_app/infrastructure/logger/validators.py)     | Normalizes levels, paths, buffer sizes, rotation sizes, and backup counts.  |
 | [`handlers.py`](../src/desktop_app/infrastructure/logger/handlers.py)         | Creates console, memory, and rotating file handlers.                        |
 | [`paths.py`](../src/desktop_app/infrastructure/logger/paths.py)               | Resolves the runtime log file path for normal and packaged execution.       |
@@ -361,6 +366,8 @@ LoggerConfig(
     rotate_backup_count=3,
 )
 ```
+
+Logger defaults live in [`defaults.py`](../src/desktop_app/infrastructure/logger/defaults.py), not in application-level constants. The application still owns final logger configuration through `application/bootstrap.py`, which builds `LoggerConfig` from `AppState.log`.
 
 The logger name cannot be changed after bootstrapper creation. This prevents handler duplication and keeps child logger names stable.
 

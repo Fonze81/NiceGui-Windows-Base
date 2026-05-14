@@ -13,7 +13,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from desktop_app.constants import (
+from desktop_app.infrastructure.logger.defaults import (
     DEFAULT_BUFFER_CAPACITY,
     DEFAULT_LOG_FILE_PATH,
     DEFAULT_LOG_LEVEL,

@@ -3,7 +3,8 @@
 from dataclasses import fields, is_dataclass
 from pathlib import Path
 
-from desktop_app.constants import (
+from desktop_app.infrastructure.logger.config import LoggerConfig
+from desktop_app.infrastructure.logger.defaults import (
     DEFAULT_BUFFER_CAPACITY,
     DEFAULT_LOG_FILE_PATH,
     DEFAULT_LOG_LEVEL,
@@ -11,7 +12,6 @@ from desktop_app.constants import (
     DEFAULT_ROTATE_BACKUP_COUNT,
     DEFAULT_ROTATE_MAX_BYTES,
 )
-from desktop_app.infrastructure.logger.config import LoggerConfig
 
 
 # LoggerConfig data contract tests.
