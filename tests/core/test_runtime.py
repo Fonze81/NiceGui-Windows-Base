@@ -96,6 +96,55 @@ def test_get_nicegui_modes_returns_native_without_reload_for_normal_use() -> Non
     assert runtime.get_nicegui_modes(development_mode=False) == (True, False)
 
 
+def test_detect_entry_source_hint_detects_pyproject_command() -> None:
+    """Wrapper source hints must detect installed pyproject commands."""
+    result = runtime.detect_entry_source_hint(
+        argv=[r"C:\venv\Scripts\nicegui-windows-base-script.py"],
+    )
+
+    assert result == runtime.StartupSource.PYPROJECT_COMMAND
+
+
+def test_detect_entry_source_hint_defaults_to_module_execution() -> None:
+    """Non-command wrapper entries must be treated as module execution."""
+    result = runtime.detect_entry_source_hint(
+        argv=[r"C:\project\src\desktop_app\__main__.py"],
+    )
+
+    assert result == runtime.StartupSource.MODULE_EXECUTION
+
+
+def test_detect_entry_source_hint_defaults_to_module_execution_for_empty_argv() -> None:
+    """Empty wrapper argv values must still produce a safe module hint."""
+    assert (
+        runtime.detect_entry_source_hint(argv=[])
+        == runtime.StartupSource.MODULE_EXECUTION
+    )
+
+
+def test_normalize_startup_source_hint_accepts_supported_values() -> None:
+    """Supported runpy hints must be normalized to the enum value."""
+    assert (
+        runtime.normalize_startup_source_hint("pyproject command")
+        == runtime.StartupSource.PYPROJECT_COMMAND
+    )
+
+
+def test_normalize_startup_source_hint_rejects_unsupported_values() -> None:
+    """Unsupported hints must not override runtime detection."""
+    assert runtime.normalize_startup_source_hint("script") is None
+    assert runtime.normalize_startup_source_hint("invalid") is None
+    assert runtime.normalize_startup_source_hint(None) is None
+
+
+def test_normalize_startup_source_hint_rejects_unsupported_enum() -> None:
+    """Unsupported enum values must not override runtime detection."""
+    assert (
+        runtime.normalize_startup_source_hint(runtime.StartupSource.DIRECT_SCRIPT)
+        is None
+    )
+
+
 def test_detect_startup_source_prioritizes_development_mode() -> None:
     """Development mode must be classified before other runtime hints."""
     assert (
@@ -112,6 +161,42 @@ def test_detect_startup_source_detects_packaged_execution() -> None:
         )
         == "package"
     )
+
+
+def test_detect_startup_source_uses_preserved_pyproject_hint() -> None:
+    """A runpy hint must restore pyproject command detection after argv changes."""
+    result = runtime.detect_startup_source(
+        development_mode=False,
+        argv=["app.py"],
+        frozen=False,
+        entry_source_hint=runtime.StartupSource.PYPROJECT_COMMAND,
+    )
+
+    assert result == "pyproject command"
+
+
+def test_detect_startup_source_uses_preserved_module_hint() -> None:
+    """A runpy hint must restore module execution detection after argv changes."""
+    result = runtime.detect_startup_source(
+        development_mode=False,
+        argv=["app.py"],
+        frozen=False,
+        entry_source_hint="module",
+    )
+
+    assert result == "module"
+
+
+def test_detect_startup_source_ignores_hint_when_frozen() -> None:
+    """Packaged execution must keep priority over preserved runpy hints."""
+    result = runtime.detect_startup_source(
+        development_mode=False,
+        argv=["app.py"],
+        frozen=True,
+        entry_source_hint="module",
+    )
+
+    assert result == "package"
 
 
 def test_detect_startup_source_returns_unknown_for_empty_argv() -> None:

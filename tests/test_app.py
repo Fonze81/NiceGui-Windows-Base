@@ -104,7 +104,7 @@ def test_main_orchestrates_runtime_startup(
     monkeypatch.setattr(
         module,
         "resolve_runtime_launch_context",
-        lambda *, development_mode, state: context,
+        lambda *, development_mode, state, entry_source_hint=None: context,
     )
     monkeypatch.setattr(
         module,

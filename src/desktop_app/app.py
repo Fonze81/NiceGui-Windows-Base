@@ -24,12 +24,14 @@ from desktop_app.application.bootstrap import (
 from desktop_app.application.run_options import build_ui_run_options
 from desktop_app.application.runtime_context import resolve_runtime_launch_context
 from desktop_app.constants import APPLICATION_TITLE
+from desktop_app.core.runtime import ENTRY_SOURCE_HINT_GLOBAL
 from desktop_app.core.state import get_app_state
 from desktop_app.infrastructure.lifecycle import register_lifecycle_handlers
 from desktop_app.infrastructure.logger import logger_get_logger
 from desktop_app.ui.router import register_spa_routes
 
 logger = logger_get_logger(__name__)
+entry_source_hint = globals().get(ENTRY_SOURCE_HINT_GLOBAL)
 
 prepare_native_window_arguments_before_main()
 
@@ -47,6 +49,7 @@ def main(*, development_mode: bool = False) -> None:
     runtime_context = resolve_runtime_launch_context(
         development_mode=development_mode,
         state=state,
+        entry_source_hint=entry_source_hint,
     )
 
     logger.info("Startup status: %s", runtime_context.startup_message)

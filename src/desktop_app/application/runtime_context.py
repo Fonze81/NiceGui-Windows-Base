@@ -68,18 +68,24 @@ def resolve_runtime_launch_context(
     *,
     development_mode: bool,
     state: AppState,
+    entry_source_hint: object = None,
 ) -> RuntimeLaunchContext:
     """Resolve and store all runtime values needed before ``ui.run``.
 
     Args:
         development_mode: Whether to run in web development mode with reload.
         state: Application state to update.
+        entry_source_hint: Optional startup source captured before runpy changed
+            sys.argv.
 
     Returns:
         Resolved runtime launch context.
     """
     native_mode, reload_enabled = get_nicegui_modes(development_mode=development_mode)
-    startup_source = detect_startup_source(development_mode=development_mode)
+    startup_source = detect_startup_source(
+        development_mode=development_mode,
+        entry_source_hint=entry_source_hint,
+    )
     startup_message = build_startup_message(
         startup_source=startup_source,
         native_mode=native_mode,

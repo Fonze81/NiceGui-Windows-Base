@@ -3,9 +3,9 @@
 # Purpose:
 # Identify how the application is currently being executed.
 # Behavior:
-# Reads Python runtime information such as sys.argv, sys.executable, and
-# PyInstaller markers to classify the startup source, execution mode, reload
-# behavior, and runtime root directory.
+# Reads Python runtime information such as sys.argv, sys.executable, explicit
+# startup-source hints, and PyInstaller markers to classify the startup source,
+# execution mode, reload behavior, and runtime root directory.
 # Notes:
 # Keep this module independent from NiceGUI UI code. Optional parameters are
 # available to make runtime detection testable without depending on the real
@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Sequence
+from enum import StrEnum
 from logging import Logger
 from pathlib import Path, PureWindowsPath
 from typing import Final
@@ -28,13 +29,35 @@ from desktop_app.infrastructure.logger import logger_get_logger
 
 logger: Logger = logger_get_logger(__name__)
 
+ENTRY_SOURCE_HINT_GLOBAL: Final[str] = "__desktop_app_entry_source__"
+
+
+class StartupSource(StrEnum):
+    """Known application startup sources used in diagnostics."""
+
+    DEVELOPMENT_RUNNER = "dev_run.py"
+    PACKAGED_EXECUTABLE = "package"
+    PYPROJECT_COMMAND = "pyproject command"
+    MODULE_EXECUTION = "module"
+    DIRECT_SCRIPT = "script"
+    UNKNOWN = "unknown source"
+
+
 STARTUP_SOURCE_DESCRIPTIONS: Final[dict[str, str]] = {
-    "dev_run.py": "the development runner",
-    "package": "the packaged executable",
-    "pyproject command": "the pyproject command",
-    "module": "module execution",
-    "script": "direct script execution",
+    StartupSource.DEVELOPMENT_RUNNER: "the development runner",
+    StartupSource.PACKAGED_EXECUTABLE: "the packaged executable",
+    StartupSource.PYPROJECT_COMMAND: "the pyproject command",
+    StartupSource.MODULE_EXECUTION: "module execution",
+    StartupSource.DIRECT_SCRIPT: "direct script execution",
 }
+
+
+STARTUP_SOURCE_HINTS: Final[frozenset[str]] = frozenset(
+    {
+        StartupSource.PYPROJECT_COMMAND,
+        StartupSource.MODULE_EXECUTION,
+    }
+)
 
 
 def is_frozen_executable(*, frozen: bool | None = None) -> bool:
@@ -129,12 +152,85 @@ def get_nicegui_modes(*, development_mode: bool) -> tuple[bool, bool]:
     return True, False
 
 
+def detect_entry_source_hint(
+    *,
+    argv: Sequence[str] | None = None,
+    pyproject_command_names: Sequence[str] = PYPROJECT_COMMAND_NAMES,
+) -> StartupSource:
+    """Detect the original wrapper source before runpy alters sys.argv.
+
+    Args:
+        argv: Optional argument list used by tests. When omitted, sys.argv is
+            used.
+        pyproject_command_names: Command names created by pyproject.toml.
+
+    Returns:
+        Startup source hint for wrapper-based execution.
+    """
+    runtime_argv = argv if argv is not None else sys.argv
+
+    if not runtime_argv:
+        logger.debug("Entry source hint defaulted to module execution: argv is empty.")
+        return StartupSource.MODULE_EXECUTION
+
+    entry_name = _extract_entry_name(runtime_argv[0])
+    normalized_entry_name = _normalize_console_script_name(entry_name)
+    normalized_command_names = {
+        _normalize_console_script_name(command_name)
+        for command_name in pyproject_command_names
+    }
+
+    logger.debug("Original wrapper entry point detected: %s", entry_name)
+    logger.debug(
+        "Normalized pyproject command names for wrapper detection: %s",
+        sorted(normalized_command_names),
+    )
+
+    if normalized_entry_name in normalized_command_names:
+        logger.debug("Entry source hint classified as pyproject command.")
+        return StartupSource.PYPROJECT_COMMAND
+
+    logger.debug("Entry source hint classified as module execution.")
+    return StartupSource.MODULE_EXECUTION
+
+
+def normalize_startup_source_hint(entry_source_hint: object) -> StartupSource | None:
+    """Return a trusted startup source hint or None.
+
+    Args:
+        entry_source_hint: Value received from runpy init globals or tests.
+
+    Returns:
+        A startup source enum when the hint is supported; otherwise None.
+    """
+    if isinstance(entry_source_hint, StartupSource):
+        if entry_source_hint in STARTUP_SOURCE_HINTS:
+            return entry_source_hint
+        return None
+
+    if isinstance(entry_source_hint, str):
+        try:
+            startup_source = StartupSource(entry_source_hint)
+        except ValueError:
+            logger.debug(
+                "Ignored unsupported startup source hint: %s",
+                entry_source_hint,
+            )
+            return None
+
+        if startup_source in STARTUP_SOURCE_HINTS:
+            return startup_source
+
+    return None
+
+
 def detect_startup_source(
     *,
     development_mode: bool,
     argv: Sequence[str] | None = None,
     frozen: bool | None = None,
     pyproject_command_names: Sequence[str] = PYPROJECT_COMMAND_NAMES,
+    entry_source_hint: object = None,
 ) -> str:
     """Detect how the application was started.
 
@@ -145,6 +241,8 @@ def detect_startup_source(
             used.
         frozen: Optional explicit frozen state used by tests.
         pyproject_command_names: Command names created by pyproject.toml.
+        entry_source_hint: Optional startup source captured before runpy changed
+            sys.argv.
 
     Returns:
         A readable startup source name for diagnostic output.
@@ -156,38 +254,48 @@ def detect_startup_source(
 
     if development_mode:
         logger.debug("Startup source classified as development runner.")
-        return "dev_run.py"
+        return StartupSource.DEVELOPMENT_RUNNER
 
     if is_frozen_executable(frozen=frozen):
         logger.debug("Startup source classified as packaged executable.")
-        return "package"
+        return StartupSource.PACKAGED_EXECUTABLE
+
+    normalized_hint = normalize_startup_source_hint(entry_source_hint)
+    if normalized_hint is not None:
+        logger.debug(
+            "Startup source classified from preserved hint: %s",
+            normalized_hint,
+        )
+        return normalized_hint
 
     runtime_argv = argv if argv is not None else sys.argv
 
     if not runtime_argv:
         logger.debug("Startup source could not be detected because argv is empty.")
-        return "unknown source"
+        return StartupSource.UNKNOWN
 
     entry_name = _extract_entry_name(runtime_argv[0])
-    normalized_command_names = {name.lower() for name in pyproject_command_names}
+    normalized_command_names = {
+        _normalize_console_script_name(name) for name in pyproject_command_names
+    }
 
     logger.debug("Startup entry point detected: %s", entry_name)
     logger.debug("Known pyproject command names: %s", sorted(normalized_command_names))
 
-    if entry_name in normalized_command_names:
+    if _normalize_console_script_name(entry_name) in normalized_command_names:
         logger.debug("Startup source classified as pyproject command.")
-        return "pyproject command"
+        return StartupSource.PYPROJECT_COMMAND
 
     if entry_name == "__main__.py":
         logger.debug("Startup source classified as module execution.")
-        return "module"
+        return StartupSource.MODULE_EXECUTION
 
     if entry_name == "app.py":
         logger.debug("Startup source classified as direct script execution.")
-        return "script"
+        return StartupSource.DIRECT_SCRIPT
 
     logger.debug("Startup source classified from entry point name: %s", entry_name)
-    return entry_name or "unknown source"
+    return entry_name or StartupSource.UNKNOWN
 
 
 def describe_startup_source(startup_source: str) -> str:
@@ -255,6 +363,7 @@ def get_startup_message(
     frozen: bool | None = None,
     application_title: str = APPLICATION_TITLE,
     pyproject_command_names: Sequence[str] = PYPROJECT_COMMAND_NAMES,
+    entry_source_hint: object = None,
 ) -> str:
     """Return the complete startup diagnostic message.
 
@@ -266,6 +375,8 @@ def get_startup_message(
         frozen: Optional explicit frozen state used by tests.
         application_title: Human-readable application title.
         pyproject_command_names: Command names created by pyproject.toml.
+        entry_source_hint: Optional startup source captured before runpy changed
+            sys.argv.
 
     Returns:
         The startup diagnostic message already formatted for terminal and UI.
@@ -276,6 +387,7 @@ def get_startup_message(
         argv=argv,
         frozen=frozen,
         pyproject_command_names=pyproject_command_names,
+        entry_source_hint=entry_source_hint,
     )
 
     return build_startup_message(
@@ -301,3 +413,18 @@ def _extract_entry_name(entry_point: str) -> str:
         return ""
 
     return PureWindowsPath(normalized_entry_point).name.lower()
+
+
+def _normalize_console_script_name(entry_name: str) -> str:
+    """Return a comparable console script name.
+
+    Args:
+        entry_name: File name, executable name, or configured command name.
+
+    Returns:
+        Lowercase command name without common wrapper suffixes.
+    """
+    normalized_name = PureWindowsPath(entry_name.strip()).name.lower()
+    for suffix in (".exe", ".py", ".cmd", ".bat"):
+        normalized_name = normalized_name.removesuffix(suffix)
+    return normalized_name.removesuffix("-script")

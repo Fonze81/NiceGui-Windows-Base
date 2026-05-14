@@ -66,7 +66,9 @@ def test_resolve_runtime_launch_context_updates_state(
     monkeypatch.setattr(
         runtime_context_module,
         "detect_startup_source",
-        lambda *, development_mode: "dev_run.py",
+        lambda *, development_mode, entry_source_hint=None: (
+            entry_source_hint or "dev_run.py"
+        ),
     )
     monkeypatch.setattr(
         runtime_context_module,
@@ -87,9 +89,10 @@ def test_resolve_runtime_launch_context_updates_state(
     context = runtime_context_module.resolve_runtime_launch_context(
         development_mode=True,
         state=state,
+        entry_source_hint="module",
     )
 
-    assert context.startup_source == "dev_run.py"
+    assert context.startup_source == "module"
     assert context.native_mode is False
     assert context.reload_enabled is True
     assert context.port == 7777
