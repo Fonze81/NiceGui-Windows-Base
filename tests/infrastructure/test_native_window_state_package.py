@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import sys
 import tomllib
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 NATIVE_WINDOW_STATE_PACKAGE_PATH = Path(
     "src/desktop_app/infrastructure/native_window_state"
@@ -53,3 +57,46 @@ def test_native_window_persistence_guide_lives_inside_package() -> None:
     assert (
         "pytest tests/infrastructure/test_native_window_state_package.py" in guide_text
     )
+
+
+def test_native_window_state_package_exports_only_public_facade(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ensure old single-module compatibility helpers are not package API."""
+    fake_native = SimpleNamespace(main_window=None, window_args={})
+    fake_nicegui_module = SimpleNamespace(app=SimpleNamespace(native=fake_native))
+
+    for module_name in tuple(sys.modules):
+        if module_name == "desktop_app.infrastructure.native_window_state" or (
+            module_name.startswith("desktop_app.infrastructure.native_window_state.")
+        ):
+            sys.modules.pop(module_name, None)
+
+    monkeypatch.setitem(sys.modules, "nicegui", fake_nicegui_module)
+
+    import desktop_app.infrastructure.native_window_state as native_window_state
+
+    assert native_window_state.__all__ == [
+        "apply_initial_native_window_options",
+        "apply_native_window_args_from_state",
+        "normalize_persisted_window_geometry",
+        "persist_native_window_state_on_exit",
+        "refresh_native_window_state_from_proxy",
+        "update_native_window_position",
+        "update_native_window_size",
+        "update_native_window_state",
+    ]
+
+    removed_compatibility_names = (
+        "_clamp_axis_position",
+        "_coerce_optional_int",
+        "_get_native_window_args",
+        "_get_windows_monitor_work_areas",
+        "_request_native_window_pair",
+        "_save_native_window_group",
+        "MonitorWorkArea",
+        "app",
+    )
+
+    for name in removed_compatibility_names:
+        assert not hasattr(native_window_state, name)

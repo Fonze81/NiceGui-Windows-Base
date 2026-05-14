@@ -127,7 +127,7 @@ Missing persistent settings are expected during first run. The application uses 
 
 ## 🧭 Path resolution
 
-`resolve_default_settings_path()` returns the persistent file path.
+`paths.resolve_default_settings_path()` returns the persistent file path.
 
 `resolve_settings_root()` chooses the base folder in this order:
 

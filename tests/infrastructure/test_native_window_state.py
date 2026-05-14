@@ -76,6 +76,13 @@ def native_window_state_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     _clear_native_window_state_modules()
 
     module = importlib.import_module("desktop_app.infrastructure.native_window_state")
+    importlib.import_module("desktop_app.infrastructure.native_window_state.bridge")
+    importlib.import_module("desktop_app.infrastructure.native_window_state.events")
+    importlib.import_module("desktop_app.infrastructure.native_window_state.geometry")
+    importlib.import_module("desktop_app.infrastructure.native_window_state.models")
+    importlib.import_module(
+        "desktop_app.infrastructure.native_window_state.persistence"
+    )
 
     yield module
 
@@ -101,7 +108,7 @@ def test_apply_initial_native_window_options_uses_persisted_geometry(
     )
 
     assert options == {}
-    assert native_window_state_module.app.native.window_args == {
+    assert native_window_state_module.bridge.app.native.window_args == {
         "width": 1440,
         "height": 900,
         "fullscreen": True,
@@ -122,7 +129,7 @@ def test_apply_native_window_args_from_state_can_run_before_main(
 
     native_window_state_module.apply_native_window_args_from_state(state=state)
 
-    assert native_window_state_module.app.native.window_args == {
+    assert native_window_state_module.bridge.app.native.window_args == {
         "width": 1366,
         "height": 768,
         "fullscreen": False,
@@ -145,7 +152,7 @@ def test_apply_initial_native_window_options_omits_position_when_disabled(
     )
 
     assert options == {}
-    assert native_window_state_module.app.native.window_args == {
+    assert native_window_state_module.bridge.app.native.window_args == {
         "width": 1024,
         "height": 720,
         "fullscreen": False,
@@ -159,7 +166,7 @@ def test_apply_initial_native_window_options_clears_stale_position_when_disabled
     state = AppState()
     state.window.persist_state = False
     options: dict[str, Any] = {}
-    native_window_state_module.app.native.window_args.update(
+    native_window_state_module.bridge.app.native.window_args.update(
         {"x": 500, "y": 600, "min_size": (400, 300)}
     )
 
@@ -168,7 +175,7 @@ def test_apply_initial_native_window_options_clears_stale_position_when_disabled
         state=state,
     )
 
-    assert native_window_state_module.app.native.window_args == {
+    assert native_window_state_module.bridge.app.native.window_args == {
         "min_size": (400, 300),
         "width": 1024,
         "height": 720,
@@ -231,7 +238,7 @@ def test_update_native_window_state_falls_back_to_main_window(
 ) -> None:
     """The current NiceGUI main window is used when event args are empty."""
     state = AppState()
-    native_window_state_module.app.native.main_window = FakeWindow(
+    native_window_state_module.bridge.app.native.main_window = FakeWindow(
         x=70,
         y=80,
         width=1100,
@@ -413,7 +420,7 @@ def test_normalize_persisted_window_geometry_clamps_position_after_monitor_chang
     monkeypatch.setattr(
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
-        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+        lambda: (native_window_state_module.models.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
         native_window_state_module.persistence,
@@ -449,7 +456,7 @@ def test_normalize_persisted_window_geometry_recovers_window_hidden_left_or_top(
     monkeypatch.setattr(
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
-        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+        lambda: (native_window_state_module.models.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
         native_window_state_module.persistence,
@@ -498,7 +505,7 @@ def test_apply_native_window_args_resets_geometry_when_persistence_is_disabled(
     assert state.window.fullscreen is False
     assert state.window.persist_state is False
     assert state.window.last_saved_at is not None
-    assert native_window_state_module.app.native.window_args == {
+    assert native_window_state_module.bridge.app.native.window_args == {
         "width": 1024,
         "height": 720,
         "fullscreen": False,
@@ -522,8 +529,8 @@ def test_normalize_persisted_window_geometry_keeps_valid_secondary_monitor_posit
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (
-            native_window_state_module.MonitorWorkArea(0, 0, 1920, 1040),
-            native_window_state_module.MonitorWorkArea(1920, 0, 3840, 1040),
+            native_window_state_module.models.MonitorWorkArea(0, 0, 1920, 1040),
+            native_window_state_module.models.MonitorWorkArea(1920, 0, 3840, 1040),
         ),
     )
     monkeypatch.setattr(
@@ -558,8 +565,8 @@ def test_normalize_persisted_window_geometry_clamps_against_selected_monitor(
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (
-            native_window_state_module.MonitorWorkArea(0, 0, 1920, 1040),
-            native_window_state_module.MonitorWorkArea(1920, 0, 3840, 1040),
+            native_window_state_module.models.MonitorWorkArea(0, 0, 1920, 1040),
+            native_window_state_module.models.MonitorWorkArea(1920, 0, 3840, 1040),
         ),
     )
     monkeypatch.setattr(
@@ -594,8 +601,8 @@ def test_normalize_persisted_window_geometry_supports_negative_monitor_coordinat
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (
-            native_window_state_module.MonitorWorkArea(-1920, 0, 0, 1040),
-            native_window_state_module.MonitorWorkArea(0, 0, 1920, 1040),
+            native_window_state_module.models.MonitorWorkArea(-1920, 0, 0, 1040),
+            native_window_state_module.models.MonitorWorkArea(0, 0, 1920, 1040),
         ),
     )
     monkeypatch.setattr(
@@ -629,7 +636,7 @@ def test_normalize_persisted_window_geometry_limits_start_position_after_90_perc
     monkeypatch.setattr(
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
-        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+        lambda: (native_window_state_module.models.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
         native_window_state_module.persistence,
@@ -663,7 +670,7 @@ def test_normalize_persisted_window_geometry_synchronizes_native_args(
     monkeypatch.setattr(
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
-        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+        lambda: (native_window_state_module.models.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
         native_window_state_module.persistence,
@@ -676,7 +683,7 @@ def test_normalize_persisted_window_geometry_synchronizes_native_args(
     )
 
     assert changed is True
-    assert native_window_state_module.app.native.window_args == {
+    assert native_window_state_module.bridge.app.native.window_args == {
         "width": 400,
         "height": 400,
         "fullscreen": False,
@@ -700,7 +707,7 @@ def test_normalize_persisted_window_geometry_preserves_oversized_window_dimensio
     monkeypatch.setattr(
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
-        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+        lambda: (native_window_state_module.models.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
         native_window_state_module.persistence,
@@ -869,7 +876,7 @@ def test_normalize_persisted_window_geometry_reports_save_failure(
     monkeypatch.setattr(
         native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
-        lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
+        lambda: (native_window_state_module.models.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
         native_window_state_module.persistence,
@@ -891,7 +898,7 @@ def test_clamp_axis_position_ignores_invalid_available_size(
 ) -> None:
     """Invalid monitor axis sizes leave the persisted coordinate unchanged."""
     assert (
-        native_window_state_module._clamp_axis_position(
+        native_window_state_module.geometry._clamp_axis_position(
             position=42,
             size=100,
             available_start=0,
@@ -905,12 +912,12 @@ def test_get_native_window_args_creates_missing_dict(
     native_window_state_module: ModuleType,
 ) -> None:
     """Native window args are initialized when NiceGUI exposes no dictionary."""
-    native_window_state_module.app.native.window_args = None
+    native_window_state_module.bridge.app.native.window_args = None
 
-    window_args = native_window_state_module._get_native_window_args()
+    window_args = native_window_state_module.bridge._get_native_window_args()
 
     assert window_args == {}
-    assert native_window_state_module.app.native.window_args is window_args
+    assert native_window_state_module.bridge.app.native.window_args is window_args
 
 
 def test_extract_pair_by_keys_skips_invalid_payload_before_valid_payload(
@@ -920,7 +927,7 @@ def test_extract_pair_by_keys_skips_invalid_payload_before_valid_payload(
     first = SimpleNamespace(args={"width": "bad", "height": 500})
     second = SimpleNamespace(args={"width": "640", "height": 480.5})
 
-    assert native_window_state_module._extract_pair_by_keys(
+    assert native_window_state_module.events._extract_pair_by_keys(
         (first, second),
         "width",
         "height",
@@ -933,7 +940,7 @@ def test_extract_pair_uses_nested_args_pair(
     """Pair extraction supports event objects whose args value is a pair."""
     event_args = SimpleNamespace(args=(111, 222))
 
-    assert native_window_state_module._extract_pair((event_args,)) == (111, 222)
+    assert native_window_state_module.events._extract_pair((event_args,)) == (111, 222)
 
 
 @pytest.mark.parametrize("raw_value", [True, None, "", "abc"])
@@ -942,15 +949,15 @@ def test_coerce_optional_int_rejects_invalid_values(
     raw_value: object,
 ) -> None:
     """Invalid geometry scalars are rejected instead of coerced."""
-    assert native_window_state_module._coerce_optional_int(raw_value) is None
+    assert native_window_state_module.events._coerce_optional_int(raw_value) is None
 
 
 def test_coerce_pair_rejects_wrong_lengths(
     native_window_state_module: ModuleType,
 ) -> None:
     """Geometry pair coercion rejects one-item and three-item iterables."""
-    assert native_window_state_module._coerce_pair((1,)) is None
-    assert native_window_state_module._coerce_pair((1, 2, 3)) is None
+    assert native_window_state_module.events._coerce_pair((1,)) is None
+    assert native_window_state_module.events._coerce_pair((1, 2, 3)) is None
 
 
 def test_read_int_attribute_logs_ignored_invalid_attribute(
@@ -959,7 +966,10 @@ def test_read_int_attribute_logs_ignored_invalid_attribute(
     """Invalid native window attributes are skipped until a valid one is found."""
     value = SimpleNamespace(x="bad", left="25")
 
-    assert native_window_state_module._read_int_attribute(value, ("x", "left")) == 25
+    assert (
+        native_window_state_module.events._read_int_attribute(value, ("x", "left"))
+        == 25
+    )
 
 
 def test_refresh_native_window_state_from_proxy_returns_false_without_window(
@@ -969,7 +979,7 @@ def test_refresh_native_window_state_from_proxy_returns_false_without_window(
     import asyncio
 
     state = AppState()
-    native_window_state_module.app.native.main_window = None
+    native_window_state_module.bridge.app.native.main_window = None
 
     updated = asyncio.run(
         native_window_state_module.refresh_native_window_state_from_proxy(state=state)
@@ -985,7 +995,7 @@ def test_refresh_native_window_state_from_proxy_updates_complete_geometry(
     import asyncio
 
     state = AppState()
-    native_window_state_module.app.native.main_window = AsyncNativeWindowProxy(
+    native_window_state_module.bridge.app.native.main_window = AsyncNativeWindowProxy(
         position=(333, 444),
         size=(1280, 720),
     )
@@ -1008,7 +1018,7 @@ def test_refresh_native_window_state_from_proxy_ignores_small_size(
     import asyncio
 
     state = AppState()
-    native_window_state_module.app.native.main_window = AsyncNativeWindowProxy(
+    native_window_state_module.bridge.app.native.main_window = AsyncNativeWindowProxy(
         position=(100, 100),
         size=(100, 100),
     )
@@ -1029,7 +1039,9 @@ def test_request_native_window_pair_returns_none_when_method_is_missing(
     import asyncio
 
     result = asyncio.run(
-        native_window_state_module._request_native_window_pair(object(), "missing")
+        native_window_state_module.events._request_native_window_pair(
+            object(), "missing"
+        )
     )
 
     assert result is None
@@ -1042,7 +1054,7 @@ def test_request_native_window_pair_returns_none_when_method_fails(
     import asyncio
 
     result = asyncio.run(
-        native_window_state_module._request_native_window_pair(
+        native_window_state_module.events._request_native_window_pair(
             BrokenNativeWindowProxy(),
             "get_position",
         )
@@ -1062,11 +1074,11 @@ def test_get_windows_monitor_work_areas_reads_win32_work_areas(
         work_areas={1: (0, 0, 1000, 800), 2: (1920, 0, 3840, 1040)},
     )
 
-    work_areas = native_window_state_module._get_windows_monitor_work_areas()
+    work_areas = native_window_state_module.geometry._get_windows_monitor_work_areas()
 
     assert work_areas == (
-        native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),
-        native_window_state_module.MonitorWorkArea(1920, 0, 3840, 1040),
+        native_window_state_module.models.MonitorWorkArea(0, 0, 1000, 800),
+        native_window_state_module.models.MonitorWorkArea(1920, 0, 3840, 1040),
     )
 
 
@@ -1081,9 +1093,11 @@ def test_get_windows_monitor_work_areas_skips_monitor_info_failures(
         work_areas={1: (0, 0, 1000, 800), 2: (0, 0, 0, 0)},
     )
 
-    work_areas = native_window_state_module._get_windows_monitor_work_areas()
+    work_areas = native_window_state_module.geometry._get_windows_monitor_work_areas()
 
-    assert work_areas == (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),)
+    assert work_areas == (
+        native_window_state_module.models.MonitorWorkArea(0, 0, 1000, 800),
+    )
 
 
 def test_get_windows_monitor_work_areas_returns_empty_on_enum_failure(
@@ -1097,7 +1111,7 @@ def test_get_windows_monitor_work_areas_returns_empty_on_enum_failure(
         enum_result=0,
     )
 
-    assert native_window_state_module._get_windows_monitor_work_areas() == ()
+    assert native_window_state_module.geometry._get_windows_monitor_work_areas() == ()
 
 
 def test_get_windows_monitor_work_areas_returns_empty_on_enum_exception(
@@ -1111,7 +1125,7 @@ def test_get_windows_monitor_work_areas_returns_empty_on_enum_exception(
         enum_raises=True,
     )
 
-    assert native_window_state_module._get_windows_monitor_work_areas() == ()
+    assert native_window_state_module.geometry._get_windows_monitor_work_areas() == ()
 
 
 class PartialAsyncNativeWindowProxy:
@@ -1151,9 +1165,11 @@ def test_refresh_native_window_state_from_proxy_updates_size_without_position(
     import asyncio
 
     state = AppState()
-    native_window_state_module.app.native.main_window = PartialAsyncNativeWindowProxy(
-        position=None,
-        size=(1440, 900),
+    native_window_state_module.bridge.app.native.main_window = (
+        PartialAsyncNativeWindowProxy(
+            position=None,
+            size=(1440, 900),
+        )
     )
 
     updated = asyncio.run(
@@ -1174,9 +1190,11 @@ def test_refresh_native_window_state_from_proxy_updates_position_without_size(
     import asyncio
 
     state = AppState()
-    native_window_state_module.app.native.main_window = PartialAsyncNativeWindowProxy(
-        position=(333, 444),
-        size=None,
+    native_window_state_module.bridge.app.native.main_window = (
+        PartialAsyncNativeWindowProxy(
+            position=(333, 444),
+            size=None,
+        )
     )
 
     updated = asyncio.run(
@@ -1197,7 +1215,7 @@ def test_request_native_window_pair_accepts_synchronous_method_result(
     import asyncio
 
     result = asyncio.run(
-        native_window_state_module._request_native_window_pair(
+        native_window_state_module.events._request_native_window_pair(
             SyncNativeWindowProxy(),
             "get_size",
         )
@@ -1257,6 +1275,6 @@ def test_get_windows_monitor_work_areas_keeps_valid_monitors_after_info_failure(
         raising=False,
     )
 
-    assert native_window_state_module._get_windows_monitor_work_areas() == (
-        native_window_state_module.MonitorWorkArea(10, 20, 1010, 820),
+    assert native_window_state_module.geometry._get_windows_monitor_work_areas() == (
+        native_window_state_module.models.MonitorWorkArea(10, 20, 1010, 820),
     )
