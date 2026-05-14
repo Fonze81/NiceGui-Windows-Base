@@ -147,7 +147,7 @@ Test-Path .\src\desktop_app\settings.toml
 - [ ] The template version is aligned with `pyproject.toml`:
 
 ```text
-0.6.0
+0.6.1
 ```
 
 - [ ] Normal execution can start even when `<repository-root>\settings.toml` does not exist.

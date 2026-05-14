@@ -6,7 +6,7 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
-## [0.6.0] - 2026-05-12
+## [0.6.1] - 2026-05-13
 
 ### ✨ Added
 
@@ -18,16 +18,16 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ### 🔄 Changed
 
-- Changed the project version from `0.5.0` to `0.6.0`.
-- Updated Windows version metadata in `scripts/version_info.txt` to `0.6.0.0`.
-- Updated the bundled and root `settings.toml` version values to `0.6.0`.
+- Changed the project version from `0.5.0` to `0.6.1`.
+- Updated Windows version metadata in `scripts/version_info.txt` to `0.6.1.0`.
+- Updated the bundled and root `settings.toml` version values to `0.6.1`.
 - Renamed the default page builder from `build_main_page` to `build_index_page` to match the `ui/pages/index.py` SPA structure.
-- Updated README and maintenance documentation to reflect the SPA package layout, the current `__main__.py` execution routing, and generated-file cleanup workflow.
+- Updated README and maintenance documentation to reflect the SPA package layout, the preserved `__main__.py` startup-source hint, and generated-file cleanup workflow.
 - Simplified native window default reset logic by removing an unreachable dataclass-field guard.
 
 ### 🐞 Fixed
 
-- Fixed documentation drift between `pyproject.toml`, `scripts/version_info.txt`, `settings.toml`, README, the SPA UI package layout, and cleanup tooling.
+- Fixed documentation drift between `pyproject.toml`, `scripts/version_info.txt`, `settings.toml`, README, the SPA UI package layout, entry-point diagnostics, and cleanup tooling.
 - Updated test coverage scope for UI modules and native window edge cases so maintainers can run the documented `--cov-fail-under=100` validation command.
 
 ### 🧭 Migration notes
@@ -38,7 +38,7 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 python -m pip install -e ".[dev,packaging]"
 ```
 
-- Rebuild the executable so Windows file properties show version `0.6.0.0` and the updated bundled settings template is included:
+- Rebuild the executable so Windows file properties show version `0.6.1.0` and the updated bundled settings template is included:
 
 ```powershell
 .\scripts\package_windows.ps1

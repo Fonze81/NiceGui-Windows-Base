@@ -2,7 +2,7 @@
 
 This folder contains the maintenance documentation for the **NiceGui Windows Base** template.
 
-The documentation is aligned with the current `0.6.0` project shape, which includes the NiceGUI SPA shell with `ui.sub_pages`, separated UI pages, the settings subsystem, shared application state, native window geometry persistence, multi-monitor visibility guards, expanded tests, and direct PyInstaller packaging.
+The documentation is aligned with the current `0.6.1` project shape, which includes the NiceGUI SPA shell with `ui.sub_pages`, separated UI pages, the settings subsystem, shared application state, native window geometry persistence, multi-monitor visibility guards, expanded tests, and direct PyInstaller packaging.
 
 ---
 

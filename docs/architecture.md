@@ -2,7 +2,7 @@
 
 This guide explains the current architecture of **NiceGui Windows Base**.
 
-Use it when you need to understand startup flow, module responsibilities, NiceGUI SPA routing, settings persistence, logging, native window state, packaging inputs, or safe extension points for future features.
+Use it when you need to understand startup flow, module responsibilities, NiceGUI SPA routing, settings persistence, logging, native window state, packaging inputs, generated-file cleanup, or safe extension points for future features.
 
 ---
 
@@ -30,7 +30,8 @@ flowchart TD
     A[dev_run.py] --> B[src/desktop_app/app.py]
     C[nicegui-windows-base command] --> D[src/desktop_app/__main__.py]
     E[python -m desktop_app] --> D
-    D --> AA[runpy executes desktop_app.app as __main__]
+    D --> ESH[detect_entry_source_hint]
+    ESH --> AA[runpy executes desktop_app.app as __main__ with init_globals]
     AA --> B
     F[PyInstaller executable] --> B
 
@@ -59,6 +60,12 @@ flowchart TD
     Q --> X[logs/app.log]
     R --> Y[Win32 monitor work areas]
     U --> Z[pyi_splash]
+
+    PKG[scripts/package_windows.ps1] --> F
+    PKG --> AB[src/desktop_app/assets]
+    PKG --> AC[src/desktop_app/settings.toml]
+    PKG --> AD[scripts/version_info.txt]
+    CLN[scripts/clean_project.ps1] --> OUT[generated caches, coverage outputs, build artifacts, optional logs]
 ```
 
 ---
@@ -92,7 +99,9 @@ Key points:
 
 - `prepare_native_window_arguments_before_main()` runs at module import time so persisted native window position is available before `ui.run(...)` creates the native window.
 - `main(development_mode=False)` is the normal startup path after entry-point routing.
-- The CLI command and `python -m desktop_app` call `desktop_app.__main__:run`, which executes `desktop_app.app` with `__main__` semantics so native window arguments are applied through the same path as direct `app.py` execution.
+- The CLI command and `python -m desktop_app` call `desktop_app.__main__:run`, which captures the original entry source before `runpy` changes `sys.argv`.
+- `__main__.py` passes that preserved source to `desktop_app.app` through `runpy.run_module(..., init_globals=...)`, so runtime diagnostics can still distinguish pyproject command execution from module execution.
+- `desktop_app.app` still runs with `__main__` semantics so native window arguments are applied through the same Windows-safe path as direct `app.py` execution.
 - `dev_run.py` calls `main(development_mode=True)` to run in browser development mode with reload enabled.
 - Runtime values are mirrored into `AppState` for diagnostics and future UI use.
 
@@ -100,16 +109,28 @@ Key points:
 
 ## 📦 Application package responsibilities
 
-| Module                                           | Responsibility                                                                                                       |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `src/desktop_app/app.py`                         | Coordinates startup, lifecycle registration, SPA route registration, and `ui.run(...)`.                              |
-| `src/desktop_app/__main__.py`                    | Routes CLI and module execution through `runpy.run_module(...)` so `desktop_app.app` runs with `__main__` semantics. |
-| `src/desktop_app/application/bootstrap.py`       | Loads settings, resolves runtime paths, applies early native window arguments, and configures logging.               |
-| `src/desktop_app/application/runtime_context.py` | Resolves startup source, mode, port, startup message, icon path, and splash path.                                    |
-| `src/desktop_app/application/run_options.py`     | Builds the final dictionary passed to `ui.run(...)`.                                                                 |
-| `src/desktop_app/constants.py`                   | Stores shared application constants, asset names, default logger values, and version values.                         |
+| Module                                           | Responsibility                                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `src/desktop_app/app.py`                         | Coordinates startup, lifecycle registration, SPA route registration, and `ui.run(...)`.                      |
+| `src/desktop_app/__main__.py`                    | Captures the original command or module startup source and routes execution through `runpy.run_module(...)`. |
+| `src/desktop_app/application/bootstrap.py`       | Loads settings, resolves runtime paths, applies early native window arguments, and configures logging.       |
+| `src/desktop_app/application/runtime_context.py` | Resolves startup source hints, mode, port, startup message, icon path, and splash path.                      |
+| `src/desktop_app/application/run_options.py`     | Builds the final dictionary passed to `ui.run(...)`.                                                         |
+| `src/desktop_app/constants.py`                   | Stores shared application constants, asset names, default logger values, and version values.                 |
 
 `application/run_options.py` intentionally does not pass window geometry through `ui.run(...)`. Native geometry is centralized in `app.native.window_args` through `infrastructure/native_window_state.py` to avoid conflicting startup sources.
+
+`core/runtime.py` owns the `StartupSource` enum, `ENTRY_SOURCE_HINT_GLOBAL`, wrapper-source detection, hint normalization, frozen-executable detection, and fallback `sys.argv` inspection. The current detection priority is development mode, packaged executable, preserved wrapper hint, then direct argv fallback.
+
+### 🧰 Project script responsibilities
+
+| Script                        | Responsibility                                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `scripts/clean_project.ps1`   | Removes generated caches, coverage outputs, egg-info metadata, build artifacts by default, and logs only when requested.       |
+| `scripts/package_windows.ps1` | Builds the Windows executable with direct PyInstaller, bundled assets, bundled settings, version metadata, and splash support. |
+| `scripts/version_info.txt`    | Provides Windows executable version metadata consumed by PyInstaller.                                                          |
+
+The cleanup script is part of the maintenance architecture, not the application runtime. It should be documented with the project scripts because it affects source archives, clean validations, and packaging output cleanup without changing application behavior.
 
 ---
 

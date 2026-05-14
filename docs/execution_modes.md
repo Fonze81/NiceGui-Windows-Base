@@ -20,6 +20,8 @@ All Python execution modes assume that the virtual environment is active and the
 python -m pip install -e ".[dev,packaging]"
 ```
 
+The table describes user-facing commands. The public command and module execution both route through `src\desktop_app\__main__.py`, but the wrapper now preserves the original source before `runpy` changes `sys.argv`. This allows startup diagnostics to distinguish the pyproject command, module execution, direct script execution, development mode, and packaged execution.
+
 ---
 
 ## 🧭 Package and command names
@@ -55,11 +57,13 @@ sequenceDiagram
     participant State as AppState
     participant Native as native window state
     participant Logger as logger service
+    participant Runtime as runtime detector
     participant NiceGUI as ui.run
 
     alt pyproject command or python -m desktop_app
         Entry->>MainModule: call run()
-        MainModule->>App: runpy.run_module('desktop_app.app', run_name='__main__', alter_sys=True)
+        MainModule->>Runtime: detect_entry_source_hint(argv=sys.argv)
+        MainModule->>App: runpy.run_module(..., run_name='__main__', alter_sys=True, init_globals=hint)
     else direct script or packaged executable
         Entry->>App: execute app.py
     end
@@ -68,15 +72,17 @@ sequenceDiagram
     App->>Native: apply_native_window_args_from_state()
     App->>Logger: logger_bootstrap(...)
     App->>Logger: logger_enable_file_logging()
+    App->>Runtime: detect_startup_source(entry_source_hint=...)
     App->>State: store runtime diagnostics
-    App->>App: resolve startup source and runtime mode
     App->>App: register lifecycle handlers
     App->>NiceGUI: ui.run(...)
 ```
 
 The startup message is built once and reused by logs, state, and the visible page. When console logging is enabled, the same message also appears in the terminal.
 
-`src\desktop_app\__main__.py` intentionally executes `desktop_app.app` with `__main__` semantics so `nicegui-windows-base`, `python -m desktop_app`, and direct `app.py` execution share the same Windows-safe startup path. Because `runpy.run_module(..., alter_sys=True)` normalizes `sys.argv[0]` to the executed `app.py` module, the non-frozen public command and module execution can be reported as direct script execution in the visible startup message.
+`src\desktop_app\__main__.py` intentionally executes `desktop_app.app` with `__main__` semantics so installed-command execution, module execution, and direct `app.py` execution share the same Windows-safe startup path. Before calling `runpy`, the wrapper captures whether it was entered through the pyproject command or through `python -m desktop_app` and passes that value through `init_globals` using `ENTRY_SOURCE_HINT_GLOBAL`.
+
+This design keeps native window geometry preparation early through `app.native.window_args` while preserving distinct startup diagnostics. Direct `app.py` execution still falls back to argv-based detection because it does not pass through the wrapper.
 
 ---
 
@@ -96,10 +102,10 @@ Expected behavior:
 - settings loaded before logging is finalized;
 - native window position prepared before `ui.run(...)` creates the desktop window.
 
-Expected message shape with the current `__main__.py` routing:
+Expected message shape:
 
 ```text
-NiceGui Windows Base is starting from direct script execution in native mode with reload disabled.
+NiceGui Windows Base is starting from the pyproject command in native mode with reload disabled.
 ```
 
 ---
@@ -116,19 +122,26 @@ This uses:
 src\desktop_app\__main__.py
 ```
 
-`__main__.py` calls:
+`__main__.py` calls `detect_entry_source_hint(...)` before `runpy` and passes the result to `desktop_app.app` through `init_globals`:
 
 ```python
-runpy.run_module("desktop_app.app", run_name="__main__", alter_sys=True)
+runpy.run_module(
+    "desktop_app.app",
+    run_name="__main__",
+    alter_sys=True,
+    init_globals={
+        ENTRY_SOURCE_HINT_GLOBAL: detect_entry_source_hint(argv=sys.argv),
+    },
+)
 ```
 
-Expected message shape with the current `__main__.py` routing:
+Expected message shape:
 
 ```text
-NiceGui Windows Base is starting from direct script execution in native mode with reload disabled.
+NiceGui Windows Base is starting from module execution in native mode with reload disabled.
 ```
 
-The lower-level detector still maps a raw `__main__.py` entry point to module execution when that value is provided directly. The active package runner now executes `app.py` as the current process entry module, so the runtime message follows the direct app path.
+The runtime source differs from direct script execution because the module wrapper preserves `StartupSource.MODULE_EXECUTION` before `runpy` normalizes the executed module to `__main__`.
 
 ---
 
@@ -245,13 +258,15 @@ Startup source detection is implemented in:
 src\desktop_app\core\runtime.py
 ```
 
-| Source              | How it is identified in `core/runtime.py`                 | Current public-path note                                                                   |
-| ------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `dev_run.py`        | `development_mode=True`                                   | Reported as the development runner.                                                        |
-| `package`           | `is_frozen_executable()` checks PyInstaller runtime state | Reported as the packaged executable before argv-based checks.                              |
-| `pyproject command` | `sys.argv[0]` matches a configured console script name    | The current console script calls `desktop_app.__main__:run`, then `runpy` executes app.py. |
-| `module`            | `sys.argv[0]` is `__main__.py`                            | The current module runner executes app.py with `__main__` semantics.                       |
-| `script`            | `sys.argv[0]` is `app.py`                                 | This is the visible source for direct app execution and for current non-frozen routing.    |
+| Source              | Primary detection path                                    | Fallback or priority note                                                                                          |
+| ------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `dev_run.py`        | `development_mode=True`                                   | Highest priority because development mode is requested explicitly by `dev_run.py`.                                 |
+| `package`           | `is_frozen_executable()` checks PyInstaller runtime state | Checked before preserved hints so packaged execution is always reported as the packaged executable.                |
+| `pyproject command` | `StartupSource.PYPROJECT_COMMAND` preserved by `__main__` | `detect_entry_source_hint(...)` captures the console-script wrapper before `runpy` changes `sys.argv`.             |
+| `module`            | `StartupSource.MODULE_EXECUTION` preserved by `__main__`  | Used for `python -m desktop_app`; raw `__main__.py` argv detection remains as a fallback for direct runtime tests. |
+| `script`            | `sys.argv[0]` is `app.py`                                 | Used by direct `python src\desktop_app\app.py` execution because that path does not pass through the wrapper.      |
+
+The supported startup-source values are centralized in the `StartupSource` enum. `detect_startup_source(...)` normalizes only trusted wrapper hints and ignores unsupported values before falling back to argv inspection.
 
 `app.py` only orchestrates the result. Runtime details are resolved in `application/runtime_context.py`, `ui.run(...)` options are built in `application/run_options.py`, SPA entry routes are registered by `ui/router.py`, the shared shell is composed by `ui/layout.py`, and page content lives under `ui/pages`.
 

@@ -240,14 +240,16 @@ The application builds one startup message and reuses it in console logs when av
 Current confirmed message shapes:
 
 ```text
+NiceGui Windows Base is starting from the pyproject command in native mode with reload disabled.
+NiceGui Windows Base is starting from module execution in native mode with reload disabled.
 NiceGui Windows Base is starting from direct script execution in native mode with reload disabled.
 NiceGui Windows Base is starting from the development runner in web mode with reload enabled.
 NiceGui Windows Base is starting from the packaged executable in native mode with reload disabled.
 ```
 
-The public command `nicegui-windows-base` and `python -m desktop_app` currently route through `src\desktop_app\__main__.py`, which executes `desktop_app.app` with `__main__` semantics. This preserves the same Windows-safe startup path used by direct `app.py` execution; therefore the visible startup source may be reported as direct script execution for those non-frozen paths.
+The public command `nicegui-windows-base` and `python -m desktop_app` route through `src\desktop_app\__main__.py`. That wrapper captures the original command or module source before `runpy` changes `sys.argv`, then executes `desktop_app.app` with `__main__` semantics and passes the preserved source through `init_globals`.
 
-The lower-level startup detector still knows how to describe a raw `__main__.py` argument as module execution and a raw console-script name as the pyproject command, but the current public entry point intentionally normalizes execution through `desktop_app.app`. See [Execution modes](docs/execution_modes.md) for details.
+This keeps the Windows-safe native-window startup path required by `app.native.window_args` while still allowing the runtime detector to show distinct startup sources for the pyproject command, module execution, and direct script execution. See [Execution modes](docs/execution_modes.md) for details.
 
 The runtime log records the operational story of the run: settings load, native window geometry preparation, logger configuration, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, client connections, native window events, window settings persistence, exceptions, and shutdown. See [Logging subsystem](docs/logging.md).
 
