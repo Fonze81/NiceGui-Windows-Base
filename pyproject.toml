@@ -71,4 +71,5 @@ desktop_app = [
 	"assets/*.svg",
 	"settings.toml",
 	"infrastructure/logger/*.md",
+	"infrastructure/native_window_state/*.md",
 ]

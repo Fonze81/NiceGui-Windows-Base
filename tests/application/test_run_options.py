@@ -21,6 +21,14 @@ import pytest
 from desktop_app.core.state import AppState, reset_app_state
 
 
+def _clear_native_window_state_modules() -> None:
+    """Remove native window state package modules from sys.modules."""
+    package_name = "desktop_app.infrastructure.native_window_state"
+    for module_name in tuple(sys.modules):
+        if module_name == package_name or module_name.startswith(f"{package_name}."):
+            sys.modules.pop(module_name, None)
+
+
 @pytest.fixture()
 def run_options_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     """Load run_options.py with a fake NiceGUI native object."""
@@ -32,7 +40,7 @@ def run_options_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
 
     reset_app_state()
     monkeypatch.setitem(sys.modules, "nicegui", fake_nicegui_module)
-    sys.modules.pop("desktop_app.infrastructure.native_window_state", None)
+    _clear_native_window_state_modules()
     sys.modules.pop("desktop_app.application.run_options", None)
 
     module = importlib.import_module("desktop_app.application.run_options")
@@ -40,7 +48,7 @@ def run_options_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     yield module
 
     sys.modules.pop("desktop_app.application.run_options", None)
-    sys.modules.pop("desktop_app.infrastructure.native_window_state", None)
+    _clear_native_window_state_modules()
     reset_app_state()
 
 
@@ -75,9 +83,9 @@ def test_build_ui_run_options_keeps_window_geometry_out_of_ui_run(
     }
     assert "window_size" not in options
     assert "fullscreen" not in options
-    assert run_options_module.apply_initial_native_window_options.__globals__[
-        "app"
-    ].native.window_args == {
+    assert sys.modules[
+        "desktop_app.infrastructure.native_window_state.bridge"
+    ].app.native.window_args == {
         "width": 1024,
         "height": 768,
         "fullscreen": False,

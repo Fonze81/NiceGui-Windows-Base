@@ -144,12 +144,12 @@ See [Settings subsystem](settings.md) for load, save, validation, and path rules
 
 The state object does not write the settings file directly. Native lifecycle
 handlers update `AppState.window`, then
-[`native_window_state.py`](../src/desktop_app/infrastructure/native_window_state.py)
+[`native_window_state`](../src/desktop_app/infrastructure/native_window_state/README.md)
 saves the `window` group on close or shutdown.
 
 Before geometry is applied, persisted coordinates are normalized against the
 current Windows monitor work areas so the window remains reachable after monitor
-changes. See [Native window persistence](native_window_persistence.md).
+changes. See [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md).
 
 ---
 

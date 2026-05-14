@@ -317,7 +317,7 @@ the left or above are moved to the start of the selected work area. Saved width
 and height are not reduced by this monitor safety check. Browser development
 mode skips this behavior because no native desktop window is created.
 
-See [Native window persistence](native_window_persistence.md).
+See [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md).
 
 ---
 
@@ -420,6 +420,6 @@ The splash screen is configured by [Windows packaging](packaging_windows.md). Wh
 - [Development environment](development_environment.md)
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
-- [Native window persistence](native_window_persistence.md)
+- [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md)
 - [Windows packaging](packaging_windows.md)
 - [Troubleshooting](troubleshooting.md)

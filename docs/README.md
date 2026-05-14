@@ -16,7 +16,7 @@ The documentation is aligned with the current `0.6.1` project shape, which inclu
 6. [Execution modes](execution_modes.md) — native, web development, module, script, and packaged execution.
 7. [Settings subsystem](settings.md) — `settings.toml`, persistence rules, scoped updates, validation, and runtime paths.
 8. [Application state](state.md) — shared `AppState`, runtime diagnostics, persisted settings, and UI-facing status.
-9. [Native window persistence](native_window_persistence.md) — startup restore, move/resize capture, multi-monitor clamping, and persistence rules.
+9. [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) — startup restore, move/resize capture, multi-monitor clamping, and persistence rules.
 10. [Logger package guide](../src/desktop_app/infrastructure/logger/README.md) — package-local guide for startup buffering, rotating file logs, settings integration, and shutdown cleanup.
 11. [Windows packaging](packaging_windows.md) — direct PyInstaller build, assets, settings template, version metadata, and splash screen.
 12. [Code quality](code_quality.md) — Ruff, pytest, coverage, compile checks, cleanup script usage, and Markdown validation.
@@ -48,16 +48,16 @@ See the root [README](../README.md#-naming-model) for the complete naming model 
 
 The project keeps the application entry point thin and moves focused responsibilities into dedicated packages:
 
-| Area                   | Main location                                               | Detailed guide                                                             |
-| ---------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Startup orchestration  | `src/desktop_app/app.py` and `src/desktop_app/application/` | [Architecture overview](architecture.md)                                   |
-| SPA layout and pages   | `src/desktop_app/ui/`                                       | [Architecture overview](architecture.md#-nicegui-spa-structure)            |
-| Runtime state          | `src/desktop_app/core/state.py`                             | [Application state](state.md)                                              |
-| Settings persistence   | `src/desktop_app/infrastructure/settings/`                  | [Settings subsystem](settings.md)                                          |
-| Native window geometry | `src/desktop_app/infrastructure/native_window_state.py`     | [Native window persistence](native_window_persistence.md)                  |
-| Logging                | `src/desktop_app/infrastructure/logger/`                    | [Logger package guide](../src/desktop_app/infrastructure/logger/README.md) |
-| Windows packaging      | `scripts/package_windows.ps1`                               | [Windows packaging](packaging_windows.md)                                  |
-| Workspace cleanup      | `scripts/clean_project.ps1`                                 | [Code quality](code_quality.md#-workspace-cleanup)                         |
+| Area                   | Main location                                               | Detailed guide                                                                                       |
+| ---------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Startup orchestration  | `src/desktop_app/app.py` and `src/desktop_app/application/` | [Architecture overview](architecture.md)                                                             |
+| SPA layout and pages   | `src/desktop_app/ui/`                                       | [Architecture overview](architecture.md#-nicegui-spa-structure)                                      |
+| Runtime state          | `src/desktop_app/core/state.py`                             | [Application state](state.md)                                                                        |
+| Settings persistence   | `src/desktop_app/infrastructure/settings/`                  | [Settings subsystem](settings.md)                                                                    |
+| Native window geometry | `src/desktop_app/infrastructure/native_window_state/`       | [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) |
+| Logging                | `src/desktop_app/infrastructure/logger/`                    | [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)                           |
+| Windows packaging      | `scripts/package_windows.ps1`                               | [Windows packaging](packaging_windows.md)                                                            |
+| Workspace cleanup      | `scripts/clean_project.ps1`                                 | [Code quality](code_quality.md#-workspace-cleanup)                                                   |
 
 The full architecture explanation was moved to [Architecture overview](architecture.md) to keep this index focused on navigation and avoid duplicated maintenance details.
 

@@ -57,21 +57,29 @@ class FakeWindow:
         self.maximize_calls += 1
 
 
+def _clear_native_window_state_modules() -> None:
+    """Remove the native window state package and submodules from sys.modules."""
+    package_name = "desktop_app.infrastructure.native_window_state"
+    for module_name in tuple(sys.modules):
+        if module_name == package_name or module_name.startswith(f"{package_name}."):
+            sys.modules.pop(module_name, None)
+
+
 @pytest.fixture()
 def native_window_state_module(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
-    """Load native_window_state.py with a fake NiceGUI app object."""
+    """Load the native_window_state package with a fake NiceGUI app object."""
     fake_native = SimpleNamespace(main_window=None, window_args={})
     fake_nicegui_module = SimpleNamespace(app=SimpleNamespace(native=fake_native))
 
     reset_app_state()
     monkeypatch.setitem(sys.modules, "nicegui", fake_nicegui_module)
-    sys.modules.pop("desktop_app.infrastructure.native_window_state", None)
+    _clear_native_window_state_modules()
 
     module = importlib.import_module("desktop_app.infrastructure.native_window_state")
 
     yield module
 
-    sys.modules.pop("desktop_app.infrastructure.native_window_state", None)
+    _clear_native_window_state_modules()
     reset_app_state()
 
 
@@ -270,7 +278,7 @@ def test_native_window_event_helpers_do_not_persist_settings(
         return False
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         fail_if_saved,
     )
@@ -308,7 +316,7 @@ def test_persist_native_window_state_on_exit_skips_when_disabled(
         return False
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         fail_if_saved,
     )
@@ -337,7 +345,7 @@ def test_persist_native_window_state_on_exit_saves_window_group(
         return True
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         save_group,
     )
@@ -403,12 +411,12 @@ def test_normalize_persisted_window_geometry_clamps_position_after_monitor_chang
     save_calls: list[tuple[str, AppState]] = []
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda group, *, state: save_calls.append((group, state)) or True,
     )
@@ -439,12 +447,12 @@ def test_normalize_persisted_window_geometry_recovers_window_hidden_left_or_top(
     save_calls: list[str] = []
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda group, *, state: save_calls.append(group) or True,
     )
@@ -475,7 +483,7 @@ def test_apply_native_window_args_resets_geometry_when_persistence_is_disabled(
     save_calls: list[str] = []
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda group, *, state: save_calls.append(group) or True,
     )
@@ -511,7 +519,7 @@ def test_normalize_persisted_window_geometry_keeps_valid_secondary_monitor_posit
     save_calls: list[str] = []
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (
             native_window_state_module.MonitorWorkArea(0, 0, 1920, 1040),
@@ -519,7 +527,7 @@ def test_normalize_persisted_window_geometry_keeps_valid_secondary_monitor_posit
         ),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda group, *, state: save_calls.append(group) or True,
     )
@@ -547,7 +555,7 @@ def test_normalize_persisted_window_geometry_clamps_against_selected_monitor(
     save_calls: list[str] = []
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (
             native_window_state_module.MonitorWorkArea(0, 0, 1920, 1040),
@@ -555,7 +563,7 @@ def test_normalize_persisted_window_geometry_clamps_against_selected_monitor(
         ),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda group, *, state: save_calls.append(group) or True,
     )
@@ -583,7 +591,7 @@ def test_normalize_persisted_window_geometry_supports_negative_monitor_coordinat
     save_calls: list[str] = []
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (
             native_window_state_module.MonitorWorkArea(-1920, 0, 0, 1040),
@@ -591,7 +599,7 @@ def test_normalize_persisted_window_geometry_supports_negative_monitor_coordinat
         ),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda group, *, state: save_calls.append(group) or True,
     )
@@ -619,12 +627,12 @@ def test_normalize_persisted_window_geometry_limits_start_position_after_90_perc
     save_calls: list[str] = []
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda group, *, state: save_calls.append(group) or True,
     )
@@ -653,12 +661,12 @@ def test_normalize_persisted_window_geometry_synchronizes_native_args(
     state.window.height = 400
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda _group, *, state: True,
     )
@@ -690,12 +698,12 @@ def test_normalize_persisted_window_geometry_preserves_oversized_window_dimensio
     save_calls: list[str] = []
 
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda group, *, state: save_calls.append(group) or True,
     )
@@ -803,13 +811,13 @@ def _install_fake_win32_monitor_api(
     fake_windll = SimpleNamespace(user32=fake_user32)
 
     monkeypatch.setattr(
-        native_window_state_module.ctypes,
+        native_window_state_module.geometry.ctypes,
         "WINFUNCTYPE",
         winfunctype_factory,
         raising=False,
     )
     monkeypatch.setattr(
-        native_window_state_module.ctypes,
+        native_window_state_module.geometry.ctypes,
         "windll",
         fake_windll,
         raising=False,
@@ -837,7 +845,7 @@ def test_persist_native_window_state_on_exit_reports_save_failure(
     """Failed native window persistence is reported as False."""
     state = AppState()
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda _group, *, state: False,
     )
@@ -859,12 +867,12 @@ def test_normalize_persisted_window_geometry_reports_save_failure(
     state = AppState()
     state.window.x = 1200
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.geometry,
         "_get_windows_monitor_work_areas",
         lambda: (native_window_state_module.MonitorWorkArea(0, 0, 1000, 800),),
     )
     monkeypatch.setattr(
-        native_window_state_module,
+        native_window_state_module.persistence,
         "save_settings_group",
         lambda _group, *, state: False,
     )
@@ -1237,13 +1245,13 @@ def test_get_windows_monitor_work_areas_keeps_valid_monitors_after_info_failure(
     )
 
     monkeypatch.setattr(
-        native_window_state_module.ctypes,
+        native_window_state_module.geometry.ctypes,
         "WINFUNCTYPE",
         winfunctype_factory,
         raising=False,
     )
     monkeypatch.setattr(
-        native_window_state_module.ctypes,
+        native_window_state_module.geometry.ctypes,
         "windll",
         SimpleNamespace(user32=fake_user32),
         raising=False,

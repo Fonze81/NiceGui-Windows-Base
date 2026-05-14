@@ -210,7 +210,7 @@ areas and clamping the persisted position to the most relevant monitor.
 The capture, restore, visibility guard, and persistence logic lives in:
 
 ```text
-src\desktop_app\infrastructure\native_window_state.py
+src\desktop_app\infrastructure\native_window_state
 ```
 
 Lifecycle handlers call that module from:
@@ -219,7 +219,7 @@ Lifecycle handlers call that module from:
 src\desktop_app\infrastructure\lifecycle.py
 ```
 
-See [Native window persistence](native_window_persistence.md) for the complete
+See [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) for the complete
 flow and troubleshooting notes.
 
 ---

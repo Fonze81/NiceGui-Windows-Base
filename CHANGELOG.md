@@ -56,7 +56,7 @@ python -m pip install -e ".[dev,packaging]"
 - Added Windows multi-monitor visibility guards using Win32 monitor work areas so persisted coordinates remain reachable after monitor changes without shrinking saved window dimensions.
 - Added focused tests for native geometry extraction from NiceGUI event arguments, restore behavior, close/shutdown persistence behavior, disabled persistence resets, and multi-monitor position correction.
 - Added orchestration tests for startup bootstrap, top-level `app.py`, and main page composition using fake NiceGUI objects.
-- Added `docs/native_window_persistence.md` with startup flow, multi-monitor behavior, save rules, validation commands, and troubleshooting guidance.
+- Added a package-local native window state guide with startup flow, multi-monitor behavior, save rules, validation commands, and troubleshooting guidance.
 - Added focused `desktop_app.application` startup modules for logging bootstrap, runtime context resolution, and NiceGUI run option construction.
 - Added a dedicated UI page module to keep page composition outside the application entry point.
 

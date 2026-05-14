@@ -49,7 +49,6 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   ├── development_environment.md
 │   ├── execution_modes.md
 │   ├── first_run_checklist.md
-│   ├── native_window_persistence.md
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
 │   ├── python_windows_setup.md
@@ -98,7 +97,18 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   ├── byte_size.py
 │       │   ├── file_system.py
 │       │   ├── lifecycle.py
-│       │   ├── native_window_state.py
+│       │   ├── native_window_state/
+│       │   │   ├── __init__.py
+│       │   │   ├── arguments.py
+│       │   │   ├── assignment.py
+│       │   │   ├── bridge.py
+│       │   │   ├── defaults.py
+│       │   │   ├── events.py
+│       │   │   ├── geometry.py
+│       │   │   ├── models.py
+│       │   │   ├── persistence.py
+│       │   │   ├── README.md
+│       │   │   └── service.py
 │       │   └── splash.py
 │       ├── ui/
 │       │   ├── pages/
@@ -294,7 +304,7 @@ Before applying persisted coordinates, the Windows monitor work areas are enumer
 
 When `app.window.persist_state = false`, saved geometry is reset to `WindowState` defaults and persisted back to TOML so stale coordinates are not reused later.
 
-See [Settings persistence](docs/settings.md), [Application state](docs/state.md), and [Native window persistence](docs/native_window_persistence.md).
+See [Settings persistence](docs/settings.md), [Application state](docs/state.md), and [Native window state package guide](src/desktop_app/infrastructure/native_window_state/README.md).
 
 ---
 
@@ -330,7 +340,7 @@ Main guides:
 - [Logger package guide](src/desktop_app/infrastructure/logger/README.md)
 - [Settings persistence](docs/settings.md)
 - [Application state](docs/state.md)
-- [Native window persistence](docs/native_window_persistence.md)
+- [Native window state package guide](src/desktop_app/infrastructure/native_window_state/README.md)
 - [Code quality and tests](docs/code_quality.md)
 - [Troubleshooting](docs/troubleshooting.md)
 

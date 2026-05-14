@@ -48,7 +48,7 @@ flowchart TD
 
     G --> P[src/desktop_app/infrastructure/settings]
     G --> Q[src/desktop_app/infrastructure/logger]
-    G --> R[src/desktop_app/infrastructure/native_window_state.py]
+    G --> R[src/desktop_app/infrastructure/native_window_state]
     H --> S[src/desktop_app/core/runtime.py]
     H --> T[src/desktop_app/infrastructure/asset_paths.py]
     I --> R
@@ -119,7 +119,7 @@ Key points:
 | `src/desktop_app/constants.py`                      | Stores shared application constants, asset names, compatibility aliases for logger defaults, and version values. |
 | `src/desktop_app/infrastructure/logger/defaults.py` | Stores defaults owned by the logger package so the logger does not depend on application constants.              |
 
-`application/run_options.py` intentionally does not pass window geometry through `ui.run(...)`. Native geometry is centralized in `app.native.window_args` through `infrastructure/native_window_state.py` to avoid conflicting startup sources.
+`application/run_options.py` intentionally does not pass window geometry through `ui.run(...)`. Native geometry is centralized in `app.native.window_args` through `infrastructure/native_window_state/` to avoid conflicting startup sources.
 
 `core/runtime.py` owns the `StartupSource` enum, `ENTRY_SOURCE_HINT_GLOBAL`, wrapper-source detection, hint normalization, frozen-executable detection, and fallback `sys.argv` inspection. The current detection priority is development mode, packaged executable, preserved wrapper hint, then direct argv fallback.
 
@@ -226,7 +226,7 @@ The application can load from bundled defaults without creating a persistent fil
 
 ## 🪟 Native window persistence
 
-Native window geometry is handled by `src/desktop_app/infrastructure/native_window_state.py`.
+Native window geometry is handled by `src/desktop_app/infrastructure/native_window_state/`.
 
 Responsibilities:
 
@@ -239,7 +239,7 @@ Responsibilities:
 
 The monitor guard preserves saved width and height. It adjusts only `x` and `y` when persisted coordinates would make the window difficult to recover after monitor removal, monitor reordering, or resolution changes.
 
-See [Native window persistence](native_window_persistence.md) for the detailed behavior.
+See [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) for the detailed behavior.
 
 ---
 
@@ -367,7 +367,7 @@ For future external integrations, isolate blocking or environment-specific autom
 - [Execution modes](execution_modes.md)
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
-- [Native window persistence](native_window_persistence.md)
+- [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md)
 - [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)
 - [Windows packaging](packaging_windows.md)
 - [Code quality](code_quality.md)

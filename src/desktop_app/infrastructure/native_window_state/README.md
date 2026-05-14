@@ -1,12 +1,8 @@
-# 🪟 Native Window Persistence
+# 🪟 Native Window State Package
 
-This guide explains how **NiceGui Windows Base** restores, captures, validates, and saves the native desktop window position and size.
+This package owns native desktop window geometry for **NiceGui Windows Base**.
 
-The implementation lives in:
-
-```text
-src\desktop_app\infrastructure\native_window_state.py
-```
+It restores, captures, validates, and saves the native desktop window position and size while keeping startup geometry centralized in `app.native.window_args`.
 
 Lifecycle integration lives in:
 
@@ -14,7 +10,7 @@ Lifecycle integration lives in:
 src\desktop_app\infrastructure\lifecycle.py
 ```
 
-Related persisted values are documented in [Settings subsystem](settings.md) and the in-memory model is documented in [Application state](state.md).
+Related persisted values are documented in [Settings subsystem](../../../../docs/settings.md) and the in-memory model is documented in [Application state](../../../../docs/state.md).
 
 ---
 
@@ -29,6 +25,30 @@ Native window persistence is designed to:
 - avoid writing the settings file on every native move or resize event;
 - prevent monitor changes from leaving the application outside the visible desktop;
 - support multi-monitor Windows setups, including monitors with negative virtual-screen coordinates.
+
+---
+
+## 🧱 Module map
+
+| Module | Responsibility |
+|---|---|
+| `arguments.py` | Synchronizes `app.native.window_args` before startup. |
+| `assignment.py` | Provides small mutation helpers. |
+| `bridge.py` | Isolates direct NiceGUI `app.native` access. |
+| `defaults.py` | Stores package-local geometry limits and attribute names. |
+| `events.py` | Reads native event payloads and updates in-memory state. |
+| `geometry.py` | Handles monitor detection and coordinate normalization. |
+| `models.py` | Defines `MonitorWorkArea`. |
+| `persistence.py` | Persists the settings `window` group. |
+| `service.py` | Coordinates startup-time normalization. |
+
+## ✅ Design notes
+
+- Application modules should import from `desktop_app.infrastructure.native_window_state`, not from submodules.
+- Direct `ui.run(...)` window geometry options are intentionally avoided.
+- Event helpers update memory only; persistence is centralized in `persistence.py`.
+- Monitor correction changes coordinates only and does not resize the saved window.
+- The package still depends on application `AppState`, NiceGUI native access, and the settings service, so it is application-specific rather than fully reusable.
 
 ---
 
@@ -63,7 +83,7 @@ sequenceDiagram
 
     App->>Settings: load_settings(state)
     Settings->>State: apply x, y, width, height, fullscreen, persist_state
-    App->>State: normalize persisted geometry
+    App->>State: normalize persisted geometry through native_window_state
     State->>Native: apply x, y, width, height, fullscreen early
     Options->>Run: pass non-geometry runtime options
     Run->>Window: create native window from app.native.window_args
@@ -155,6 +175,7 @@ Run focused tests after changing this feature:
 
 ```powershell
 pytest tests/infrastructure/test_native_window_state.py
+pytest tests/infrastructure/test_native_window_state_package.py
 pytest tests/infrastructure/test_lifecycle.py
 pytest tests/infrastructure/settings/test_mapper.py
 pytest tests/infrastructure/settings/test_toml_document.py
@@ -210,7 +231,7 @@ Confirm native mode is active. Browser development mode does not create a native
 
 ## 🔗 Related documents
 
-- [Settings subsystem](settings.md)
-- [Application state](state.md)
-- [Execution modes](execution_modes.md)
-- [Troubleshooting](troubleshooting.md)
+- [Settings subsystem](../../../../docs/settings.md)
+- [Application state](../../../../docs/state.md)
+- [Execution modes](../../../../docs/execution_modes.md)
+- [Troubleshooting](../../../../docs/troubleshooting.md)
