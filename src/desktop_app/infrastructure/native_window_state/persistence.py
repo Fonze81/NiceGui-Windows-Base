@@ -16,7 +16,7 @@ from datetime import datetime
 from logging import Logger
 from typing import Final
 
-from desktop_app.core.state import AppState, WindowState
+from desktop_app.core.state import AppState, WindowState, get_app_state
 from desktop_app.infrastructure.logger import logger_get_logger
 from desktop_app.infrastructure.native_window_state.assignment import (
     _assign_if_different,

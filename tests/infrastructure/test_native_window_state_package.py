@@ -50,4 +50,6 @@ def test_native_window_persistence_guide_lives_inside_package() -> None:
     assert not Path("docs/native_window_persistence.md").exists()
     assert "## 🖥️ Multi-monitor safety" in guide_text
     assert "## 💾 Save behavior" in guide_text
-    assert "pytest tests/infrastructure/test_native_window_state_package.py" in guide_text
+    assert (
+        "pytest tests/infrastructure/test_native_window_state_package.py" in guide_text
+    )
