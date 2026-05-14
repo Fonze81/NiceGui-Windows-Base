@@ -49,7 +49,6 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   ├── development_environment.md
 │   ├── execution_modes.md
 │   ├── first_run_checklist.md
-│   ├── logging.md
 │   ├── native_window_persistence.md
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
@@ -90,6 +89,7 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   │   ├── exceptions.py
 │       │   │   ├── handlers.py
 │       │   │   ├── paths.py
+│       │   │   ├── README.md
 │       │   │   ├── service.py
 │       │   │   └── validators.py
 │       │   ├── settings/
@@ -262,7 +262,7 @@ The public command `nicegui-windows-base` and `python -m desktop_app` route thro
 
 This keeps the Windows-safe native-window startup path required by `app.native.window_args` while still allowing the runtime detector to show distinct startup sources for the pyproject command, module execution, and direct script execution. See [Execution modes](docs/execution_modes.md) for details.
 
-The runtime log records the operational story of the run: settings load, native window geometry preparation, logger configuration, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, client connections, native window events, window settings persistence, exceptions, and shutdown. See [Logging subsystem](docs/logging.md).
+The runtime log records the operational story of the run: settings load, native window geometry preparation, logger configuration, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, client connections, native window events, window settings persistence, exceptions, and shutdown. See [Logger package guide](src/desktop_app/infrastructure/logger/README.md).
 
 ---
 
@@ -327,7 +327,7 @@ Main guides:
 - [Development environment](docs/development_environment.md)
 - [Execution modes](docs/execution_modes.md)
 - [Windows packaging](docs/packaging_windows.md)
-- [Logging subsystem](docs/logging.md)
+- [Logger package guide](src/desktop_app/infrastructure/logger/README.md)
 - [Settings persistence](docs/settings.md)
 - [Application state](docs/state.md)
 - [Native window persistence](docs/native_window_persistence.md)

@@ -65,4 +65,10 @@ exclude_also = [
 directory = "htmlcov"
 
 [tool.setuptools.package-data]
-desktop_app = ["assets/*.ico", "assets/*.png", "assets/*.svg", "settings.toml"]
+desktop_app = [
+	"assets/*.ico",
+	"assets/*.png",
+	"assets/*.svg",
+	"settings.toml",
+	"infrastructure/logger/*.md",
+]

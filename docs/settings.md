@@ -429,6 +429,6 @@ Invalid values should fall back to a safe default.
 
 - [Application state](state.md)
 - [Execution modes](execution_modes.md)
-- [Logging subsystem](logging.md)
+- [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)
 - [Windows packaging](packaging_windows.md)
 - [Troubleshooting](troubleshooting.md)

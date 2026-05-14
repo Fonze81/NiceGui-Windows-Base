@@ -170,7 +170,7 @@ Examples:
 
 After settings are loaded, `application/bootstrap.py` builds the logger configuration from state and enables rotating file logging.
 
-See [Logging subsystem](logging.md).
+See [Logger package guide](../src/desktop_app/infrastructure/logger/README.md).
 
 ---
 
@@ -274,7 +274,7 @@ Use this checklist:
 ## 🔗 Related documents
 
 - [Settings subsystem](settings.md)
-- [Logging subsystem](logging.md)
+- [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)
 - [Execution modes](execution_modes.md)
 - [Code quality](code_quality.md)
 - [Troubleshooting](troubleshooting.md)

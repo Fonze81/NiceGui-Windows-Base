@@ -47,3 +47,14 @@ def test_logger_package_has_no_forbidden_external_imports() -> None:
                 violations.append(f"{file_path}: {imported_module}")
 
     assert violations == []
+
+
+def test_logger_package_guide_is_bundled_as_package_data() -> None:
+    """Ensure the package-local logger guide is included in package builds."""
+    import tomllib
+
+    pyproject_data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    package_data = pyproject_data["tool"]["setuptools"]["package-data"]
+
+    assert "infrastructure/logger/*.md" in package_data["desktop_app"]
+    assert (LOGGER_PACKAGE_PATH / "README.md").is_file()

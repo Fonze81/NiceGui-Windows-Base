@@ -267,7 +267,7 @@ Important behavior:
 - rotating file logging writes to `logs/app.log` relative to the runtime root;
 - shutdown releases file handlers to reduce locked-file issues on Windows.
 
-See [Logging subsystem](logging.md) for the full logger design.
+See [Logger package guide](../src/desktop_app/infrastructure/logger/README.md) for the full logger design.
 
 ---
 
@@ -368,6 +368,6 @@ For future external integrations, isolate blocking or environment-specific autom
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
 - [Native window persistence](native_window_persistence.md)
-- [Logging subsystem](logging.md)
+- [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)
 - [Windows packaging](packaging_windows.md)
 - [Code quality](code_quality.md)

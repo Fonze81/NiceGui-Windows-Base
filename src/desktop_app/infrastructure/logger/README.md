@@ -1,6 +1,6 @@
-# 🖨️ Logging Subsystem
+# 🖨️ Logger Package Guide
 
-This guide explains how the **NiceGui Windows Base** logging subsystem works and how maintainers should use it safely.
+This package-local guide explains how the **NiceGui Windows Base** logger works and how maintainers should use it safely.
 
 The logger implementation lives in:
 
@@ -40,7 +40,7 @@ logger = logger_get_logger(__name__)
 
 The public API is declared in:
 
-- [`src/desktop_app/infrastructure/logger/__init__.py`](../src/desktop_app/infrastructure/logger/__init__.py)
+- [`__init__.py`](__init__.py)
 
 Important public symbols:
 
@@ -80,18 +80,18 @@ flowchart TD
     N[settings mapper] --> E
 ```
 
-| File                                                                          | Responsibility                                                              |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [`__init__.py`](../src/desktop_app/infrastructure/logger/__init__.py)         | Exposes the official logger API.                                            |
-| [`service.py`](../src/desktop_app/infrastructure/logger/service.py)           | Owns the global bootstrapper instance and helper functions.                 |
-| [`bootstrapper.py`](../src/desktop_app/infrastructure/logger/bootstrapper.py) | Coordinates logger setup, handler lifecycle, file activation, and shutdown. |
-| [`config.py`](../src/desktop_app/infrastructure/logger/config.py)             | Defines the `LoggerConfig` data container.                                  |
-| [`defaults.py`](../src/desktop_app/infrastructure/logger/defaults.py)         | Stores logger-owned defaults, formats, and validation limits.               |
-| [`byte_size.py`](../src/desktop_app/infrastructure/logger/byte_size.py)       | Parses logger rotation sizes without depending on shared infrastructure.    |
-| [`validators.py`](../src/desktop_app/infrastructure/logger/validators.py)     | Normalizes levels, paths, buffer sizes, rotation sizes, and backup counts.  |
-| [`handlers.py`](../src/desktop_app/infrastructure/logger/handlers.py)         | Creates console, memory, and rotating file handlers.                        |
-| [`paths.py`](../src/desktop_app/infrastructure/logger/paths.py)               | Resolves the runtime log file path for normal and packaged execution.       |
-| [`exceptions.py`](../src/desktop_app/infrastructure/logger/exceptions.py)     | Declares `LoggerValidationError`.                                           |
+| File                                 | Responsibility                                                              |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| [`__init__.py`](__init__.py)         | Exposes the official logger API.                                            |
+| [`service.py`](service.py)           | Owns the global bootstrapper instance and helper functions.                 |
+| [`bootstrapper.py`](bootstrapper.py) | Coordinates logger setup, handler lifecycle, file activation, and shutdown. |
+| [`config.py`](config.py)             | Defines the `LoggerConfig` data container.                                  |
+| [`defaults.py`](defaults.py)         | Stores logger-owned defaults, formats, and validation limits.               |
+| [`byte_size.py`](byte_size.py)       | Parses logger rotation sizes without depending on shared infrastructure.    |
+| [`validators.py`](validators.py)     | Normalizes levels, paths, buffer sizes, rotation sizes, and backup counts.  |
+| [`handlers.py`](handlers.py)         | Creates console, memory, and rotating file handlers.                        |
+| [`paths.py`](paths.py)               | Resolves the runtime log file path for normal and packaged execution.       |
+| [`exceptions.py`](exceptions.py)     | Declares `LoggerValidationError`.                                           |
 
 ---
 
@@ -170,7 +170,7 @@ The default relative log file is:
 Path("logs") / "app.log"
 ```
 
-The logger package resolves the final location through [`paths.py`](../src/desktop_app/infrastructure/logger/paths.py). `application/bootstrap.py` calls that resolver during `configure_logging()` and then passes the resulting path to `LoggerConfig`.
+The logger package resolves the final location through [`paths.py`](paths.py). `application/bootstrap.py` calls that resolver during `configure_logging()` and then passes the resulting path to `LoggerConfig`.
 
 The final location is resolved as follows:
 
@@ -295,9 +295,9 @@ Native window lifecycle handlers registered.
 
 See also:
 
-- [Execution modes](execution_modes.md#-runtime-log-narrative)
-- [Settings subsystem](settings.md)
-- [Troubleshooting](troubleshooting.md)
+- [Execution modes](../../../../docs/execution_modes.md#-runtime-log-narrative)
+- [Settings subsystem](../../../../docs/settings.md)
+- [Troubleshooting](../../../../docs/troubleshooting.md)
 
 ---
 
@@ -367,7 +367,7 @@ LoggerConfig(
 )
 ```
 
-Logger defaults live in [`defaults.py`](../src/desktop_app/infrastructure/logger/defaults.py), not in application-level constants. The application still owns final logger configuration through `application/bootstrap.py`, which builds `LoggerConfig` from `AppState.log`.
+Logger defaults live in [`defaults.py`](defaults.py), not in application-level constants. The application still owns final logger configuration through `application/bootstrap.py`, which builds `LoggerConfig` from `AppState.log`.
 
 The logger name cannot be changed after bootstrapper creation. This prevents handler duplication and keeps child logger names stable.
 
@@ -447,16 +447,16 @@ Confirm that application shutdown calls:
 logger_shutdown()
 ```
 
-This is currently wired through [lifecycle handlers](../src/desktop_app/infrastructure/lifecycle.py).
+This is currently wired through [lifecycle handlers](../lifecycle.py).
 
 ---
 
 ## 🔗 Related documents
 
-- [Documentation index](README.md)
-- [Settings subsystem](settings.md)
-- [Application state](state.md)
-- [Execution modes](execution_modes.md)
-- [Windows packaging](packaging_windows.md)
-- [Troubleshooting](troubleshooting.md)
-- [Code quality with Ruff](code_quality.md)
+- [Documentation index](../../../../docs/README.md)
+- [Settings subsystem](../../../../docs/settings.md)
+- [Application state](../../../../docs/state.md)
+- [Execution modes](../../../../docs/execution_modes.md)
+- [Windows packaging](../../../../docs/packaging_windows.md)
+- [Troubleshooting](../../../../docs/troubleshooting.md)
+- [Code quality with Ruff](../../../../docs/code_quality.md)

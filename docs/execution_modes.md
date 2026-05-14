@@ -375,7 +375,7 @@ Application shutdown completed.
 
 Repeated native window events such as resize and move are logged at `DEBUG` to keep the main story readable. Geometry updates are captured in `AppState.window` and saved on close or shutdown. In browser development mode, native window handlers are skipped because no native desktop window is active.
 
-For the internal logger architecture, early startup buffering, settings integration, and file rotation behavior, see [Logging subsystem](logging.md).
+For the internal logger architecture, early startup buffering, settings integration, and file rotation behavior, see [Logger package guide](../src/desktop_app/infrastructure/logger/README.md).
 
 ---
 

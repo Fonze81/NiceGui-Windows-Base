@@ -22,7 +22,7 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 - Updated Windows version metadata in `scripts/version_info.txt` to `0.6.1.0`.
 - Updated the bundled and root `settings.toml` version values to `0.6.1`.
 - Renamed the default page builder from `build_main_page` to `build_index_page` to match the `ui/pages/index.py` SPA structure.
-- Updated README and maintenance documentation to reflect the SPA package layout, the preserved `__main__.py` startup-source hint, and generated-file cleanup workflow.
+- Updated README and maintenance documentation to reflect the SPA package layout, the preserved `__main__.py` startup-source hint, generated-file cleanup workflow, and package-local logger guide location.
 - Simplified native window default reset logic by removing an unreachable dataclass-field guard.
 
 ### 🐞 Fixed
@@ -174,7 +174,7 @@ ruff format --check .
 ### ✨ Added
 
 - Added a dedicated logger package with configuration, validation, bounded startup buffering, rotating file handlers, safe shutdown, and a public logger API.
-- Added `docs/logging.md` to explain logger architecture, startup buffering, file rotation, placeholder formatting, and maintenance checks.
+- Added a logger documentation guide to explain logger architecture, startup buffering, file rotation, placeholder formatting, and maintenance checks.
 - Added explicit runtime log path resolution inside the logger package so `app.py` only orchestrates logging startup.
 - Added VS Code markdownlint as a recommended documentation-quality extension.
 

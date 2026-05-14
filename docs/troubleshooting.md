@@ -699,6 +699,6 @@ does not save the live window size.
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
 - [Native window persistence](native_window_persistence.md)
-- [Logging subsystem](logging.md)
+- [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)
 - [Windows packaging](packaging_windows.md)
 - [Code quality](code_quality.md)
