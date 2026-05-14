@@ -40,7 +40,7 @@ def build_index_page(*, application_name: str, startup_message: str) -> None:
     state.ui_session.is_busy = False
     state.ui_session.busy_message = None
 
-    logger.info("Building the index page for the connected client.")
+    logger.debug("Building the index page for a client request.")
 
     ui.query("body").classes("bg-slate-100")
 
@@ -76,4 +76,4 @@ def build_index_page(*, application_name: str, startup_message: str) -> None:
                 "mt-1 text-sm leading-relaxed text-slate-700"
             )
 
-    logger.info("Index page built successfully.")
+    logger.debug("Index page built successfully for the client request.")

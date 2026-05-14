@@ -68,20 +68,20 @@ def update_native_window_size(
 
     was_updated = False
     if width is not None and width >= MIN_WINDOW_WIDTH:
-        current_state.window.width = width
-        was_updated = True
+        was_updated = (
+            _assign_if_different(current_state.window, "width", width) or was_updated
+        )
     if height is not None and height >= MIN_WINDOW_HEIGHT:
-        current_state.window.height = height
-        was_updated = True
+        was_updated = (
+            _assign_if_different(current_state.window, "height", height) or was_updated
+        )
 
     if was_updated:
         logger.debug(
-            "Native window size updated: width=%s, height=%s.",
+            "Native window size updated from event payload: width=%s, height=%s.",
             current_state.window.width,
             current_state.window.height,
         )
-    else:
-        logger.debug("Native window size was not updated from event payload.")
 
     return was_updated
 
@@ -119,20 +119,16 @@ def update_native_window_position(
 
     was_updated = False
     if x is not None:
-        current_state.window.x = x
-        was_updated = True
+        was_updated = _assign_if_different(current_state.window, "x", x) or was_updated
     if y is not None:
-        current_state.window.y = y
-        was_updated = True
+        was_updated = _assign_if_different(current_state.window, "y", y) or was_updated
 
     if was_updated:
         logger.debug(
-            "Native window position updated: x=%s, y=%s.",
+            "Native window position updated from event payload: x=%s, y=%s.",
             current_state.window.x,
             current_state.window.y,
         )
-    else:
-        logger.debug("Native window position was not updated from event payload.")
 
     return was_updated
 
@@ -218,8 +214,6 @@ async def refresh_native_window_state_from_proxy(
             current_state.window.width,
             current_state.window.height,
         )
-    else:
-        logger.debug("Native window proxy refresh did not change geometry.")
 
     return was_updated
 

@@ -23,7 +23,7 @@ from typing import Any, Final
 
 from nicegui import app
 
-from desktop_app.core.state import get_app_state
+from desktop_app.core.state import AppState, get_app_state
 from desktop_app.infrastructure.logger import logger_get_logger, logger_shutdown
 from desktop_app.infrastructure.native_window_state import (
     persist_native_window_state_on_exit,
@@ -35,7 +35,52 @@ from desktop_app.infrastructure.splash import register_splash_handler
 
 logger: Final[Logger] = logger_get_logger(__name__)
 
+WindowGeometry = tuple[int, int, int, int]
+
 WINDOWS_CONNECTION_RESET_WINERROR: Final[int] = 10054
+
+
+def _get_window_geometry(state: AppState) -> WindowGeometry:
+    """Return the current native window geometry from application state.
+
+    Args:
+        state: Application state containing the native window values.
+
+    Returns:
+        Current x, y, width, and height values.
+    """
+    return (
+        state.window.x,
+        state.window.y,
+        state.window.width,
+        state.window.height,
+    )
+
+
+def _log_native_window_geometry_event(
+    event_name: str,
+    old_geometry: WindowGeometry,
+    new_geometry: WindowGeometry,
+) -> None:
+    """Log a native window geometry event without contradictory messages.
+
+    Args:
+        event_name: Human-readable event name, such as ``moved`` or ``resized``.
+        old_geometry: Geometry captured before event processing.
+        new_geometry: Geometry captured after event processing.
+    """
+    if old_geometry == new_geometry:
+        logger.debug("Native window %s event did not change geometry.", event_name)
+        return
+
+    logger.debug(
+        "Native window geometry changed after %s event: "
+        "old=(x=%s, y=%s, width=%s, height=%s), "
+        "new=(x=%s, y=%s, width=%s, height=%s).",
+        event_name,
+        *old_geometry,
+        *new_geometry,
+    )
 
 
 def _is_expected_windows_connection_reset(
@@ -134,7 +179,15 @@ def _handle_application_shutdown(*event_args: object) -> None:
     state.lifecycle.shutdown_started = True
 
     if state.runtime.native_mode:
-        persist_native_window_state_on_exit(*event_args, state=state)
+        if state.lifecycle.native_window_state_persisted:
+            logger.debug(
+                "Final native window state persistence skipped; "
+                "state was already persisted during close."
+            )
+        else:
+            state.lifecycle.native_window_state_persisted = (
+                persist_native_window_state_on_exit(*event_args, state=state)
+            )
 
     logger.info("Application shutdown completed.")
     state.lifecycle.shutdown_completed = True
@@ -210,17 +263,27 @@ def _handle_native_window_restored(*_args: object) -> None:
 async def _handle_native_window_resized(*event_args: object) -> None:
     """Handle the native window resized event."""
     state = get_app_state()
+    old_geometry = _get_window_geometry(state)
     update_native_window_size(*event_args, state=state)
     await refresh_native_window_state_from_proxy(state=state)
-    logger.debug("The native window was resized.")
+    _log_native_window_geometry_event(
+        "resized",
+        old_geometry,
+        _get_window_geometry(state),
+    )
 
 
 async def _handle_native_window_moved(*event_args: object) -> None:
     """Handle the native window moved event."""
     state = get_app_state()
+    old_geometry = _get_window_geometry(state)
     update_native_window_position(*event_args, state=state)
     await refresh_native_window_state_from_proxy(state=state)
-    logger.debug("The native window was moved.")
+    _log_native_window_geometry_event(
+        "moved",
+        old_geometry,
+        _get_window_geometry(state),
+    )
 
 
 def _handle_native_window_closed(*event_args: object) -> None:
@@ -228,7 +291,10 @@ def _handle_native_window_closed(*event_args: object) -> None:
     state = get_app_state()
     state.lifecycle.native_window_closed = True
     state.lifecycle.native_window_opened = False
-    persist_native_window_state_on_exit(*event_args, state=state)
+    state.lifecycle.native_window_state_persisted = persist_native_window_state_on_exit(
+        *event_args,
+        state=state,
+    )
     logger.info("The native window was closed by the user.")
 
 

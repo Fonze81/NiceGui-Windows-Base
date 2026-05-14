@@ -36,7 +36,7 @@ def build_app_layout(*, application_name: str, startup_message: str) -> None:
     state.ui_session.is_busy = False
     state.ui_session.busy_message = None
 
-    logger.info("Building the SPA layout for the connected client.")
+    logger.debug("Building the SPA layout for a client request.")
 
     ui.sub_pages(
         build_sub_page_routes(
@@ -45,4 +45,4 @@ def build_app_layout(*, application_name: str, startup_message: str) -> None:
         )
     )
 
-    logger.info("SPA layout built successfully.")
+    logger.debug("SPA layout built successfully for the client request.")

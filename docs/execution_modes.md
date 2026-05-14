@@ -357,15 +357,13 @@ Typical packaged execution flow:
 
 ```text
 Logging initialized for NiceGui Windows Base.
-Native window startup prepared through app.native.window_args only: size=(1024, 720), position=(100, 100), fullscreen=False, persist_state=True.
 Starting NiceGui Windows Base startup sequence.
 Startup source resolved: the packaged executable.
 Runtime mode resolved: native mode with reload disabled.
 Starting NiceGUI runtime in native mode on port 53124.
 NiceGUI runtime started.
 Native window opened.
-Building the index page for the connected client.
-Index page built successfully.
+Client connected to the application.
 Native window finished loading.
 Native window state persisted successfully.
 The native window was closed by the user.
@@ -373,7 +371,7 @@ Client disconnected from the application.
 Application shutdown completed.
 ```
 
-Repeated native window events such as resize and move are logged at `DEBUG` to keep the main story readable. Geometry updates are captured in `AppState.window` and saved on close or shutdown. In browser development mode, native window handlers are skipped because no native desktop window is active.
+Page rendering and repeated native window resize or move events are logged at `DEBUG` to keep the main story readable. Geometry updates are captured in `AppState.window`, saved on close, and retried during shutdown only when the close handler did not already persist the state successfully. In browser development mode, native window handlers are skipped because no native desktop window is active.
 
 For the internal logger architecture, early startup buffering, settings integration, and file rotation behavior, see [Logger package guide](../src/desktop_app/infrastructure/logger/README.md).
 

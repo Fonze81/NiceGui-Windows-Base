@@ -272,7 +272,7 @@ The public command `nicegui-windows-base` and `python -m desktop_app` route thro
 
 This keeps the Windows-safe native-window startup path required by `app.native.window_args` while still allowing the runtime detector to show distinct startup sources for the pyproject command, module execution, and direct script execution. See [Execution modes](docs/execution_modes.md) for details.
 
-The runtime log records the operational story of the run: settings load, native window geometry preparation, logger configuration, startup source detection, runtime mode selection, lifecycle handler registration, asset resolution, NiceGUI startup, page build, client connections, native window events, window settings persistence, exceptions, and shutdown. See [Logger package guide](src/desktop_app/infrastructure/logger/README.md).
+The runtime log records the operational story of the run: settings load, native window geometry preparation, logger configuration, startup source detection, runtime mode selection, lifecycle handler registration, NiceGUI startup, client connections, native window lifecycle, window settings persistence, exceptions, and shutdown. Repeated page rendering and geometry evidence stay at `DEBUG` so the `INFO` flow remains readable. See [Logger package guide](src/desktop_app/infrastructure/logger/README.md).
 
 ---
 

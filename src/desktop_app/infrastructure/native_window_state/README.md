@@ -30,17 +30,17 @@ Native window persistence is designed to:
 
 ## 🧱 Module map
 
-| Module | Responsibility |
-|---|---|
-| `arguments.py` | Synchronizes `app.native.window_args` before startup. |
-| `assignment.py` | Provides small mutation helpers. |
-| `bridge.py` | Isolates direct NiceGUI `app.native` access. |
-| `defaults.py` | Stores package-local geometry limits and attribute names. |
-| `events.py` | Reads native event payloads and updates in-memory state. |
-| `geometry.py` | Handles monitor detection and coordinate normalization. |
-| `models.py` | Defines `MonitorWorkArea`. |
-| `persistence.py` | Persists the settings `window` group. |
-| `service.py` | Coordinates startup-time normalization. |
+| Module           | Responsibility                                            |
+| ---------------- | --------------------------------------------------------- |
+| `arguments.py`   | Synchronizes `app.native.window_args` before startup.     |
+| `assignment.py`  | Provides small mutation helpers.                          |
+| `bridge.py`      | Isolates direct NiceGUI `app.native` access.              |
+| `defaults.py`    | Stores package-local geometry limits and attribute names. |
+| `events.py`      | Reads native event payloads and updates in-memory state.  |
+| `geometry.py`    | Handles monitor detection and coordinate normalization.   |
+| `models.py`      | Defines `MonitorWorkArea`.                                |
+| `persistence.py` | Persists the settings `window` group.                     |
+| `service.py`     | Coordinates startup-time normalization.                   |
 
 ## ✅ Design notes
 
@@ -135,11 +135,14 @@ flowchart TD
     E --> F[AppState.window updated in memory]
     F --> G[No TOML write during move or resize]
     H[Native window closed] --> I[persist_native_window_state_on_exit]
-    J[Application shutdown] --> I
-    I --> K[save_settings_group window]
+    I --> J[save_settings_group window]
+    J --> K[Mark native_window_state_persisted]
+    L[Application shutdown] --> M{Already persisted?}
+    M -- Yes --> N[Skip duplicate save]
+    M -- No --> I
 ```
 
-This keeps runtime geometry accurate without turning high-frequency native events into repeated file writes.
+This keeps runtime geometry accurate without turning high-frequency native events into repeated file writes. Shutdown still protects the final state, but it does not write the same window group again when the close handler already saved it successfully.
 
 ## 💾 Save behavior
 
@@ -150,7 +153,7 @@ On native move and resize events, the application:
 3. keeps `last_saved_at` unchanged;
 4. does not write `settings.toml`.
 
-On native window close and application shutdown, the application tries to refresh `AppState.window` from the latest native event or native window object before saving only the `window` settings group.
+On native window close, the application tries to refresh `AppState.window` from the latest native event or native window object before saving only the `window` settings group. Application shutdown retries that save only when the close handler did not already persist the state successfully.
 
 The saved values are:
 

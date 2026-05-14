@@ -262,6 +262,8 @@ Recommended behavior:
 
 The project separates operational narrative from technical evidence:
 
+`INFO` should read as a concise story of one application run. Avoid placing repeated page render events, geometry polling, or payload fallback details at `INFO`; those belong at `DEBUG` unless they represent a user-visible problem.
+
 | Level       | Use for                                                   |
 | ----------- | --------------------------------------------------------- |
 | `INFO`      | Runtime milestones that explain the main execution story. |
@@ -279,6 +281,9 @@ Startup source resolved: the packaged executable.
 Runtime mode resolved: native mode with reload disabled.
 Starting NiceGUI runtime in native mode on port 53124.
 NiceGUI runtime started.
+Native window opened.
+Client connected to the application.
+Native window state persisted successfully.
 Application shutdown completed.
 ```
 
@@ -289,7 +294,10 @@ Application working directory: ...
 Python executable in use: ...
 PyInstaller extraction directory marker: ...
 Settings file path resolved: ...
+Building the index page for a client request.
 Page image resolved for the index page: ...
+Native window geometry changed after moved event: old=(...), new=(...).
+Final native window state persistence skipped; state was already persisted during close.
 Native window lifecycle handlers registered.
 ```
 

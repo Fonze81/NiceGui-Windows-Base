@@ -279,6 +279,7 @@ class LifecycleState:
         native_window_minimized: Whether the native window is currently minimized.
         native_window_maximized: Whether the native window is currently maximized.
         native_window_closed: Whether the native window was closed.
+        native_window_state_persisted: Whether native window state was saved on exit.
         splash_registered: Whether a splash close handler was registered.
         splash_close_attempted: Whether closing the splash was attempted.
         splash_closed: Whether the splash screen was closed successfully.
@@ -295,6 +296,7 @@ class LifecycleState:
     native_window_minimized: bool = False
     native_window_maximized: bool = False
     native_window_closed: bool = False
+    native_window_state_persisted: bool = False
     splash_registered: bool = False
     splash_close_attempted: bool = False
     splash_closed: bool = False

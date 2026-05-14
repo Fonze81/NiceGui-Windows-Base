@@ -358,6 +358,41 @@ def test_application_shutdown_updates_state_and_stops_logger(
     )
 
 
+def test_application_shutdown_skips_duplicate_window_persistence(
+    lifecycle_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Shutdown does not save native window state again after close persistence."""
+    persist_calls = 0
+    state = get_app_state()
+    state.lifecycle.native_window_state_persisted = True
+
+    def fail_if_persisted(*_args: object, **_kwargs: object) -> bool:
+        """Fail when shutdown tries to persist already-saved native state."""
+        nonlocal persist_calls
+        persist_calls += 1
+        return False
+
+    monkeypatch.setattr(
+        lifecycle_module,
+        "persist_native_window_state_on_exit",
+        fail_if_persisted,
+    )
+
+    lifecycle_module._handle_application_shutdown()
+
+    assert persist_calls == 0
+    assert state.lifecycle.shutdown_completed is True
+    assert lifecycle_module.logger.calls[-2:] == [
+        LoggedCall(
+            "debug",
+            "Final native window state persistence skipped; "
+            "state was already persisted during close.",
+        ),
+        LoggedCall("info", "Application shutdown completed."),
+    ]
+
+
 def test_client_connection_handlers_update_state(lifecycle_module: ModuleType) -> None:
     """Client connect and disconnect events update lifecycle state."""
     lifecycle_module._handle_client_connected()
@@ -459,8 +494,20 @@ def test_debug_only_native_window_handlers_log_events(
     assert state.window.y == 250
     assert refresh_calls == [state, state]
     assert lifecycle_module.logger.calls[-2:] == [
-        LoggedCall("debug", "The native window was resized."),
-        LoggedCall("debug", "The native window was moved."),
+        LoggedCall(
+            "debug",
+            "Native window geometry changed after %s event: "
+            "old=(x=%s, y=%s, width=%s, height=%s), "
+            "new=(x=%s, y=%s, width=%s, height=%s).",
+            ("resized", 100, 100, 1024, 720, 100, 100, 1280, 720),
+        ),
+        LoggedCall(
+            "debug",
+            "Native window geometry changed after %s event: "
+            "old=(x=%s, y=%s, width=%s, height=%s), "
+            "new=(x=%s, y=%s, width=%s, height=%s).",
+            ("moved", 100, 100, 1280, 720, 300, 250, 1280, 720),
+        ),
     ]
 
 
