@@ -15,10 +15,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-from desktop_app.ui.theme import get_navigation_link_classes
 from nicegui import ui
 
 from desktop_app.core.state import ThemeName
+from desktop_app.ui.theme import get_navigation_link_classes
 
 
 @dataclass(frozen=True, slots=True)
