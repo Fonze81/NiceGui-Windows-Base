@@ -67,7 +67,14 @@ def main(*, development_mode: bool = False) -> None:
         startup_message=runtime_context.startup_message,
     )
 
-    ui.run(**build_ui_run_options(runtime_context, state=state))
+    ui_run_options = build_ui_run_options(runtime_context, state=state)
+
+    try:
+        ui.run(**ui_run_options)
+    except KeyboardInterrupt:
+        if state.lifecycle.shutdown_completed:
+            return
+        raise
 
 
 if __name__ == "__main__":

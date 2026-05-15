@@ -19,7 +19,7 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ### 🔄 Changed
 
-- Updated NiceGUI to `3.12.0`, keeping the template aligned with the current NiceGUI runtime, `ui.sub_pages` testing improvements, user-simulated testing fixes, and upstream dependency updates.
+- Updated NiceGUI from `3.11+` to `3.12+` to keep the template aligned with the current NiceGUI runtime and upstream fixes.
 - Changed project metadata from `0.8.0` to `0.9.0` in `pyproject.toml`.
 - Changed `APPLICATION_VERSION` from `0.8.0` to `0.9.0` in `src/desktop_app/constants.py`.
 - Updated Windows executable metadata in `scripts/version_info.txt` from `0.8.0.0` to `0.9.0.0`.
@@ -32,8 +32,13 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 - Consumed NiceGUI `3.12.0` upstream security fixes for local file disclosure prevention in `ui.restructured_text` and log-volume denial-of-service prevention in dynamic resource and ESM module routes.
 
+### 🐞 Fixed
+
+- Suppressed the benign `KeyboardInterrupt` traceback that can be raised by the NiceGUI/Uvicorn shutdown path after the native window has already closed and application shutdown handlers completed.
+
 ### 🧪 Tests and quality
 
+- Added entry-point tests for clean native shutdown interrupt handling.
 - Added project-tool tests under `tests/project_tools`.
 - Validated the release with compile checks, Ruff linting, Ruff formatting checks, pytest, and coverage.
 

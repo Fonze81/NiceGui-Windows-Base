@@ -138,3 +138,97 @@ def test_main_orchestrates_runtime_startup(
         }
     ]
     assert fake_ui.run_calls == [((), {"native": False})]
+
+
+def test_main_suppresses_keyboard_interrupt_after_completed_shutdown(
+    app_module: tuple[ModuleType, FakeUi],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """main suppresses NiceGUI shutdown interrupts after lifecycle completion."""
+    module, fake_ui = app_module
+    context = SimpleNamespace(
+        startup_source="pyproject command",
+        startup_message="NiceGui Windows Base is starting.",
+        native_mode=True,
+        reload_enabled=False,
+        port=8000,
+        icon_path="app.ico",
+        splash_image_path="splash.png",
+    )
+
+    def interrupt_after_shutdown(*args: object, **kwargs: object) -> None:
+        """Simulate NiceGUI raising after normal shutdown handlers completed."""
+        fake_ui.run_calls.append((args, kwargs))
+        module.get_app_state().lifecycle.shutdown_completed = True
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(
+        module,
+        "resolve_runtime_launch_context",
+        lambda *, development_mode, state, entry_source_hint=None: context,
+    )
+    monkeypatch.setattr(
+        module, "register_lifecycle_handlers", lambda *, native_mode: None
+    )
+    monkeypatch.setattr(
+        module,
+        "build_ui_run_options",
+        lambda context, *, state: {"native": True},
+    )
+    monkeypatch.setattr(
+        module,
+        "register_spa_routes",
+        lambda *, application_name, startup_message: None,
+    )
+    monkeypatch.setattr(fake_ui, "run", interrupt_after_shutdown)
+
+    module.main()
+
+    assert fake_ui.run_calls == [((), {"native": True})]
+
+
+def test_main_reraises_keyboard_interrupt_before_completed_shutdown(
+    app_module: tuple[ModuleType, FakeUi],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """main does not hide interrupts before lifecycle shutdown is completed."""
+    module, fake_ui = app_module
+    context = SimpleNamespace(
+        startup_source="pyproject command",
+        startup_message="NiceGui Windows Base is starting.",
+        native_mode=True,
+        reload_enabled=False,
+        port=8000,
+        icon_path="app.ico",
+        splash_image_path="splash.png",
+    )
+
+    def interrupt_before_shutdown(*args: object, **kwargs: object) -> None:
+        """Simulate an interrupt before normal shutdown completes."""
+        fake_ui.run_calls.append((args, kwargs))
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(
+        module,
+        "resolve_runtime_launch_context",
+        lambda *, development_mode, state, entry_source_hint=None: context,
+    )
+    monkeypatch.setattr(
+        module, "register_lifecycle_handlers", lambda *, native_mode: None
+    )
+    monkeypatch.setattr(
+        module,
+        "build_ui_run_options",
+        lambda context, *, state: {"native": True},
+    )
+    monkeypatch.setattr(
+        module,
+        "register_spa_routes",
+        lambda *, application_name, startup_message: None,
+    )
+    monkeypatch.setattr(fake_ui, "run", interrupt_before_shutdown)
+
+    with pytest.raises(KeyboardInterrupt):
+        module.main()
+
+    assert fake_ui.run_calls == [((), {"native": True})]

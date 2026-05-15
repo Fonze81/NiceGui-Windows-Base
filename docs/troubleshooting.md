@@ -78,6 +78,38 @@ python -m desktop_app
 
 ---
 
+## 🧯 Traceback appears after closing the native window
+
+Symptom: the native window closes, settings are saved, the log shows
+`Application shutdown completed.`, and then the terminal prints a traceback ending
+with `KeyboardInterrupt`.
+
+This is shutdown noise from the NiceGUI/Uvicorn runtime after the application
+lifecycle handlers have already finished. The application entry point suppresses
+that interrupt only when `AppState.lifecycle.shutdown_completed` is already true.
+Interrupts raised before completed shutdown are still re-raised so unexpected
+startup or runtime failures are not hidden.
+
+Recommended checks after changing shutdown behavior:
+
+```powershell
+python -m compileall -q src dev_run.py scripts\customize_template.py scripts\prepare_release.py
+ruff check .
+ruff format --check .
+pytest tests --cov=desktop_app --cov-report=term-missing --cov-fail-under=100
+```
+
+On Windows, also run the native command and close the window manually:
+
+```powershell
+nicegui-windows-base
+```
+
+Expected result: the terminal should end after the shutdown log without a Python
+traceback.
+
+---
+
 ## 🧩 Imports appear unresolved in VS Code
 
 Confirm:
