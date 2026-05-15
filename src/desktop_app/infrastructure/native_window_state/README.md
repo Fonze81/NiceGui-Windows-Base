@@ -135,14 +135,11 @@ flowchart TD
     E --> F[AppState.window updated in memory]
     F --> G[No TOML write during move or resize]
     H[Native window closed] --> I[persist_native_window_state_on_exit]
-    I --> J[save_settings_group window]
-    J --> K[Mark native_window_state_persisted]
-    L[Application shutdown] --> M{Already persisted?}
-    M -- Yes --> N[Skip duplicate save]
-    M -- No --> I
+    J[Application shutdown] --> I
+    I --> K[save_settings_group window]
 ```
 
-This keeps runtime geometry accurate without turning high-frequency native events into repeated file writes. Shutdown still protects the final state, but it does not write the same window group again when the close handler already saved it successfully.
+This keeps runtime geometry accurate without turning high-frequency native events into repeated file writes.
 
 ## 💾 Save behavior
 
@@ -153,7 +150,7 @@ On native move and resize events, the application:
 3. keeps `last_saved_at` unchanged;
 4. does not write `settings.toml`.
 
-On native window close, the application tries to refresh `AppState.window` from the latest native event or native window object before saving only the `window` settings group. Application shutdown retries that save only when the close handler did not already persist the state successfully.
+On native window close and application shutdown, the application tries to refresh `AppState.window` from the latest native event or native window object before saving only the `window` settings group.
 
 The saved values are:
 
@@ -177,8 +174,7 @@ storage_key = "nicegui_windows_base_window_state"
 Run focused tests after changing this feature:
 
 ```powershell
-pytest tests/infrastructure/test_native_window_state.py
-pytest tests/infrastructure/test_native_window_state_package.py
+pytest tests/infrastructure/native_window_state
 pytest tests/infrastructure/test_lifecycle.py
 pytest tests/infrastructure/settings/test_mapper.py
 pytest tests/infrastructure/settings/test_toml_document.py
