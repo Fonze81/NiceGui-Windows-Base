@@ -39,6 +39,7 @@ UI_MODULE_NAMES: tuple[str, ...] = (
     "desktop_app.ui.pages.logs",
     "desktop_app.ui.pages.not_found",
     "desktop_app.ui.pages.settings",
+    "desktop_app.ui.pages.status",
 )
 
 
@@ -297,6 +298,7 @@ def test_build_sub_page_routes_returns_registered_template_routes(
         "/components",
         "/diagnostics",
         "/logs",
+        "/status",
         "/settings",
         "/{_:path}",
     }
@@ -331,11 +333,12 @@ def test_build_app_layout_mounts_sub_pages_and_updates_session(
     assert state.ui_session.is_busy is False
     assert state.ui_session.busy_message is None
     assert fake_ui.query_selectors == ["body"]
-    assert fake_ui.links[:5] == [
+    assert fake_ui.links[:6] == [
         ("Home", "/"),
         ("Components", "/components"),
         ("Diagnostics", "/diagnostics"),
         ("Logs", "/logs"),
+        ("Status", "/status"),
         ("Settings", "/settings"),
     ]
     assert fake_ui.sub_page_routes == expected_routes
@@ -416,6 +419,24 @@ def test_build_logs_page_renders_log_content(
     assert "Log file found" in fake_ui.labels
     assert "Limit: 120 lines" in fake_ui.labels
     assert fake_ui.codes == ["first\nsecond"]
+
+
+def test_build_status_page_renders_current_status_and_history(
+    fake_ui: FakeUi,
+) -> None:
+    """The status page renders the current status and recent history."""
+    module = importlib.import_module("desktop_app.ui.pages.status")
+    state = get_app_state()
+    state.status.push("First message", "info")
+    state.status.push("Second message", "success")
+
+    module.build_status_page()
+
+    assert state.ui_session.active_view == "status"
+    assert "Application status" in fake_ui.labels
+    assert "Second message" in fake_ui.labels
+    assert "First message" in fake_ui.labels
+    assert "Success" in fake_ui.labels
 
 
 def test_build_settings_page_renders_controls(fake_ui: FakeUi) -> None:

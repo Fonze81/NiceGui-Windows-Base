@@ -15,8 +15,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from functools import partial
 
+from desktop_app.ui.pages.components import build_components_page
+from desktop_app.ui.pages.diagnostics import build_diagnostics_page
 from desktop_app.ui.pages.index import build_index_page
+from desktop_app.ui.pages.logs import build_logs_page
 from desktop_app.ui.pages.not_found import build_not_found_page
+from desktop_app.ui.pages.settings import build_settings_page
+from desktop_app.ui.pages.status import build_status_page
 
 PageBuilder = Callable[..., None]
 
@@ -42,5 +47,10 @@ def build_sub_page_routes(
             application_name=application_name,
             startup_message=startup_message,
         ),
+        "/components": build_components_page,
+        "/diagnostics": build_diagnostics_page,
+        "/logs": build_logs_page,
+        "/status": build_status_page,
+        "/settings": build_settings_page,
         "/{_:path}": build_not_found_page,
     }
