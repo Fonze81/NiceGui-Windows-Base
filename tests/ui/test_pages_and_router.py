@@ -1,12 +1,13 @@
 # -----------------------------------------------------------------------------
 # File: tests/ui/test_pages_and_router.py
 # Purpose:
-# Validate NiceGUI SPA layout, page builders, and route registration.
+# Validate NiceGUI SPA layout, page builders, component helpers, and route registration.
 # Behavior:
 # Uses a small fake NiceGUI UI object so page composition can be exercised
 # without starting a real NiceGUI server or browser client.
 # Notes:
-# These tests focus on state updates and route wiring instead of visual rendering.
+# These tests focus on state updates, route wiring, and bounded helper logic
+# instead of visual rendering in a browser.
 # -----------------------------------------------------------------------------
 
 from __future__ import annotations
@@ -22,6 +23,24 @@ import pytest
 
 from desktop_app.core.state import get_app_state, reset_app_state
 
+UI_MODULE_NAMES: tuple[str, ...] = (
+    "desktop_app.ui.router",
+    "desktop_app.ui.layout",
+    "desktop_app.ui.theme",
+    "desktop_app.ui.components",
+    "desktop_app.ui.components.cards",
+    "desktop_app.ui.components.feedback",
+    "desktop_app.ui.components.navigation",
+    "desktop_app.ui.components.page",
+    "desktop_app.ui.pages.routes",
+    "desktop_app.ui.pages.components",
+    "desktop_app.ui.pages.diagnostics",
+    "desktop_app.ui.pages.index",
+    "desktop_app.ui.pages.logs",
+    "desktop_app.ui.pages.not_found",
+    "desktop_app.ui.pages.settings",
+)
+
 
 @dataclass(slots=True)
 class FakeElement:
@@ -34,6 +53,11 @@ class FakeElement:
     def classes(self, class_names: str) -> FakeElement:
         """Record class assignments and keep the element chainable."""
         self.ui.class_calls.append((self.kind, class_names))
+        return self
+
+    def props(self, props_text: str) -> FakeElement:
+        """Record prop assignments and keep the element chainable."""
+        self.ui.prop_calls.append((self.kind, props_text))
         return self
 
     def __enter__(self) -> FakeElement:
@@ -54,7 +78,14 @@ class FakeUi:
     labels: list[str] = field(default_factory=list)
     images: list[str] = field(default_factory=list)
     links: list[tuple[str, str]] = field(default_factory=list)
+    codes: list[str] = field(default_factory=list)
+    buttons: list[tuple[str, Callable[..., object] | None]] = field(
+        default_factory=list
+    )
+    selects: list[dict[str, object]] = field(default_factory=list)
+    switches: list[dict[str, object]] = field(default_factory=list)
     class_calls: list[tuple[str, str]] = field(default_factory=list)
+    prop_calls: list[tuple[str, str]] = field(default_factory=list)
     sub_page_routes: dict[str, Callable[..., None]] | None = None
     page_routes: list[tuple[str, Callable[..., None]]] = field(default_factory=list)
     context_stack: list[str] = field(default_factory=list)
@@ -68,6 +99,10 @@ class FakeUi:
         """Return a fake column container."""
         return FakeElement(self, "column")
 
+    def row(self) -> FakeElement:
+        """Return a fake row container."""
+        return FakeElement(self, "row")
+
     def card(self) -> FakeElement:
         """Return a fake card container."""
         return FakeElement(self, "card")
@@ -77,15 +112,59 @@ class FakeUi:
         self.images.append(source)
         return FakeElement(self, "image", (source,))
 
-    def label(self, text: str) -> FakeElement:
+    def label(self, text: object) -> FakeElement:
         """Record a label element."""
-        self.labels.append(text)
+        self.labels.append(str(text))
         return FakeElement(self, "label", (text,))
 
     def link(self, text: str, target: str) -> FakeElement:
         """Record a link element."""
         self.links.append((text, target))
         return FakeElement(self, "link", (text, target))
+
+    def code(self, content: str) -> FakeElement:
+        """Record a code block."""
+        self.codes.append(content)
+        return FakeElement(self, "code", (content,))
+
+    def button(
+        self,
+        text: str,
+        on_click: Callable[..., object] | None = None,
+    ) -> FakeElement:
+        """Record a button element."""
+        self.buttons.append((text, on_click))
+        return FakeElement(self, "button", (text,))
+
+    def select(
+        self,
+        *,
+        options: list[str],
+        value: str,
+        label: str,
+        on_change: Callable[..., object] | None = None,
+    ) -> FakeElement:
+        """Record a select element."""
+        self.selects.append(
+            {
+                "options": options,
+                "value": value,
+                "label": label,
+                "on_change": on_change,
+            }
+        )
+        return FakeElement(self, "select", (label,))
+
+    def switch(
+        self,
+        text: str,
+        *,
+        value: bool,
+        on_change: Callable[..., object] | None = None,
+    ) -> FakeElement:
+        """Record a switch element."""
+        self.switches.append({"text": text, "value": value, "on_change": on_change})
+        return FakeElement(self, "switch", (text,))
 
     def sub_pages(self, routes: dict[str, Callable[..., None]]) -> None:
         """Record the registered sub-page route table."""
@@ -111,24 +190,12 @@ def fake_ui(monkeypatch: pytest.MonkeyPatch) -> Generator[FakeUi]:
     reset_app_state()
     monkeypatch.setitem(sys.modules, "nicegui", fake_nicegui_module)
 
-    for module_name in (
-        "desktop_app.ui.router",
-        "desktop_app.ui.layout",
-        "desktop_app.ui.pages.routes",
-        "desktop_app.ui.pages.index",
-        "desktop_app.ui.pages.not_found",
-    ):
+    for module_name in UI_MODULE_NAMES:
         sys.modules.pop(module_name, None)
 
     yield ui
 
-    for module_name in (
-        "desktop_app.ui.router",
-        "desktop_app.ui.layout",
-        "desktop_app.ui.pages.routes",
-        "desktop_app.ui.pages.index",
-        "desktop_app.ui.pages.not_found",
-    ):
+    for module_name in UI_MODULE_NAMES:
         sys.modules.pop(module_name, None)
     reset_app_state()
 
@@ -154,10 +221,10 @@ def test_build_index_page_updates_state_and_composes_content(
     assert state.ui_session.is_busy is False
     assert state.ui_session.busy_message is None
     assert state.assets.page_image_path == image_path
-    assert fake_ui.query_selectors == ["body"]
     assert fake_ui.images == [str(image_path)]
     assert "Example App" in fake_ui.labels
     assert "Started from tests." in fake_ui.labels
+    assert "Application shell" in fake_ui.labels
     assert fake_ui.context_stack == []
 
 
@@ -178,10 +245,10 @@ def test_build_not_found_page_updates_state_and_renders_recovery_link(
     assert fake_ui.context_stack == []
 
 
-def test_build_sub_page_routes_returns_home_and_fallback_routes(
+def test_build_sub_page_routes_returns_registered_template_routes(
     fake_ui: FakeUi,
 ) -> None:
-    """The sub-page route table binds index context and fallback page."""
+    """The sub-page route table binds all template pages."""
     module = importlib.import_module("desktop_app.ui.pages.routes")
 
     routes = module.build_sub_page_routes(
@@ -189,7 +256,14 @@ def test_build_sub_page_routes_returns_home_and_fallback_routes(
         startup_message="Started.",
     )
 
-    assert set(routes) == {"/", "/{_:path}"}
+    assert set(routes) == {
+        "/",
+        "/components",
+        "/diagnostics",
+        "/logs",
+        "/settings",
+        "/{_:path}",
+    }
     routes["/"]()
     assert "Example App" in fake_ui.labels
     assert "Started." in fake_ui.labels
@@ -220,6 +294,14 @@ def test_build_app_layout_mounts_sub_pages_and_updates_session(
     assert state.ui_session.last_page_built_at is not None
     assert state.ui_session.is_busy is False
     assert state.ui_session.busy_message is None
+    assert fake_ui.query_selectors == ["body"]
+    assert fake_ui.links[:5] == [
+        ("Home", "/"),
+        ("Components", "/components"),
+        ("Diagnostics", "/diagnostics"),
+        ("Logs", "/logs"),
+        ("Settings", "/settings"),
+    ]
     assert fake_ui.sub_page_routes == expected_routes
 
 
@@ -249,3 +331,88 @@ def test_register_spa_routes_registers_root_and_catch_all_pages(
     callback()
 
     assert layout_calls == [("Example App", "Started.")]
+
+
+def test_build_components_page_renders_catalog(fake_ui: FakeUi) -> None:
+    """The component catalog renders reusable examples."""
+    module = importlib.import_module("desktop_app.ui.pages.components")
+
+    module.build_components_page()
+
+    assert get_app_state().ui_session.active_view == "components"
+    assert "Component catalog" in fake_ui.labels
+    assert "Status badges" in fake_ui.labels
+    assert "Empty state" in fake_ui.labels
+
+
+def test_build_diagnostics_page_renders_state_rows(fake_ui: FakeUi) -> None:
+    """The diagnostics page renders current state details."""
+    module = importlib.import_module("desktop_app.ui.pages.diagnostics")
+    state = get_app_state()
+    state.runtime.startup_source = "tests"
+    state.runtime.port = 8765
+    state.lifecycle.handlers_registered = True
+
+    module.build_diagnostics_page()
+
+    assert state.ui_session.active_view == "diagnostics"
+    assert "Runtime diagnostics" in fake_ui.labels
+    assert "tests" in fake_ui.labels
+    assert "8765" in fake_ui.labels
+    assert "Handlers registered" in fake_ui.labels
+
+
+def test_build_logs_page_renders_log_content(
+    fake_ui: FakeUi,
+    tmp_path: Path,
+) -> None:
+    """The logs page displays the resolved log file tail."""
+    module = importlib.import_module("desktop_app.ui.pages.logs")
+    log_file = tmp_path / "app.log"
+    log_file.write_text("first\nsecond\n", encoding="utf-8")
+    state = get_app_state()
+    state.log.effective_file_path = log_file
+
+    module.build_logs_page()
+
+    assert state.ui_session.active_view == "logs"
+    assert "Runtime logs" in fake_ui.labels
+    assert "Log file found" in fake_ui.labels
+    assert "Limit: 120 lines" in fake_ui.labels
+    assert fake_ui.codes == ["first\nsecond"]
+
+
+def test_update_theme_preference_validates_and_persists(
+    fake_ui: FakeUi,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Theme changes validate allowed values before saving UI settings."""
+    module = importlib.import_module("desktop_app.ui.pages.settings")
+    save_calls: list[str] = []
+    monkeypatch.setattr(
+        module,
+        "save_settings_group",
+        lambda group, *, state: save_calls.append(group) or True,
+    )
+    state = get_app_state()
+
+    assert module.update_theme_preference("dark", state=state) is True
+    assert state.ui.theme == "dark"
+    assert save_calls == ["ui"]
+    assert module.update_theme_preference("invalid", state=state) is False
+    assert save_calls == ["ui"]
+
+
+def test_build_settings_page_renders_controls(fake_ui: FakeUi) -> None:
+    """The settings page renders reusable preference controls."""
+    module = importlib.import_module("desktop_app.ui.pages.settings")
+    state = get_app_state()
+    state.settings.last_load_ok = True
+
+    module.build_settings_page()
+
+    assert state.ui_session.active_view == "settings"
+    assert "Settings" in fake_ui.labels
+    assert fake_ui.selects[0]["label"] == "Theme"
+    assert fake_ui.switches[0]["text"] == "Dense mode"
+    assert "Settings file loaded" in fake_ui.labels
