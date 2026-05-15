@@ -12,6 +12,7 @@ import pytest
 NATIVE_WINDOW_STATE_PACKAGE_PATH = Path(
     "src/desktop_app/infrastructure/native_window_state"
 )
+NATIVE_WINDOW_STATE_TEST_PATH = Path("tests/infrastructure/native_window_state")
 
 
 def test_native_window_state_is_a_package() -> None:
@@ -37,6 +38,26 @@ def test_native_window_state_is_a_package() -> None:
     )
 
 
+def test_native_window_state_tests_follow_package_layout() -> None:
+    """Ensure native window tests mirror the source package structure."""
+    expected_test_files = {
+        "conftest.py",
+        "test_arguments.py",
+        "test_events.py",
+        "test_geometry.py",
+        "test_package.py",
+        "test_persistence.py",
+        "test_service.py",
+    }
+
+    assert NATIVE_WINDOW_STATE_TEST_PATH.is_dir()
+    assert not Path("tests/infrastructure/test_native_window_state.py").exists()
+    assert not Path("tests/infrastructure/test_native_window_state_package.py").exists()
+    assert expected_test_files.issubset(
+        {path.name for path in NATIVE_WINDOW_STATE_TEST_PATH.iterdir()}
+    )
+
+
 def test_native_window_state_package_guide_is_bundled_as_package_data() -> None:
     """Ensure the package-local native window guide is included in builds."""
     pyproject_data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
@@ -54,9 +75,7 @@ def test_native_window_persistence_guide_lives_inside_package() -> None:
     assert not Path("docs/native_window_persistence.md").exists()
     assert "## 🖥️ Multi-monitor safety" in guide_text
     assert "## 💾 Save behavior" in guide_text
-    assert (
-        "pytest tests/infrastructure/test_native_window_state_package.py" in guide_text
-    )
+    assert "pytest tests/infrastructure/native_window_state" in guide_text
 
 
 def test_native_window_state_package_exports_only_public_facade(
