@@ -1,7 +1,7 @@
 # NiceGui Windows Base
 
 [![Python](https://img.shields.io/badge/python-3.13.X-blue)](https://www.python.org/downloads/)
-[![NiceGUI](https://img.shields.io/badge/NiceGUI-3.11%2B-2ea44f)](https://nicegui.io/)
+[![NiceGUI](https://img.shields.io/badge/NiceGUI-3.12%2B-2ea44f)](https://nicegui.io/)
 [![Ruff](https://img.shields.io/badge/lint%20%26%20format-ruff-46aef7)](https://docs.astral.sh/ruff/)
 [![pytest](https://img.shields.io/badge/tests-pytest-blueviolet)](https://docs.pytest.org/)
 

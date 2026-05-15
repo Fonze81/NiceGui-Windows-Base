@@ -19,6 +19,7 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ### 🔄 Changed
 
+- Updated NiceGUI to `3.12.0`, keeping the template aligned with the current NiceGUI runtime, `ui.sub_pages` testing improvements, user-simulated testing fixes, and upstream dependency updates.
 - Changed project metadata from `0.8.0` to `0.9.0` in `pyproject.toml`.
 - Changed `APPLICATION_VERSION` from `0.8.0` to `0.9.0` in `src/desktop_app/constants.py`.
 - Updated Windows executable metadata in `scripts/version_info.txt` from `0.8.0.0` to `0.9.0.0`.
@@ -26,6 +27,10 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 - Updated README and maintenance documentation to include template customization and release automation commands.
 - Updated validation documentation so syntax checks include the Python maintenance scripts.
 - Updated the constants test expectation so automated validation matches the new application version.
+
+### 🔐 Security
+
+- Consumed NiceGUI `3.12.0` upstream security fixes for local file disclosure prevention in `ui.restructured_text` and log-volume denial-of-service prevention in dynamic resource and ESM module routes.
 
 ### 🧪 Tests and quality
 
