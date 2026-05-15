@@ -102,3 +102,42 @@ def test_update_behavior_preference_persists_behavior_group(
     assert result.saved is False
     assert result.level == "error"
     assert save_calls == ["behavior"]
+
+
+def test_update_dense_mode_preference_updates_ui_group(monkeypatch) -> None:
+    """Dense mode updates are persisted with the UI settings group."""
+    state = AppState()
+    save_calls: list[str] = []
+    monkeypatch.setattr(
+        preferences,
+        "save_settings_group",
+        lambda group, *, state: save_calls.append(group) or True,
+    )
+
+    result = preferences.update_dense_mode_preference(True, state=state)
+
+    assert result.accepted is True
+    assert result.saved is True
+    assert result.level == "success"
+    assert state.ui.dense_mode is True
+    assert save_calls == ["ui"]
+
+
+def test_update_font_scale_preference_rejects_unsupported_values(
+    monkeypatch,
+) -> None:
+    """Font scale updates reject unsupported and unparsable values."""
+    state = AppState()
+    save_calls: list[str] = []
+    monkeypatch.setattr(
+        preferences,
+        "save_settings_group",
+        lambda group, *, state: save_calls.append(group) or True,
+    )
+
+    unsupported_result = preferences.update_font_scale_preference(object(), state=state)
+    unparsable_result = preferences.update_font_scale_preference("large", state=state)
+
+    assert unsupported_result.accepted is False
+    assert unparsable_result.accepted is False
+    assert save_calls == []

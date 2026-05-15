@@ -455,3 +455,97 @@ def test_build_settings_page_renders_controls(fake_ui: FakeUi) -> None:
     assert fake_ui.switches[0]["text"] == "Dense mode"
     assert fake_ui.switches[1]["text"] == "Auto-save settings"
     assert "Settings file loaded" in fake_ui.labels
+
+
+def test_page_helpers_render_without_optional_text(fake_ui: FakeUi) -> None:
+    """Page helpers handle optional eyebrow and description text."""
+    module = importlib.import_module("desktop_app.ui.components.page")
+
+    module.build_page_header(
+        title="Plain page",
+        description="Description only.",
+        theme="light",
+    )
+    module.build_section_header(
+        title="Section without description",
+        description=None,
+        theme="light",
+    )
+
+    assert "Plain page" in fake_ui.labels
+    assert "Description only." in fake_ui.labels
+    assert "Section without description" in fake_ui.labels
+
+
+def test_build_logs_page_renders_read_error(
+    fake_ui: FakeUi,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The logs page renders recoverable log read errors."""
+    module = importlib.import_module("desktop_app.ui.pages.logs")
+    log_reader_module = importlib.import_module("desktop_app.application.log_reader")
+    snapshot_type = log_reader_module.LogSnapshot
+
+    monkeypatch.setattr(
+        module,
+        "read_log_snapshot",
+        lambda *, state: snapshot_type(
+            path=Path("logs/app.log"),
+            exists=True,
+            max_lines=120,
+            lines=(),
+            error="Could not read log file: permission denied",
+        ),
+    )
+
+    module.build_logs_page()
+
+    assert "Log file could not be read" in fake_ui.labels
+    assert "Could not read log file: permission denied" in fake_ui.labels
+
+
+def test_build_logs_page_renders_empty_state(
+    fake_ui: FakeUi,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The logs page renders an empty state when no lines are available."""
+    module = importlib.import_module("desktop_app.ui.pages.logs")
+    log_reader_module = importlib.import_module("desktop_app.application.log_reader")
+    snapshot_type = log_reader_module.LogSnapshot
+
+    monkeypatch.setattr(
+        module,
+        "read_log_snapshot",
+        lambda *, state: snapshot_type(
+            path=None,
+            exists=False,
+            max_lines=120,
+            lines=(),
+        ),
+    )
+
+    module.build_logs_page()
+
+    assert "Log file unavailable" in fake_ui.labels
+    assert "Log file is not available." in fake_ui.labels
+    assert "No log entries available" in fake_ui.labels
+
+
+def test_build_status_page_renders_empty_states(fake_ui: FakeUi) -> None:
+    """The status page renders empty states when no messages exist."""
+    module = importlib.import_module("desktop_app.ui.pages.status")
+
+    module.build_status_page()
+
+    assert "No current status" in fake_ui.labels
+    assert "No status history" in fake_ui.labels
+
+
+def test_settings_event_value_helper_uses_default(fake_ui: FakeUi) -> None:
+    """Settings event helper falls back when an event has no value."""
+    module = importlib.import_module("desktop_app.ui.pages.settings")
+
+    assert module._get_event_value(object(), "fallback") == "fallback"
+    event = SimpleNamespace(value="custom")
+
+    assert module._get_event_value(event, "fallback") == "custom"

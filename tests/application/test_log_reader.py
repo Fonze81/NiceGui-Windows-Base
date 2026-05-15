@@ -72,3 +72,44 @@ def test_read_log_snapshot_handles_missing_path(tmp_path: Path) -> None:
     assert snapshot.max_lines == 0
     assert snapshot.lines == ()
     assert snapshot.has_lines is False
+
+
+def test_read_log_snapshot_handles_unconfigured_path() -> None:
+    """Unconfigured log paths return an empty unavailable snapshot."""
+    state = AppState()
+    state.paths.log_file_path = None
+    state.log.file_path = None
+
+    snapshot = read_log_snapshot(state=state, max_lines=5)
+
+    assert snapshot.path is None
+    assert snapshot.exists is False
+    assert snapshot.max_lines == 5
+    assert snapshot.lines == ()
+    assert snapshot.error is None
+
+
+def test_read_log_snapshot_captures_read_errors(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    """Recoverable read failures are reported in snapshot metadata."""
+    log_file = tmp_path / "app.log"
+    log_file.write_text("available\n", encoding="utf-8")
+    state = AppState()
+    state.log.effective_file_path = log_file
+
+    def raise_os_error(*_args: object, **_kwargs: object) -> tuple[str, ...]:
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(
+        "desktop_app.application.log_reader.read_recent_log_lines",
+        raise_os_error,
+    )
+
+    snapshot = read_log_snapshot(state=state, max_lines=10)
+
+    assert snapshot.path == log_file
+    assert snapshot.exists is True
+    assert snapshot.lines == ()
+    assert snapshot.error == "Could not read log file: permission denied"
