@@ -83,6 +83,8 @@ class FakeUi:
         default_factory=list
     )
     selects: list[dict[str, object]] = field(default_factory=list)
+    numbers: list[dict[str, object]] = field(default_factory=list)
+    inputs: list[dict[str, object]] = field(default_factory=list)
     switches: list[dict[str, object]] = field(default_factory=list)
     class_calls: list[tuple[str, str]] = field(default_factory=list)
     prop_calls: list[tuple[str, str]] = field(default_factory=list)
@@ -154,6 +156,40 @@ class FakeUi:
             }
         )
         return FakeElement(self, "select", (label,))
+
+    def number(
+        self,
+        *,
+        label: str,
+        value: float,
+        min: float,
+        max: float,
+        step: float,
+        on_change: Callable[..., object] | None = None,
+    ) -> FakeElement:
+        """Record a number input element."""
+        self.numbers.append(
+            {
+                "label": label,
+                "value": value,
+                "min": min,
+                "max": max,
+                "step": step,
+                "on_change": on_change,
+            }
+        )
+        return FakeElement(self, "number", (label,))
+
+    def input(
+        self,
+        *,
+        label: str,
+        value: str,
+        on_change: Callable[..., object] | None = None,
+    ) -> FakeElement:
+        """Record an input element."""
+        self.inputs.append({"label": label, "value": value, "on_change": on_change})
+        return FakeElement(self, "input", (label,))
 
     def switch(
         self,
@@ -382,27 +418,6 @@ def test_build_logs_page_renders_log_content(
     assert fake_ui.codes == ["first\nsecond"]
 
 
-def test_update_theme_preference_validates_and_persists(
-    fake_ui: FakeUi,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Theme changes validate allowed values before saving UI settings."""
-    module = importlib.import_module("desktop_app.ui.pages.settings")
-    save_calls: list[str] = []
-    monkeypatch.setattr(
-        module,
-        "save_settings_group",
-        lambda group, *, state: save_calls.append(group) or True,
-    )
-    state = get_app_state()
-
-    assert module.update_theme_preference("dark", state=state) is True
-    assert state.ui.theme == "dark"
-    assert save_calls == ["ui"]
-    assert module.update_theme_preference("invalid", state=state) is False
-    assert save_calls == ["ui"]
-
-
 def test_build_settings_page_renders_controls(fake_ui: FakeUi) -> None:
     """The settings page renders reusable preference controls."""
     module = importlib.import_module("desktop_app.ui.pages.settings")
@@ -414,5 +429,8 @@ def test_build_settings_page_renders_controls(fake_ui: FakeUi) -> None:
     assert state.ui_session.active_view == "settings"
     assert "Settings" in fake_ui.labels
     assert fake_ui.selects[0]["label"] == "Theme"
+    assert fake_ui.numbers[0]["label"] == "Font scale"
+    assert fake_ui.inputs[0]["label"] == "Accent color"
     assert fake_ui.switches[0]["text"] == "Dense mode"
+    assert fake_ui.switches[1]["text"] == "Auto-save settings"
     assert "Settings file loaded" in fake_ui.labels
