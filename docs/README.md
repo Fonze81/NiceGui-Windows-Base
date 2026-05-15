@@ -2,7 +2,7 @@
 
 This folder contains the maintenance documentation for the **NiceGui Windows Base** template.
 
-The documentation is aligned with the current `0.8.0` project shape, which includes the reusable NiceGUI application shell, shared UI components, component catalog, diagnostics page, log viewer, status page, validated settings page, settings subsystem, shared application state, native window geometry persistence, multi-monitor visibility guards, expanded tests, and direct PyInstaller packaging.
+The documentation is aligned with the current `0.9.0` project shape, which includes the reusable NiceGUI application shell, shared UI components, component catalog, diagnostics page, log viewer, status page, validated settings page, settings subsystem, shared application state, native window geometry persistence, multi-monitor visibility guards, expanded tests, template customization helpers, release automation, and direct PyInstaller packaging.
 
 ---
 
@@ -20,11 +20,13 @@ The documentation is aligned with the current `0.8.0` project shape, which inclu
 10. [Application state](state.md) — shared `AppState`, runtime diagnostics, persisted settings, and UI-facing status.
 11. [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) — startup restore, move/resize capture, multi-monitor clamping, and persistence rules.
 12. [Logger package guide](../src/desktop_app/infrastructure/logger/README.md) — package-local guide for startup buffering, rotating file logs, settings integration, and shutdown cleanup.
-13. [Windows packaging](packaging_windows.md) — direct PyInstaller build, assets, settings template, version metadata, and splash screen.
-14. [Code quality](code_quality.md) — Ruff, pytest, coverage, compile checks, cleanup script usage, and Markdown validation.
-15. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone or machine.
-16. [Troubleshooting](troubleshooting.md) — common issues and fixes.
-17. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
+13. [Template customization](template_customization.md) — safe public identity updates for projects derived from this template.
+14. [Release automation](release_automation.md) — repeated release metadata updates, changelog insertion, and validation workflow.
+15. [Windows packaging](packaging_windows.md) — direct PyInstaller build, assets, settings template, version metadata, and splash screen.
+16. [Code quality](code_quality.md) — Ruff, pytest, coverage, compile checks, cleanup script usage, and Markdown validation.
+17. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone or machine.
+18. [Troubleshooting](troubleshooting.md) — common issues and fixes.
+19. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
 
 ---
 
@@ -50,17 +52,19 @@ See the root [README](../README.md#-naming-model) for the complete naming model 
 
 The project keeps the application entry point thin and moves focused responsibilities into dedicated packages:
 
-| Area                   | Main location                                               | Detailed guide                                                                                       |
-| ---------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Application services   | `src/desktop_app/application/`                             | [Architecture overview](architecture.md), [UI shell guide](ui_shell.md)                              |
-| Startup orchestration  | `src/desktop_app/app.py` and `src/desktop_app/application/` | [Architecture overview](architecture.md)                                                             |
-| Application shell and pages | `src/desktop_app/ui/`                                  | [UI shell guide](ui_shell.md), [Architecture overview](architecture.md#-nicegui-spa-structure)        |
-| Runtime state          | `src/desktop_app/core/state.py`                             | [Application state](state.md)                                                                        |
-| Settings persistence   | `src/desktop_app/infrastructure/settings/`                  | [Settings subsystem](settings.md)                                                                    |
-| Native window geometry | `src/desktop_app/infrastructure/native_window_state/`       | [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) |
-| Logging                | `src/desktop_app/infrastructure/logger/`                    | [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)                           |
-| Windows packaging      | `scripts/package_windows.ps1`                               | [Windows packaging](packaging_windows.md)                                                            |
-| Workspace cleanup      | `scripts/clean_project.ps1`                                 | [Code quality](code_quality.md#-workspace-cleanup)                                                   |
+| Area                        | Main location                                               | Detailed guide                                                                                       |
+| --------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Application services        | `src/desktop_app/application/`                              | [Architecture overview](architecture.md), [UI shell guide](ui_shell.md)                              |
+| Startup orchestration       | `src/desktop_app/app.py` and `src/desktop_app/application/` | [Architecture overview](architecture.md)                                                             |
+| Application shell and pages | `src/desktop_app/ui/`                                       | [UI shell guide](ui_shell.md), [Architecture overview](architecture.md#-nicegui-spa-structure)       |
+| Runtime state               | `src/desktop_app/core/state.py`                             | [Application state](state.md)                                                                        |
+| Settings persistence        | `src/desktop_app/infrastructure/settings/`                  | [Settings subsystem](settings.md)                                                                    |
+| Native window geometry      | `src/desktop_app/infrastructure/native_window_state/`       | [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) |
+| Logging                     | `src/desktop_app/infrastructure/logger/`                    | [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)                           |
+| Template customization      | `scripts/customize_template.py`                             | [Template customization](template_customization.md)                                                  |
+| Release automation          | `scripts/prepare_release.py`                                | [Release automation](release_automation.md)                                                          |
+| Windows packaging           | `scripts/package_windows.ps1`                               | [Windows packaging](packaging_windows.md)                                                            |
+| Workspace cleanup           | `scripts/clean_project.ps1`                                 | [Code quality](code_quality.md#-workspace-cleanup)                                                   |
 
 The full architecture explanation was moved to [Architecture overview](architecture.md) to keep this index focused on navigation and avoid duplicated maintenance details.
 
@@ -85,6 +89,19 @@ At runtime, the persistent settings file is resolved as:
 Missing persistent settings are not an error. The application can start from bundled defaults and later save a persistent file when settings are changed.
 
 See [Settings subsystem](settings.md) for the complete behavior.
+
+---
+
+## 🧩 Template and release tooling
+
+The project includes maintenance tools for common template lifecycle work:
+
+```powershell
+python scripts\customize_template.py --help
+python scripts\prepare_release.py --help
+```
+
+Use [Template customization](template_customization.md) to update public project identity while keeping the internal `desktop_app` package stable. Use [Release automation](release_automation.md) to update repeated version metadata consistently before validation and packaging.
 
 ---
 

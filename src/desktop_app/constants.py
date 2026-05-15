@@ -36,7 +36,7 @@ from desktop_app.infrastructure.logger.defaults import (
 )
 
 APPLICATION_TITLE: Final[str] = "NiceGui Windows Base"
-APPLICATION_VERSION: Final[str] = "0.8.0"
+APPLICATION_VERSION: Final[str] = "0.9.0"
 APP_ICON_FILENAME: Final[str] = "app_icon.ico"
 PAGE_IMAGE_FILENAME: Final[str] = "page_image.png"
 SPLASH_IMAGE_FILENAME: Final[str] = "splash_light.png"

@@ -6,6 +6,58 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
+## [0.9.0] - 2026-05-15
+
+### ✨ Added
+
+- Added `desktop_app.project_tools` with reusable, tested helpers for template customization and release metadata preparation.
+- Added `scripts/customize_template.py` to update public project identity values while keeping the internal `desktop_app` package stable.
+- Added `scripts/prepare_release.py` to update repeated release metadata across package metadata, constants, bundled settings, Windows resources, tests, and changelog entries.
+- Added `docs/template_customization.md` with the supported customization scope, dry-run workflow, validation steps, and package-renaming cautions.
+- Added `docs/release_automation.md` with the release preparation workflow, validation gate, and Git safety reminders.
+- Added focused project-tool tests for validation, dry-run behavior, metadata updates, changelog insertion, idempotency, and package API exports.
+
+### 🔄 Changed
+
+- Changed project metadata from `0.8.0` to `0.9.0` in `pyproject.toml`.
+- Changed `APPLICATION_VERSION` from `0.8.0` to `0.9.0` in `src/desktop_app/constants.py`.
+- Updated Windows executable metadata in `scripts/version_info.txt` from `0.8.0.0` to `0.9.0.0`.
+- Updated the bundled settings template version in `src/desktop_app/settings.toml` from `0.8.0` to `0.9.0`.
+- Updated README and maintenance documentation to include template customization and release automation commands.
+- Updated validation documentation so syntax checks include the Python maintenance scripts.
+- Updated the constants test expectation so automated validation matches the new application version.
+
+### 🧪 Tests and quality
+
+- Added project-tool tests under `tests/project_tools`.
+- Validated the release with compile checks, Ruff linting, Ruff formatting checks, pytest, and coverage.
+
+### 🧭 Migration notes
+
+- Reinstall the project after upgrading so editable metadata and package data are refreshed:
+
+```powershell
+python -m pip install -e ".[dev,packaging]"
+```
+
+- Rebuild the executable so Windows file properties show `0.9.0.0` and the updated bundled settings template is included:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+- For projects derived from this template, preview public identity customization before applying it:
+
+```powershell
+python scripts\customize_template.py --help
+```
+
+- For future releases, use the release metadata helper in dry-run mode before editing release files manually:
+
+```powershell
+python scripts\prepare_release.py 0.10.0 --dry-run
+```
+
 ## [0.8.0] - 2026-05-15
 
 ### ✨ Added

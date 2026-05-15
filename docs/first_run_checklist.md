@@ -15,7 +15,9 @@ Use this checklist to validate a new clone or a new Windows machine.
 - [ ] The folder contains `tests`.
 - [ ] The folder contains `dev_run.py`.
 - [ ] The folder contains `scripts\clean_project.ps1`.
+- [ ] The folder contains `scripts\customize_template.py`.
 - [ ] The folder contains `scripts\package_windows.ps1`.
+- [ ] The folder contains `scripts\prepare_release.py`.
 - [ ] The folder contains `scripts\version_info.txt`.
 - [ ] The folder contains `src\desktop_app\settings.toml`.
 - [ ] The folder contains `src\desktop_app\assets\app_icon.ico`.
@@ -147,7 +149,7 @@ Test-Path .\src\desktop_app\settings.toml
 - [ ] The template version is aligned with `pyproject.toml`:
 
 ```text
-0.8.0
+0.9.0
 ```
 
 - [ ] Normal execution can start even when `<repository-root>\settings.toml` does not exist.
@@ -214,7 +216,7 @@ pytest tests/ui
 - [ ] Syntax compilation passes:
 
 ```powershell
-python -m compileall -q src dev_run.py
+python -m compileall -q src dev_run.py scripts\customize_template.py scripts\prepare_release.py
 ```
 
 - [ ] Full pytest suite passes:
@@ -252,6 +254,22 @@ ruff format --check .
 ```
 
 - [ ] Default cleanup behavior is understood: `IncludeBuildArtifacts` is `true`, so `build`, `dist`, and generated `*.spec` files are removed unless `-IncludeBuildArtifacts:$false` is used.
+
+---
+
+## 🧩 Template and release tooling
+
+- [ ] Template customization help opens:
+
+```powershell
+python scripts\customize_template.py --help
+```
+
+- [ ] Release automation dry-run works:
+
+```powershell
+python scripts\prepare_release.py 0.10.0 --dry-run
+```
 
 ---
 
@@ -306,4 +324,6 @@ dist\nicegui-windows-base.exe
 - [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md)
 - [Logger package guide](../src/desktop_app/infrastructure/logger/README.md)
 - [Code quality](code_quality.md)
+- [Template customization](template_customization.md)
+- [Release automation](release_automation.md)
 - [Troubleshooting](troubleshooting.md)

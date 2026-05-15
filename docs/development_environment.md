@@ -14,7 +14,7 @@ Use this guide when:
 - cloning or opening the repository for the first time;
 - creating or recreating the `.venv`;
 - installing the project from `pyproject.toml`;
-- validating native execution, browser development mode, settings persistence, tests, Ruff, and packaging.
+- validating native execution, browser development mode, settings persistence, template customization, release automation, tests, Ruff, and packaging.
 
 ---
 
@@ -34,8 +34,10 @@ flowchart TD
     I --> J[Run python dev_run.py]
     J --> K[Run pytest and coverage]
     K --> L[Run Ruff checks]
-    L --> M[Clean generated files when needed]
-    M --> N[Package Windows executable]
+    L --> M[Preview template customization]
+    M --> N[Preview release preparation]
+    N --> O[Clean generated files when needed]
+    O --> P[Package Windows executable]
 ```
 
 ---
@@ -240,7 +242,7 @@ See:
 ## 🧹 10. Validate code quality
 
 ```powershell
-python -m compileall -q src dev_run.py
+python -m compileall -q src dev_run.py scripts\customize_template.py scripts\prepare_release.py
 ruff check .
 ruff format --check .
 ```
@@ -257,7 +259,35 @@ See:
 
 ---
 
-## 🧽 11. Clean generated files when needed
+## 🧩 11. Preview template customization
+
+Check the customization command before deriving a new project from the template:
+
+```powershell
+python scripts\customize_template.py --help
+```
+
+For a real customization, start with dry-run mode. See:
+
+- [Template customization](template_customization.md)
+
+---
+
+## 🚀 12. Preview release automation
+
+Check the release preparation command before bumping a version:
+
+```powershell
+python scripts\prepare_release.py 0.10.0 --dry-run
+```
+
+See:
+
+- [Release automation](release_automation.md)
+
+---
+
+## 🧽 13. Clean generated files when needed
 
 Preview cleanup candidates:
 
@@ -283,7 +313,7 @@ See:
 
 ---
 
-## 📦 12. Package for Windows
+## 📦 14. Package for Windows
 
 ```powershell
 .\scripts\package_windows.ps1

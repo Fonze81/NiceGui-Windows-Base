@@ -5,7 +5,7 @@
 [![Ruff](https://img.shields.io/badge/lint%20%26%20format-ruff-46aef7)](https://docs.astral.sh/ruff/)
 [![pytest](https://img.shields.io/badge/tests-pytest-blueviolet)](https://docs.pytest.org/)
 
-A minimal **NiceGui Windows Base** template for Windows desktop applications built with Python 3.13, NiceGUI native mode, browser-based development mode, persistent settings, structured logging, automated tests, and direct PyInstaller packaging.
+A minimal **NiceGui Windows Base** template for Windows desktop applications built with Python 3.13, NiceGUI native mode, browser-based development mode, persistent settings, structured logging, automated tests, template customization, release automation, and direct PyInstaller packaging.
 
 ---
 
@@ -16,6 +16,8 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 - normal native execution through `nicegui-windows-base`;
 - module execution through `python -m desktop_app`;
 - a Windows cleanup script for generated caches, coverage outputs, egg-info metadata, and build artifacts;
+- template customization tooling for public project identity updates without renaming `desktop_app`;
+- release automation tooling for repeated version metadata and changelog updates;
 - browser development execution through `python dev_run.py`;
 - centralized typed `AppState` for runtime, UI, settings, assets, logging, lifecycle, and status information;
 - persistent `settings.toml` support with full-file, group, and single-property load/save operations;
@@ -53,18 +55,22 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   ├── development_environment.md
 │   ├── execution_modes.md
 │   ├── first_run_checklist.md
+│   ├── release_automation.md
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
 │   ├── python_windows_setup.md
 │   ├── runtime_support.md
 │   ├── settings.md
 │   ├── state.md
+│   ├── template_customization.md
 │   ├── troubleshooting.md
 │   ├── ui_shell.md
 │   └── vscode_setup.md
 ├── scripts/
 │   ├── clean_project.ps1
+│   ├── customize_template.py
 │   ├── package_windows.ps1
+│   ├── prepare_release.py
 │   └── version_info.txt
 ├── src/
 │   └── desktop_app/
@@ -88,6 +94,11 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   ├── __init__.py
 │       │   ├── runtime.py
 │       │   └── state.py
+│       ├── project_tools/
+│       │   ├── __init__.py
+│       │   ├── common.py
+│       │   ├── release_automation.py
+│       │   └── template_customization.py
 │       ├── infrastructure/
 │       │   ├── logger/
 │       │   │   ├── __init__.py
@@ -150,6 +161,7 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   ├── application/
 │   ├── core/
 │   ├── infrastructure/
+│   ├── project_tools/
 │   ├── ui/
 │   │   └── test_pages_and_router.py
 │   ├── test_app.py
@@ -187,6 +199,8 @@ When this template is reused, prefer changing public metadata first:
 - default settings in [`src/desktop_app/settings.toml`](src/desktop_app/settings.toml);
 - executable name and version metadata in [`scripts/package_windows.ps1`](scripts/package_windows.ps1) and [`scripts/version_info.txt`](scripts/version_info.txt);
 - README text, documentation titles, and visual assets.
+
+For routine public-identity changes, use [Template customization](docs/template_customization.md). The helper keeps the internal `desktop_app` package stable and updates the repeated public metadata points.
 
 Keeping `desktop_app` stable avoids unnecessary changes to imports, module paths, tests, asset packaging, and documentation links. Rename the package only when the new project has a strong technical reason to expose a domain-specific Python package name.
 
@@ -248,6 +262,18 @@ Preview cleanup without deleting files:
 .\scripts\clean_project.ps1 -DryRun
 ```
 
+Preview public template identity customization:
+
+```powershell
+python scripts\customize_template.py --help
+```
+
+Prepare repeated release metadata for a future version:
+
+```powershell
+python scripts\prepare_release.py 0.10.0 --dry-run
+```
+
 Package the Windows executable:
 
 ```powershell
@@ -258,22 +284,24 @@ Package the Windows executable:
 
 ## 🧭 Main commands
 
-| Task                    | Command                                              |
-| ----------------------- | ---------------------------------------------------- |
-| Install project         | `python -m pip install -e ".[dev,packaging]"`        |
-| Run native app          | `nicegui-windows-base`                               |
-| Run as module           | `python -m desktop_app`                              |
-| Run app script directly | `python src\desktop_app\app.py`                      |
-| Run web development     | `python dev_run.py`                                  |
-| Run all tests           | `pytest`                                             |
-| Run tests with coverage | `pytest --cov=desktop_app --cov-report=term-missing` |
-| Check code              | `ruff check .`                                       |
-| Check formatting        | `ruff format --check .`                              |
-| Format code             | `ruff format .`                                      |
-| Clean generated files   | `.\scripts\clean_project.ps1`                        |
-| Preview cleanup         | `.\scripts\clean_project.ps1 -DryRun`                |
-| Package for Windows     | `.\scripts\package_windows.ps1`                      |
-| Run packaged executable | `.\dist\nicegui-windows-base.exe`                    |
+| Task                           | Command                                              |
+| ------------------------------ | ---------------------------------------------------- |
+| Install project                | `python -m pip install -e ".[dev,packaging]"`        |
+| Run native app                 | `nicegui-windows-base`                               |
+| Run as module                  | `python -m desktop_app`                              |
+| Run app script directly        | `python src\desktop_app\app.py`                      |
+| Run web development            | `python dev_run.py`                                  |
+| Run all tests                  | `pytest`                                             |
+| Run tests with coverage        | `pytest --cov=desktop_app --cov-report=term-missing` |
+| Check code                     | `ruff check .`                                       |
+| Check formatting               | `ruff format --check .`                              |
+| Format code                    | `ruff format .`                                      |
+| Clean generated files          | `.\scripts\clean_project.ps1`                        |
+| Preview cleanup                | `.\scripts\clean_project.ps1 -DryRun`                |
+| Preview template customization | `python scripts\customize_template.py --help`        |
+| Prepare release metadata       | `python scripts\prepare_release.py 0.10.0 --dry-run` |
+| Package for Windows            | `.\scripts\package_windows.ps1`                      |
+| Run packaged executable        | `.\dist\nicegui-windows-base.exe`                    |
 
 All runtime commands assume the virtual environment is active and the editable install has already been completed.
 
@@ -303,7 +331,7 @@ The runtime log records the operational story of the run: settings load, native 
 
 ## 🖥️ Application shell
 
-Version 0.8.0 strengthens the application shell with reusable support services for diagnostics, logs, preferences, and status history while keeping the template domain-neutral.
+Version 0.9.0 keeps the reusable application shell stable and adds maintenance tooling for template customization and release metadata automation.
 
 Current built-in SPA pages:
 

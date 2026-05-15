@@ -2,7 +2,7 @@
 
 This guide explains the current architecture of **NiceGui Windows Base**.
 
-Use it when you need to understand startup flow, module responsibilities, NiceGUI SPA routing, settings persistence, logging, native window state, packaging inputs, generated-file cleanup, or safe extension points for future features.
+Use it when you need to understand startup flow, module responsibilities, NiceGUI SPA routing, settings persistence, logging, native window state, packaging inputs, template customization, release automation, generated-file cleanup, or safe extension points for future features.
 
 ---
 
@@ -17,7 +17,8 @@ Main goals:
 - keep reusable runtime state in plain dataclasses under `src/desktop_app/core`;
 - keep file-system, settings, logging, assets, native window, lifecycle, and splash behavior in `src/desktop_app/infrastructure`;
 - keep blocking or environment-specific work outside NiceGUI page builders;
-- keep the template easy to rename at the public metadata level without renaming the internal Python package.
+- keep the template easy to customize at the public metadata level without renaming the internal Python package;
+- keep repeated release metadata updates automated and testable.
 
 The current code does not include SAP GUI, RPA, or SharePoint integrations. Future integrations should be added as separate services instead of being placed directly in UI callbacks.
 
@@ -65,6 +66,9 @@ flowchart TD
     PKG --> AB[src/desktop_app/assets]
     PKG --> AC[src/desktop_app/settings.toml]
     PKG --> AD[scripts/version_info.txt]
+    CUS[scripts/customize_template.py] --> PT[src/desktop_app/project_tools]
+    REL[scripts/prepare_release.py] --> PT
+    PT --> META[pyproject, constants, settings, version info, docs, changelog]
     CLN[scripts/clean_project.ps1] --> OUT[generated caches, coverage outputs, build artifacts, logs, runtime settings]
 ```
 
@@ -125,13 +129,15 @@ Key points:
 
 ### 🧰 Project script responsibilities
 
-| Script                        | Responsibility                                                                                                                 |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `scripts/clean_project.ps1`   | Removes generated caches, coverage outputs, egg-info metadata, build artifacts, logs, and root runtime settings by default.       |
-| `scripts/package_windows.ps1` | Builds the Windows executable with direct PyInstaller, bundled assets, bundled settings, version metadata, and splash support. |
-| `scripts/version_info.txt`    | Provides Windows executable version metadata consumed by PyInstaller.                                                          |
+| Script                          | Responsibility                                                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `scripts/clean_project.ps1`     | Removes generated caches, coverage outputs, egg-info metadata, build artifacts, logs, and root runtime settings by default.    |
+| `scripts/customize_template.py` | Updates public template identity values while keeping the internal `desktop_app` package stable.                               |
+| `scripts/prepare_release.py`    | Updates repeated release metadata across package metadata, constants, settings, Windows resources, tests, and changelog notes. |
+| `scripts/package_windows.ps1`   | Builds the Windows executable with direct PyInstaller, bundled assets, bundled settings, version metadata, and splash support. |
+| `scripts/version_info.txt`      | Provides Windows executable version metadata consumed by PyInstaller.                                                          |
 
-The cleanup script is part of the maintenance architecture, not the application runtime. It should be documented with the project scripts because it affects source archives, clean validations, and packaging output cleanup without changing application behavior.
+The Python project tools and cleanup script are part of the maintenance architecture, not the application runtime. They are documented with the project scripts because they affect source archives, release preparation, clean validations, and packaging output cleanup without changing application behavior.
 
 ---
 

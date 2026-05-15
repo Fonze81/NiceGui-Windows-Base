@@ -47,7 +47,7 @@ The `packaging` group includes:
 Run these commands from the repository root with `.venv` active:
 
 ```powershell
-python -m compileall -q src dev_run.py
+python -m compileall -q src dev_run.py scripts\customize_template.py scripts\prepare_release.py
 pytest tests --cov=desktop_app --cov-report=term-missing --cov-fail-under=100
 ruff check .
 ruff format --check .
@@ -55,12 +55,12 @@ ruff format --check .
 
 Purpose:
 
-| Command                                                                         | Purpose                                                                           |
-| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `python -m compileall -q src dev_run.py`                                        | Detect syntax errors without starting NiceGUI.                                    |
-| `pytest tests --cov=desktop_app --cov-report=term-missing --cov-fail-under=100` | Run the full test suite and enforce the project coverage gate.                    |
-| `ruff check .`                                                                  | Validate linting, import order, modernization, bugbear, and simplification rules. |
-| `ruff format --check .`                                                         | Confirm that Python formatting is already applied.                                |
+| Command                                                                                           | Purpose                                                                           |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `python -m compileall -q src dev_run.py scripts\customize_template.py scripts\prepare_release.py` | Detect syntax errors without starting NiceGUI or maintenance scripts.             |
+| `pytest tests --cov=desktop_app --cov-report=term-missing --cov-fail-under=100`                   | Run the full test suite and enforce the project coverage gate.                    |
+| `ruff check .`                                                                                    | Validate linting, import order, modernization, bugbear, and simplification rules. |
+| `ruff format --check .`                                                                           | Confirm that Python formatting is already applied.                                |
 
 Use modifying commands only when you intentionally want tools to edit files.
 

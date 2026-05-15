@@ -78,7 +78,7 @@ It contains the default structure:
 ```toml
 [app]
 name = "NiceGui Windows Base"
-version = "0.8.0"
+version = "0.9.0"
 language = "en-US"
 first_run = true
 
