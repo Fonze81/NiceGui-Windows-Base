@@ -51,6 +51,7 @@ addopts = [
 [tool.coverage.run]
 branch = true
 source = ["desktop_app"]
+omit = ["tests/*"]
 
 [tool.coverage.report]
 show_missing = true

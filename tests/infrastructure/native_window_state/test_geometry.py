@@ -133,3 +133,36 @@ def test_get_windows_monitor_work_areas_keeps_valid_monitors_after_info_failure(
     assert native_window_state_module.geometry._get_windows_monitor_work_areas() == (
         native_window_state_module.models.MonitorWorkArea(10, 20, 1010, 820),
     )
+
+
+def test_normalize_window_geometry_returns_original_when_no_work_area_exists(
+    native_window_state_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing monitor work areas preserve the persisted geometry."""
+    monkeypatch.setattr(
+        native_window_state_module.geometry,
+        "_get_windows_monitor_work_areas",
+        lambda: (),
+    )
+
+    assert native_window_state_module.geometry._normalize_window_geometry(
+        x=10,
+        y=20,
+        width=800,
+        height=600,
+    ) == (10, 20, 800, 600)
+
+
+def test_get_windows_monitor_work_areas_returns_empty_without_windll(
+    native_window_state_module: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-Windows ctypes environments are treated as unavailable monitors."""
+    monkeypatch.delattr(
+        native_window_state_module.geometry.ctypes,
+        "windll",
+        raising=False,
+    )
+
+    assert native_window_state_module.geometry._get_windows_monitor_work_areas() == ()
