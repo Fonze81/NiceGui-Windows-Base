@@ -48,6 +48,7 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   └── settings.json
 ├── docs/
 │   ├── README.md
+│   ├── architecture.md
 │   ├── code_quality.md
 │   ├── development_environment.md
 │   ├── execution_modes.md
@@ -55,9 +56,11 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │   ├── packaging_windows.md
 │   ├── powershell_execution_policy.md
 │   ├── python_windows_setup.md
+│   ├── runtime_support.md
 │   ├── settings.md
 │   ├── state.md
 │   ├── troubleshooting.md
+│   ├── ui_shell.md
 │   └── vscode_setup.md
 ├── scripts/
 │   ├── clean_project.ps1
@@ -155,9 +158,12 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 ├── CHANGELOG.md
 ├── dev_run.py
 ├── pyproject.toml
-├── settings.toml
 └── README.md
 ```
+
+The root `settings.toml` is intentionally not listed as source structure. It is a
+runtime-generated file ignored by Git; the tracked default template is
+`src/desktop_app/settings.toml`.
 
 ---
 
@@ -301,14 +307,14 @@ Version 0.8.0 strengthens the application shell with reusable support services f
 
 Current built-in SPA pages:
 
-| Route          | Purpose                                                                    |
-| -------------- | -------------------------------------------------------------------------- |
-| `/`            | Landing page with startup status and template capabilities.                |
-| `/components`  | Live catalog for reusable page headers, cards, badges, and empty states.   |
-| `/diagnostics` | Runtime diagnostics rendered from a reusable support snapshot service.     |
-| `/logs`        | Bounded viewer backed by a reusable log snapshot service.                  |
-| `/status`      | Current status and recent in-memory status history for this run.           |
-| `/settings`    | Validated preference page backed by application services and settings.     |
+| Route          | Purpose                                                                  |
+| -------------- | ------------------------------------------------------------------------ |
+| `/`            | Landing page with startup status and template capabilities.              |
+| `/components`  | Live catalog for reusable page headers, cards, badges, and empty states. |
+| `/diagnostics` | Runtime diagnostics rendered from a reusable support snapshot service.   |
+| `/logs`        | Bounded viewer backed by a reusable log snapshot service.                |
+| `/status`      | Current status and recent in-memory status history for this run.         |
+| `/settings`    | Validated preference page backed by application services and settings.   |
 
 The UI remains domain-neutral. Add project-specific features as new pages and services instead of placing integration logic directly in NiceGUI callbacks. See [UI shell guide](docs/ui_shell.md) and [Architecture overview](docs/architecture.md#-nicegui-spa-structure).
 
@@ -373,8 +379,10 @@ Start with the [documentation index](docs/README.md).
 Main guides:
 
 - [Development environment](docs/development_environment.md)
+- [Architecture overview](docs/architecture.md)
 - [Execution modes](docs/execution_modes.md)
 - [UI shell guide](docs/ui_shell.md)
+- [Runtime support services](docs/runtime_support.md)
 - [Windows packaging](docs/packaging_windows.md)
 - [Logger package guide](src/desktop_app/infrastructure/logger/README.md)
 - [Settings persistence](docs/settings.md)

@@ -172,7 +172,7 @@ Remove-Item Env:\DESKTOP_APP_ROOT
 
 ## 🖥️ Application shell
 
-- [ ] The sidebar shows Home, Components, Diagnostics, Logs, and Settings.
+- [ ] The sidebar shows Home, Components, Diagnostics, Logs, Status, and Settings.
 - [ ] The `/components` route opens the component catalog.
 - [ ] The `/diagnostics` route shows runtime mode, port, settings path, and log path.
 - [ ] The `/diagnostics` route opens and shows grouped support sections.
@@ -202,7 +202,7 @@ Useful focused tests:
 
 ```powershell
 pytest tests/application
-pytest tests/infrastructure/test_native_window_state.py
+pytest tests/infrastructure/native_window_state
 pytest tests/infrastructure/test_lifecycle.py
 pytest tests/ui
 ```

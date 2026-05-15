@@ -248,26 +248,31 @@ The test suite follows the source package structure:
 tests
 ├── application
 │   ├── test_bootstrap.py
+│   ├── test_diagnostics.py
+│   ├── test_log_reader.py
+│   ├── test_preferences.py
 │   ├── test_run_options.py
-│   └── test_runtime_context.py
+│   ├── test_runtime_context.py
+│   └── test_status.py
 ├── core
 │   ├── test_core_init.py
 │   ├── test_runtime.py
 │   └── test_state.py
 ├── infrastructure
 │   ├── logger
+│   ├── native_window_state
 │   ├── settings
 │   ├── test_asset_paths.py
 │   ├── test_byte_size.py
 │   ├── test_file_system.py
 │   ├── test_lifecycle.py
-│   ├── test_native_window_state.py
 │   └── test_splash.py
 ├── ui
 │   └── test_pages_and_router.py
 ├── test_app.py
 ├── test_constants.py
-└── test_desktop_app_main.py
+├── test_desktop_app_main.py
+└── test_dev_run.py
 ```
 
 Important testing notes:
@@ -276,6 +281,7 @@ Important testing notes:
 - tests should not depend on the developer machine's real `settings.toml`;
 - settings tests should use temporary directories and monkeypatching;
 - logger tests should release handlers to avoid locked files on Windows;
+- native window tests live under `tests/infrastructure/native_window_state`;
 - NiceGUI callback-heavy behavior should be isolated behind small functions where possible;
 - blocking integrations, such as SAP GUI or RPA, should be tested outside the UI thread.
 

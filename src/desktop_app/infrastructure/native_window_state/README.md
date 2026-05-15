@@ -178,8 +178,6 @@ Run focused tests after changing this feature:
 
 ```powershell
 pytest tests/infrastructure/native_window_state
-pytest tests/infrastructure/test_native_window_state.py
-pytest tests/infrastructure/test_native_window_state_package.py
 pytest tests/infrastructure/test_lifecycle.py
 pytest tests/infrastructure/settings/test_mapper.py
 pytest tests/infrastructure/settings/test_toml_document.py
