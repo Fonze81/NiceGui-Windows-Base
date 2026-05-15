@@ -1,16 +1,17 @@
 # -----------------------------------------------------------------------------
 # File: scripts/clean_project.ps1
 # Purpose:
-# Remove generated cache, coverage, build, and temporary files from the project
-# workspace.
+# Remove generated cache, coverage, build, log, runtime settings, and
+# temporary files from the project workspace.
 # Behavior:
 # Scans the repository root while skipping protected directories, then removes
 # Python caches, test caches, coverage outputs, egg-info metadata, build
-# artifacts, and optional log files.
+# artifacts, log directories, and the runtime settings.toml file.
 # Notes:
-# The script does not remove .venv, .git, or logs by default. Build artifacts are
-# removed by default because they are reproducible outputs. Use
-# -IncludeBuildArtifacts:$false to preserve build, dist, and spec files.
+# The script does not remove .venv, .git, or bundled package defaults. Build
+# artifacts, logs, and the root runtime settings.toml are removed by default
+# because they are reproducible runtime outputs. Use -IncludeBuildArtifacts:$false,
+# -PreserveLogs, or -IncludeRuntimeSettings:$false when those files must be kept.
 # -----------------------------------------------------------------------------
 
 [CmdletBinding()]
@@ -21,7 +22,11 @@ param(
 
 	[bool]$IncludeBuildArtifacts = $true,
 
-	[switch]$IncludeLogs
+	[switch]$IncludeLogs,
+
+	[switch]$PreserveLogs,
+
+	[bool]$IncludeRuntimeSettings = $true
 )
 
 Set-StrictMode -Version Latest
@@ -86,6 +91,24 @@ function Test-IsCleanupFile {
 	}
 
 	return $false
+}
+
+
+function Get-RootCleanupCandidates {
+	param(
+		[Parameter(Mandatory = $true)]
+		[string]$StartPath,
+
+		[string[]]$CleanupRootFileNames = @()
+	)
+
+	foreach ($fileName in $CleanupRootFileNames) {
+		$candidatePath = Join-Path $StartPath $fileName
+
+		if (Test-Path -LiteralPath $candidatePath -PathType Leaf) {
+			Get-Item -LiteralPath $candidatePath -Force
+		}
+	}
 }
 
 function Get-CleanupCandidates {
@@ -172,6 +195,11 @@ function Remove-CleanupItem {
 }
 
 $projectRoot = Resolve-ProjectRoot -Path $RootPath
+$shouldCleanLogs = -not [bool]$PreserveLogs
+
+if ($IncludeLogs) {
+	$shouldCleanLogs = $true
+}
 
 $ignoredDirectoryNames = @(
 	".git",
@@ -205,11 +233,19 @@ $cleanupFileNames = @(
 	".DS_Store"
 )
 
+$cleanupRootFileNames = @()
+
 $cleanupFilePatterns = @(
 	"*.pyc",
 	"*.pyo",
 	".coverage.*"
 )
+
+if ($IncludeRuntimeSettings) {
+	$cleanupRootFileNames += @(
+		"settings.toml"
+	)
+}
 
 if ($IncludeBuildArtifacts) {
 	$cleanupDirectoryNames += @(
@@ -222,7 +258,7 @@ if ($IncludeBuildArtifacts) {
 	)
 }
 
-if ($IncludeLogs) {
+if ($shouldCleanLogs) {
 	$cleanupDirectoryNames += @(
 		"logs"
 	)
@@ -241,11 +277,25 @@ else {
 	Write-Host "Build artifact cleanup disabled."
 }
 
-if ($IncludeLogs) {
+if ($shouldCleanLogs) {
 	Write-Host "Log cleanup enabled."
+}
+else {
+	Write-Host "Log cleanup disabled."
+}
+
+if ($IncludeRuntimeSettings) {
+	Write-Host "Runtime settings cleanup enabled."
+}
+else {
+	Write-Host "Runtime settings cleanup disabled."
 }
 
 $candidates = @(
+	Get-RootCleanupCandidates `
+		-StartPath $projectRoot `
+		-CleanupRootFileNames $cleanupRootFileNames
+
 	Get-CleanupCandidates `
 		-StartPath $projectRoot `
 		-IgnoredDirectoryNames $ignoredDirectoryNames `

@@ -82,7 +82,7 @@ Run the default cleanup:
 .\scripts\clean_project.ps1
 ```
 
-The default cleanup removes reproducible build artifacts because `IncludeBuildArtifacts` defaults to `true`. This includes `build`, `dist`, and generated `*.spec` files, in addition to Python/test/tooling caches and coverage outputs.
+The default cleanup removes reproducible build artifacts because `IncludeBuildArtifacts` defaults to `true`. It also removes runtime logs and the root `settings.toml` file because both are generated during local execution. This includes `build`, `dist`, generated `*.spec` files, `logs`, the root runtime `settings.toml`, Python/test/tooling caches, and coverage outputs.
 
 Preserve build artifacts when needed:
 
@@ -90,22 +90,29 @@ Preserve build artifacts when needed:
 .\scripts\clean_project.ps1 -IncludeBuildArtifacts:$false
 ```
 
-Remove logs only when that is intentional:
+Preserve runtime logs when needed:
 
 ```powershell
-.\scripts\clean_project.ps1 -IncludeLogs
+.\scripts\clean_project.ps1 -PreserveLogs
+```
+
+Preserve the root runtime settings file when needed:
+
+```powershell
+.\scripts\clean_project.ps1 -IncludeRuntimeSettings:$false
 ```
 
 Current default cleanup targets include:
 
-| Type        | Examples                                                                |
-| ----------- | ----------------------------------------------------------------------- |
-| Directories | `__pycache__`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache`, `htmlcov` |
-| Metadata    | `*.egg-info`                                                            |
-| Coverage    | `.coverage`, `.coverage.*`, `coverage.xml`, `junit.xml`                 |
-| Bytecode    | `*.pyc`, `*.pyo`                                                        |
-| Build files | `build`, `dist`, `*.spec` when `IncludeBuildArtifacts` is `true`        |
-| Logs        | `logs` only when `-IncludeLogs` is provided                             |
+| Type        | Examples                                                                              |
+| ----------- | ------------------------------------------------------------------------------------- |
+| Directories | `__pycache__`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache`, `htmlcov`               |
+| Metadata    | `*.egg-info`                                                                          |
+| Coverage    | `.coverage`, `.coverage.*`, `coverage.xml`, `junit.xml`                               |
+| Bytecode    | `*.pyc`, `*.pyo`                                                                      |
+| Build files | `build`, `dist`, `*.spec` when `IncludeBuildArtifacts` is `true`                      |
+| Logs        | `logs` by default; use `-PreserveLogs` to keep them                                   |
+| Settings    | root `settings.toml` by default; bundled `src/desktop_app/settings.toml` is preserved |
 
 Protected directories are not traversed, including `.git`, `.venv`, `venv`, `env`, and `node_modules`.
 

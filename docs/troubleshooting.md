@@ -190,12 +190,14 @@ If a new package or module is not shown, confirm that:
 
 ## 🧽 Cleanup removed files I wanted to keep
 
-By default, the cleanup script removes reproducible build artifacts because `IncludeBuildArtifacts` defaults to `true`. This includes:
+By default, the cleanup script removes reproducible build artifacts, logs, and the root runtime `settings.toml` file. Build artifact cleanup is enabled because `IncludeBuildArtifacts` defaults to `true`. This includes:
 
 ```text
 build
 dist
 *.spec
+logs
+settings.toml
 ```
 
 Preview cleanup before deleting files:
@@ -210,7 +212,19 @@ Preserve build artifacts:
 .\scripts\clean_project.ps1 -IncludeBuildArtifacts:$false
 ```
 
-Logs are preserved by default. They are removed only when `-IncludeLogs` is provided.
+Preserve logs:
+
+```powershell
+.\scripts\clean_project.ps1 -PreserveLogs
+```
+
+Preserve the root runtime settings file:
+
+```powershell
+.\scripts\clean_project.ps1 -IncludeRuntimeSettings:$false
+```
+
+The bundled defaults file at `src\desktop_app\settings.toml` is package data and is not removed by cleanup.
 
 ---
 
