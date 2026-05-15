@@ -6,6 +6,100 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
+## [0.8.0] - 2026-05-14
+
+### ✨ Added
+
+- Added `desktop_app.application.diagnostics` with reusable diagnostic sections for runtime, paths, lifecycle, logging, and settings support data.
+- Added `desktop_app.application.log_reader` with bounded log snapshots, runtime log path resolution, and recoverable read-error reporting.
+- Added `desktop_app.application.preferences` with validated updates for theme, dense mode, font scale, accent color, and auto-save behavior.
+- Added `desktop_app.application.status` and a `/status` SPA page for current in-memory status and recent status history.
+- Added `docs/runtime_support.md` to document the new support service boundary between NiceGUI pages and application logic.
+- Added focused application tests for diagnostics snapshots, log reading, preference updates, and status history.
+
+### 🔄 Changed
+
+- Changed the project version from `0.7.0` to `0.8.0`.
+- Updated Windows version metadata in `scripts/version_info.txt` to `0.8.0.0`.
+- Updated the bundled and root `settings.toml` version values to `0.8.0`.
+- Changed the diagnostics page to render service-generated support sections instead of reading all fields directly from page code.
+- Changed the logs page to render a `LogSnapshot` with source metadata, line limit, and read-error fallback state.
+- Changed the settings page to delegate validation and persistence to application services while exposing additional safe template preferences.
+- Updated navigation and route documentation to include the `/status` page.
+
+### 🐞 Fixed
+
+- Reduced UI-page coupling to `AppState` internals by moving diagnostics, log reading, and preference update rules out of NiceGUI page builders.
+- Reduced the risk of expensive log reads by keeping log inspection bounded in a reusable service.
+- Improved settings callback maintainability by keeping validation, persistence, and status messages outside inline UI callbacks.
+
+### 🧭 Migration notes
+
+- Reinstall the project after upgrading:
+
+```powershell
+python -m pip install -e ".[dev,packaging]"
+```
+
+- Rebuild the executable so Windows file properties show version `0.8.0.0` and the updated bundled settings template is included:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+---
+
+## [0.7.0] - 2026-05-14
+
+### ✨ Added
+
+- Added a reusable NiceGUI application shell with top bar, sidebar navigation, and a shared `ui.sub_pages` content area.
+- Added centralized UI theme helpers in `src/desktop_app/ui/theme.py` for body, shell, top bar, sidebar, page header, content card, navigation link, and muted text classes.
+- Added reusable UI component helpers for page headers, section headers, info cards, metric cards, status badges, empty states, and navigation.
+- Added `/components` as a live catalog for reusable visual building blocks.
+- Added `/diagnostics` to show runtime mode, port, paths, logging status, and lifecycle flags from `AppState`.
+- Added `/logs` as a bounded runtime log viewer that reads only the latest log lines.
+- Added `/settings` with UI theme and dense-mode preference controls backed by the existing settings subsystem.
+- Added `docs/ui_shell.md` to document shell structure, routes, theme helpers, component boundaries, extension steps, and testing expectations.
+- Expanded UI tests to cover shell mounting, route wiring, new pages, bounded log reading, and settings callbacks.
+
+### 🔄 Changed
+
+- Changed the project version from `0.6.1` to `0.7.0`.
+- Updated Windows version metadata in `scripts/version_info.txt` to `0.7.0.0`.
+- Updated the bundled and root `settings.toml` version values to `0.7.0`.
+- Updated the Home page to use shared page and card components inside the application shell.
+- Updated the SPA route table to include Home, Components, Diagnostics, Logs, Settings, and fallback routes.
+- Updated README and maintenance documentation to reflect the 0.7.0 shell, page structure, diagnostics, log viewer, settings page, and UI extension rules.
+
+### 🐞 Fixed
+
+- Reduced duplicated UI styling by moving repeated Tailwind classes into shared theme and component helpers.
+- Kept log viewing bounded so the UI does not attempt to load large log files into memory.
+- Kept settings page callbacks small and delegated persistence to the existing settings service.
+
+### 🧭 Migration notes
+
+- Reinstall the project after upgrading so package metadata and package data are refreshed:
+
+```powershell
+python -m pip install -e ".[dev,packaging]"
+```
+
+- Rebuild the executable so Windows file properties show version `0.7.0.0` and the updated bundled settings template is included:
+
+```powershell
+.\scripts\package_windows.ps1
+```
+
+- Validate the new shell pages with:
+
+```powershell
+pytest tests/ui/test_pages_and_router.py
+```
+
+---
+
 ## [0.6.1] - 2026-05-13
 
 ### ✨ Added

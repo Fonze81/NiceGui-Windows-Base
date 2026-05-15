@@ -147,7 +147,7 @@ Test-Path .\src\desktop_app\settings.toml
 - [ ] The template version is aligned with `pyproject.toml`:
 
 ```text
-0.6.1
+0.8.0
 ```
 
 - [ ] Normal execution can start even when `<repository-root>\settings.toml` does not exist.
@@ -166,6 +166,25 @@ After the diagnostic, clear it:
 
 ```powershell
 Remove-Item Env:\DESKTOP_APP_ROOT
+```
+
+---
+
+## 🖥️ Application shell
+
+- [ ] The sidebar shows Home, Components, Diagnostics, Logs, and Settings.
+- [ ] The `/components` route opens the component catalog.
+- [ ] The `/diagnostics` route shows runtime mode, port, settings path, and log path.
+- [ ] The `/diagnostics` route opens and shows grouped support sections.
+- [ ] The `/logs` route opens without loading the whole log file into memory.
+- [ ] The `/status` route shows current status and recent history.
+- [ ] The `/settings` route shows theme, font scale, accent, dense-mode, and auto-save controls.
+- [ ] Unknown routes render the fallback page and provide a link back home.
+
+Useful focused test:
+
+```powershell
+pytest tests/ui/test_pages_and_router.py
 ```
 
 ---
@@ -266,7 +285,8 @@ dist\nicegui-windows-base.exe
 - [ ] The executable has the project icon.
 - [ ] The executable shows a splash screen during startup.
 - [ ] The executable opens without an extra console window.
-- [ ] The page displays the PNG image and startup status message.
+- [ ] The application shell opens with navigation and the startup status message.
+- [ ] The page displays the PNG image on the Home route.
 - [ ] `dist\packaging_report.md` is created.
 - [ ] `dist\logs\app.log` is created after the packaged executable starts.
 - [ ] Packaged settings resolve next to the executable.
@@ -280,6 +300,7 @@ dist\nicegui-windows-base.exe
 - [Development environment](development_environment.md)
 - [VS Code setup](vscode_setup.md)
 - [Execution modes](execution_modes.md)
+- [UI shell guide](ui_shell.md)
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
 - [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md)

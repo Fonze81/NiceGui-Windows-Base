@@ -2,7 +2,7 @@
 
 This folder contains the maintenance documentation for the **NiceGui Windows Base** template.
 
-The documentation is aligned with the current `0.6.1` project shape, which includes the NiceGUI SPA shell with `ui.sub_pages`, separated UI pages, the settings subsystem, shared application state, native window geometry persistence, multi-monitor visibility guards, expanded tests, and direct PyInstaller packaging.
+The documentation is aligned with the current `0.8.0` project shape, which includes the reusable NiceGUI application shell, shared UI components, component catalog, diagnostics page, log viewer, status page, validated settings page, settings subsystem, shared application state, native window geometry persistence, multi-monitor visibility guards, expanded tests, and direct PyInstaller packaging.
 
 ---
 
@@ -13,16 +13,18 @@ The documentation is aligned with the current `0.6.1` project shape, which inclu
 3. [VS Code setup on Windows](vscode_setup.md) — editor, interpreter, Ruff, pytest, coverage, and Markdown tooling.
 4. [PowerShell execution policy](powershell_execution_policy.md) — safe fixes for blocked PowerShell scripts.
 5. [Architecture overview](architecture.md) — startup flow, module boundaries, SPA routing, settings, logging, native window persistence, and packaging inputs.
-6. [Execution modes](execution_modes.md) — native, web development, module, script, and packaged execution.
-7. [Settings subsystem](settings.md) — `settings.toml`, persistence rules, scoped updates, validation, and runtime paths.
-8. [Application state](state.md) — shared `AppState`, runtime diagnostics, persisted settings, and UI-facing status.
-9. [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) — startup restore, move/resize capture, multi-monitor clamping, and persistence rules.
-10. [Logger package guide](../src/desktop_app/infrastructure/logger/README.md) — package-local guide for startup buffering, rotating file logs, settings integration, and shutdown cleanup.
-11. [Windows packaging](packaging_windows.md) — direct PyInstaller build, assets, settings template, version metadata, and splash screen.
-12. [Code quality](code_quality.md) — Ruff, pytest, coverage, compile checks, cleanup script usage, and Markdown validation.
-13. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone or machine.
-14. [Troubleshooting](troubleshooting.md) — common issues and fixes.
-15. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
+6. [UI shell guide](ui_shell.md) — application shell, routes, components, theme helpers, and page extension rules.
+7. [Runtime support services](runtime_support.md) — diagnostics snapshots, bounded log reading, validated preferences, and status history.
+8. [Execution modes](execution_modes.md) — native, web development, module, script, and packaged execution.
+9. [Settings subsystem](settings.md) — `settings.toml`, persistence rules, scoped updates, validation, and runtime paths.
+10. [Application state](state.md) — shared `AppState`, runtime diagnostics, persisted settings, and UI-facing status.
+11. [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) — startup restore, move/resize capture, multi-monitor clamping, and persistence rules.
+12. [Logger package guide](../src/desktop_app/infrastructure/logger/README.md) — package-local guide for startup buffering, rotating file logs, settings integration, and shutdown cleanup.
+13. [Windows packaging](packaging_windows.md) — direct PyInstaller build, assets, settings template, version metadata, and splash screen.
+14. [Code quality](code_quality.md) — Ruff, pytest, coverage, compile checks, cleanup script usage, and Markdown validation.
+15. [First run checklist](first_run_checklist.md) — practical validation checklist for a fresh clone or machine.
+16. [Troubleshooting](troubleshooting.md) — common issues and fixes.
+17. [Changelog](../CHANGELOG.md) — release history, version changes, and migration notes.
 
 ---
 
@@ -50,8 +52,9 @@ The project keeps the application entry point thin and moves focused responsibil
 
 | Area                   | Main location                                               | Detailed guide                                                                                       |
 | ---------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Application services   | `src/desktop_app/application/`                             | [Architecture overview](architecture.md), [UI shell guide](ui_shell.md)                              |
 | Startup orchestration  | `src/desktop_app/app.py` and `src/desktop_app/application/` | [Architecture overview](architecture.md)                                                             |
-| SPA layout and pages   | `src/desktop_app/ui/`                                       | [Architecture overview](architecture.md#-nicegui-spa-structure)                                      |
+| Application shell and pages | `src/desktop_app/ui/`                                  | [UI shell guide](ui_shell.md), [Architecture overview](architecture.md#-nicegui-spa-structure)        |
 | Runtime state          | `src/desktop_app/core/state.py`                             | [Application state](state.md)                                                                        |
 | Settings persistence   | `src/desktop_app/infrastructure/settings/`                  | [Settings subsystem](settings.md)                                                                    |
 | Native window geometry | `src/desktop_app/infrastructure/native_window_state/`       | [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md) |

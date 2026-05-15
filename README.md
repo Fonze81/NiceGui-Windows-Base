@@ -24,6 +24,9 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 - bundled default settings template at `src/desktop_app/settings.toml`;
 - defensive settings conversion for manually edited TOML values;
 - narrative startup diagnostics shown in console logs when available, UI, and rotating log file;
+- reusable application shell with navigation, shared layout, component catalog, diagnostics, logs, status, and settings pages;
+- application services for diagnostics snapshots, bounded log reading, preference updates, and status history;
+- centralized UI theme helpers and generic component builders for cards, page headers, feedback, and navigation;
 - slim application entry point with startup bootstrap, runtime option building, and page composition split into focused modules;
 - structured logger package with early startup buffering, rotating file logs, and safe shutdown;
 - packaged and normal asset resolution for icon, page image, and splash image;
@@ -65,8 +68,12 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       ├── application/
 │       │   ├── __init__.py
 │       │   ├── bootstrap.py
+│       │   ├── diagnostics.py
+│       │   ├── log_reader.py
+│       │   ├── preferences.py
 │       │   ├── run_options.py
-│       │   └── runtime_context.py
+│       │   ├── runtime_context.py
+│       │   └── status.py
 │       ├── assets/
 │       │   ├── app_icon.ico
 │       │   ├── logo.png
@@ -111,14 +118,26 @@ A minimal **NiceGui Windows Base** template for Windows desktop applications bui
 │       │   │   └── service.py
 │       │   └── splash.py
 │       ├── ui/
+│       │   ├── components/
+│       │   │   ├── __init__.py
+│       │   │   ├── cards.py
+│       │   │   ├── feedback.py
+│       │   │   ├── navigation.py
+│       │   │   └── page.py
 │       │   ├── pages/
 │       │   │   ├── __init__.py
+│       │   │   ├── components.py
+│       │   │   ├── diagnostics.py
 │       │   │   ├── index.py
+│       │   │   ├── logs.py
 │       │   │   ├── not_found.py
-│       │   │   └── routes.py
+│       │   │   ├── routes.py
+│       │   │   ├── settings.py
+│       │   │   └── status.py
 │       │   ├── __init__.py
 │       │   ├── layout.py
-│       │   └── router.py
+│       │   ├── router.py
+│       │   └── theme.py
 │       ├── __init__.py
 │       ├── __main__.py
 │       ├── app.py
@@ -276,6 +295,25 @@ The runtime log records the operational story of the run: settings load, native 
 
 ---
 
+## 🖥️ Application shell
+
+Version 0.8.0 strengthens the application shell with reusable support services for diagnostics, logs, preferences, and status history while keeping the template domain-neutral.
+
+Current built-in SPA pages:
+
+| Route          | Purpose                                                                    |
+| -------------- | -------------------------------------------------------------------------- |
+| `/`            | Landing page with startup status and template capabilities.                |
+| `/components`  | Live catalog for reusable page headers, cards, badges, and empty states.   |
+| `/diagnostics` | Runtime diagnostics rendered from a reusable support snapshot service.     |
+| `/logs`        | Bounded viewer backed by a reusable log snapshot service.                  |
+| `/status`      | Current status and recent in-memory status history for this run.           |
+| `/settings`    | Validated preference page backed by application services and settings.     |
+
+The UI remains domain-neutral. Add project-specific features as new pages and services instead of placing integration logic directly in NiceGUI callbacks. See [UI shell guide](docs/ui_shell.md) and [Architecture overview](docs/architecture.md#-nicegui-spa-structure).
+
+---
+
 ## ⚙️ Settings and state
 
 The application loads settings before final logger configuration so persisted logging preferences can control level, console output, buffer size, file path, rotation size, and backup count.
@@ -336,6 +374,7 @@ Main guides:
 
 - [Development environment](docs/development_environment.md)
 - [Execution modes](docs/execution_modes.md)
+- [UI shell guide](docs/ui_shell.md)
 - [Windows packaging](docs/packaging_windows.md)
 - [Logger package guide](src/desktop_app/infrastructure/logger/README.md)
 - [Settings persistence](docs/settings.md)

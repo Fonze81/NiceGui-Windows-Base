@@ -137,7 +137,7 @@ The cleanup script is part of the maintenance architecture, not the application 
 
 ## 🖥️ NiceGUI SPA structure
 
-The UI uses a single-page application shell with `ui.sub_pages`.
+The UI uses a reusable single-page application shell with `ui.sub_pages`.
 
 ```mermaid
 flowchart TD
@@ -145,16 +145,53 @@ flowchart TD
     A --> C[@ui.page('/{_:path}')]
     B --> D[src/desktop_app/ui/layout.py]
     C --> D
+    D --> N[src/desktop_app/ui/components/navigation.py]
     D --> E[ui.sub_pages]
     E --> F[src/desktop_app/ui/pages/routes.py]
-    F --> G['/' route to index page]
-    F --> H['/{_:path}' route to fallback page]
+    F --> G['/' index]
+    F --> H['/components' catalog]
+    F --> I['/diagnostics' support snapshots]
+    F --> J['/logs' bounded log snapshots]
+    F --> K['/settings' validated preferences]
+    F --> AD['/status' status history]
+    F --> L['/{_:path}' fallback]
+    M[src/desktop_app/ui/theme.py] --> D
+    M --> G
+    M --> H
+    M --> I
+    M --> J
+    M --> K
 ```
 
 Current UI responsibilities:
 
-| Module                                  | Responsibility                                             |
-| --------------------------------------- | ---------------------------------------------------------- |
+| Module                                      | Responsibility                                                               |
+| ------------------------------------------- | ---------------------------------------------------------------------------- |
+| `src/desktop_app/ui/router.py`              | Registers root and catch-all NiceGUI routes.                                 |
+| `src/desktop_app/ui/layout.py`              | Builds the top bar, sidebar navigation, and `ui.sub_pages` mount point.      |
+| `src/desktop_app/ui/theme.py`               | Centralizes reusable Tailwind class helpers for light and dark themes.       |
+| `src/desktop_app/ui/components/`            | Provides reusable visual helpers for cards, feedback, navigation, and pages. |
+| `src/desktop_app/ui/pages/routes.py`        | Centralizes sub-page route mappings.                                         |
+| `src/desktop_app/ui/pages/index.py`         | Builds the landing page and resolves the page image.                         |
+| `src/desktop_app/ui/pages/components.py`    | Shows the live reusable component catalog.                                   |
+| `src/desktop_app/ui/pages/diagnostics.py`   | Displays support sections from `application/diagnostics.py`.                 |
+| `src/desktop_app/ui/pages/logs.py`          | Displays bounded log snapshots from `application/log_reader.py`.             |
+| `src/desktop_app/ui/pages/status.py`        | Displays status history from `application/status.py`.                        |
+| `src/desktop_app/ui/pages/settings.py`      | Updates preferences through `application/preferences.py`.                    |
+| `src/desktop_app/ui/pages/not_found.py`     | Builds the fallback page for unknown in-app routes.                          |
+
+When adding a new page, prefer this path:
+
+1. create a page module under `src/desktop_app/ui/pages/`;
+2. update `src/desktop_app/ui/pages/routes.py`;
+3. add a navigation item in `src/desktop_app/ui/components/navigation.py` when the page belongs in the sidebar;
+4. keep callbacks small;
+5. delegate business logic to non-UI services;
+6. update [UI shell guide](ui_shell.md) only when the page becomes part of the reusable template contract.
+
+See [UI shell guide](ui_shell.md) for route, component, and theme details.
+
+--------------------------------------- | ---------------------------------------------------------- |
 | `src/desktop_app/ui/router.py`          | Registers root and catch-all NiceGUI routes.               |
 | `src/desktop_app/ui/layout.py`          | Builds the shared SPA shell and mounts `ui.sub_pages`.     |
 | `src/desktop_app/ui/pages/routes.py`    | Centralizes sub-page route mappings.                       |
@@ -177,6 +214,7 @@ The project separates runtime state from persisted configuration.
 | Area                      | Owner                                     | Purpose                                                                                                                |
 | ------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Runtime diagnostics       | `src/desktop_app/core/state.py`           | Stores current process values such as startup source, mode, port, paths, assets, lifecycle flags, and status messages. |
+| Application support services | `src/desktop_app/application`         | Builds diagnostics, log snapshots, preference updates, and status history without NiceGUI imports.                    |
 | Persisted settings        | `src/desktop_app/infrastructure/settings` | Loads and saves user-editable `meta`, `window`, `ui`, `log`, and `behavior` values.                                    |
 | Default settings template | `src/desktop_app/settings.toml`           | Provides bundled defaults and packaged template data.                                                                  |
 | Runtime settings file     | `settings.toml`                           | Stores editable settings in the runtime root.                                                                          |
@@ -351,6 +389,8 @@ Do not document a coverage result as passed unless the command was actually exec
 When extending the template:
 
 - add UI pages under `src/desktop_app/ui/pages` and register them in `routes.py`;
+- add reusable visual helpers under `src/desktop_app/ui/components` when multiple pages need the same structure;
+- keep visual classes centralized in `src/desktop_app/ui/theme.py`;
 - keep UI callbacks small and delegate logic to services;
 - keep blocking work away from the NiceGUI main thread;
 - put environment-specific integrations under infrastructure or a focused service package;
@@ -365,6 +405,7 @@ For future external integrations, isolate blocking or environment-specific autom
 
 - [Documentation index](README.md)
 - [Execution modes](execution_modes.md)
+- [UI shell guide](ui_shell.md)
 - [Settings subsystem](settings.md)
 - [Application state](state.md)
 - [Native window state package guide](../src/desktop_app/infrastructure/native_window_state/README.md)
