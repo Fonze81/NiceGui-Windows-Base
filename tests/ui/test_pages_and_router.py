@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # File: tests/ui/test_pages_and_router.py
 # Purpose:
-# Validate NiceGUI SPA layout, page builders, component helpers, and route registration.
+# Validate NiceGUI SPA layout, page builders, component helpers, and route wiring.
 # Behavior:
 # Uses a small fake NiceGUI UI object so page composition can be exercised
 # without starting a real NiceGUI server or browser client.
@@ -18,6 +18,7 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 
@@ -72,6 +73,35 @@ class FakeElement:
 
 
 @dataclass(slots=True)
+class FakeApp:
+    """Capture the NiceGUI app API used by the router module."""
+
+    static_files: list[tuple[str, str]] = field(default_factory=list)
+    get_routes: list[tuple[str, bool]] = field(default_factory=list)
+    get_callbacks: list[Callable[..., object]] = field(default_factory=list)
+
+    def add_static_files(self, route: str, local_directory: str) -> None:
+        """Record a static files route registration."""
+        self.static_files.append((route, local_directory))
+
+    def get(
+        self,
+        route: str,
+        *,
+        include_in_schema: bool = True,
+    ) -> Callable[[Callable[..., object]], Callable[..., object]]:
+        """Return a decorator that records FastAPI GET route registrations."""
+
+        def decorator(callback: Callable[..., object]) -> Callable[..., object]:
+            """Record and return the decorated GET callback."""
+            self.get_routes.append((route, include_in_schema))
+            self.get_callbacks.append(callback)
+            return callback
+
+        return decorator
+
+
+@dataclass(slots=True)
 class FakeUi:
     """Capture the NiceGUI UI API used by the SPA modules."""
 
@@ -92,6 +122,7 @@ class FakeUi:
     sub_page_routes: dict[str, Callable[..., None]] | None = None
     page_routes: list[tuple[str, Callable[..., None]]] = field(default_factory=list)
     context_stack: list[str] = field(default_factory=list)
+    app: FakeApp = field(default_factory=FakeApp)
 
     def query(self, selector: str) -> FakeElement:
         """Record a CSS selector query."""
@@ -258,7 +289,7 @@ def test_build_index_page_updates_state_and_composes_content(
     assert state.ui_session.is_busy is False
     assert state.ui_session.busy_message is None
     assert state.assets.page_image_path == image_path
-    assert fake_ui.images == [str(image_path)]
+    assert fake_ui.images == [module.PAGE_IMAGE_STATIC_URL]
     assert "Example App" in fake_ui.labels
     assert "Started from tests." in fake_ui.labels
     assert "Application shell" in fake_ui.labels
@@ -349,7 +380,7 @@ def test_register_spa_routes_registers_root_and_catch_all_pages(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The SPA router registers both entry routes and builds the shell."""
-    module = importlib.import_module("desktop_app.ui.router")
+    module = cast(Any, importlib.import_module("desktop_app.ui.router"))
     layout_calls: list[tuple[str, str]] = []
 
     monkeypatch.setattr(
@@ -370,6 +401,71 @@ def test_register_spa_routes_registers_root_and_catch_all_pages(
     callback()
 
     assert layout_calls == [("Example App", "Started.")]
+
+
+def test_register_static_asset_routes_skips_when_nicegui_app_is_unavailable(
+    fake_ui: FakeUi,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Static routes are skipped when only the UI fake is available."""
+    module = cast(Any, importlib.import_module("desktop_app.ui.router"))
+
+    module._static_asset_routes_registered = False
+    monkeypatch.setitem(sys.modules, "nicegui", SimpleNamespace(ui=fake_ui))
+
+    module._register_static_asset_routes()
+
+    assert module._static_asset_routes_registered is False
+    assert fake_ui.app.static_files == []
+    assert fake_ui.app.get_routes == []
+
+
+def test_register_static_asset_routes_registers_assets_and_favicon_once(
+    fake_ui: FakeUi,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Static assets and favicon routes are registered once."""
+    module = cast(Any, importlib.import_module("desktop_app.ui.router"))
+
+    module._static_asset_routes_registered = False
+    monkeypatch.setitem(
+        sys.modules,
+        "nicegui",
+        SimpleNamespace(ui=fake_ui, app=fake_ui.app),
+    )
+    monkeypatch.setattr(module, "get_assets_directory_path", lambda: r"C:\app\assets")
+    monkeypatch.setattr(module, "get_application_icon_path", lambda: r"C:\app\icon.ico")
+
+    module._register_static_asset_routes()
+    module._register_static_asset_routes()
+
+    assert module._static_asset_routes_registered is True
+    assert fake_ui.app.static_files == [("/assets", r"C:\app\assets")]
+    assert fake_ui.app.get_routes == [("/favicon.ico", False)]
+    assert len(fake_ui.app.get_callbacks) == 1
+
+
+def test_registered_favicon_route_returns_file_response(
+    fake_ui: FakeUi,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The registered favicon route returns a FileResponse for the app icon."""
+    module = cast(Any, importlib.import_module("desktop_app.ui.router"))
+
+    module._static_asset_routes_registered = False
+    monkeypatch.setitem(
+        sys.modules,
+        "nicegui",
+        SimpleNamespace(ui=fake_ui, app=fake_ui.app),
+    )
+    monkeypatch.setattr(module, "get_assets_directory_path", lambda: r"C:\app\assets")
+    monkeypatch.setattr(module, "get_application_icon_path", lambda: r"C:\app\icon.ico")
+
+    module._register_static_asset_routes()
+
+    response = cast(Any, fake_ui.app.get_callbacks[0]())
+
+    assert response.path == r"C:\app\icon.ico"
 
 
 def test_build_components_page_renders_catalog(fake_ui: FakeUi) -> None:

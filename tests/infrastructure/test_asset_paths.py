@@ -90,6 +90,68 @@ def test_resolve_asset_path_logs_warning_when_asset_is_missing(
     )
 
 
+def test_get_assets_directory_path_returns_local_assets_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Resolve the local assets directory in normal execution."""
+    logger_mock = Mock()
+    assets_dir = tmp_path / "assets"
+    assets_dir.mkdir()
+
+    monkeypatch.setattr(asset_paths, "logger", logger_mock)
+    monkeypatch.setattr(asset_paths, "get_runtime_root", Mock(return_value=tmp_path))
+    monkeypatch.setattr(asset_paths, "is_frozen_executable", Mock(return_value=False))
+
+    resolved_path = asset_paths.get_assets_directory_path()
+
+    assert resolved_path == str(assets_dir)
+    logger_mock.debug.assert_called_once_with(
+        "Assets directory resolved: %s",
+        assets_dir,
+    )
+    logger_mock.warning.assert_not_called()
+
+
+def test_get_assets_directory_path_returns_packaged_directory_and_warns_when_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Resolve the packaged assets directory and warn when it is missing."""
+    logger_mock = Mock()
+    assets_dir = tmp_path / "desktop_app" / "assets"
+
+    monkeypatch.setattr(asset_paths, "logger", logger_mock)
+    monkeypatch.setattr(asset_paths, "get_runtime_root", Mock(return_value=tmp_path))
+    monkeypatch.setattr(asset_paths, "is_frozen_executable", Mock(return_value=True))
+
+    resolved_path = asset_paths.get_assets_directory_path()
+
+    assert resolved_path == str(assets_dir)
+    logger_mock.debug.assert_called_once_with(
+        "Assets directory resolved: %s",
+        assets_dir,
+    )
+    logger_mock.warning.assert_called_once_with(
+        "Assets directory is missing and may not render: %s",
+        assets_dir,
+    )
+
+
+def test_build_static_asset_url_returns_stable_asset_url() -> None:
+    """Build a stable URL under the registered static assets route."""
+    static_url = asset_paths.build_static_asset_url("page_image.png")
+
+    assert static_url == "/assets/page_image.png"
+
+
+def test_build_static_asset_url_supports_nested_relative_asset_paths() -> None:
+    """Build a stable URL for nested assets using POSIX URL separators."""
+    static_url = asset_paths.build_static_asset_url("icons/page_image.png")
+
+    assert static_url == "/assets/icons/page_image.png"
+
+
 def test_get_application_icon_path_resolves_configured_icon_filename(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

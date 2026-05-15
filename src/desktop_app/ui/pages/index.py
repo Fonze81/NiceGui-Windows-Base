@@ -21,13 +21,17 @@ from nicegui import ui
 
 from desktop_app.constants import PAGE_IMAGE_FILENAME
 from desktop_app.core.state import get_app_state
-from desktop_app.infrastructure.asset_paths import resolve_asset_path
+from desktop_app.infrastructure.asset_paths import (
+    build_static_asset_url,
+    resolve_asset_path,
+)
 from desktop_app.infrastructure.logger import logger_get_logger
 from desktop_app.ui.components.cards import build_info_card
 from desktop_app.ui.components.page import build_page_header, build_section_header
 from desktop_app.ui.theme import get_muted_text_classes, get_section_card_classes
 
 logger: Final[Logger] = logger_get_logger(__name__)
+PAGE_IMAGE_STATIC_URL: Final[str] = build_static_asset_url(PAGE_IMAGE_FILENAME)
 
 
 def build_index_page(*, application_name: str, startup_message: str) -> None:
@@ -57,7 +61,9 @@ def build_index_page(*, application_name: str, startup_message: str) -> None:
             page_image_path = resolve_asset_path(PAGE_IMAGE_FILENAME)
             state.assets.page_image_path = Path(page_image_path)
             logger.debug("Page image resolved for the index page: %s", page_image_path)
-            ui.image(page_image_path).classes("h-44 w-44 rounded-2xl object-contain")
+            ui.image(PAGE_IMAGE_STATIC_URL).classes(
+                "h-44 w-44 rounded-2xl object-contain"
+            )
 
         with ui.card().classes(f"flex-1 {get_section_card_classes(state.ui.theme)}"):
             build_section_header(

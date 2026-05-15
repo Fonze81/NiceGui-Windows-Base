@@ -11,6 +11,7 @@
 # -----------------------------------------------------------------------------
 
 from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Final
 
 from desktop_app.constants import (
     APP_ICON_FILENAME,
@@ -21,6 +22,8 @@ from desktop_app.core.runtime import get_runtime_root, is_frozen_executable
 from desktop_app.infrastructure.logger import logger_get_logger
 
 logger = logger_get_logger(__name__)
+
+STATIC_ASSETS_ROUTE: Final[str] = "/assets"
 
 
 def _normalize_asset_filename(asset_filename: str) -> Path:
@@ -91,6 +94,44 @@ def resolve_asset_path(asset_filename: str) -> str:
         logger.warning("Asset file is missing and may not render: %s", asset_path)
 
     return str(asset_path)
+
+
+def get_assets_directory_path() -> str:
+    """Return the absolute path to the application assets directory.
+
+    Returns:
+        Absolute path to the assets directory as a string.
+    """
+    runtime_root = get_runtime_root(module_file=__file__)
+    assets_dir = PACKAGED_ASSETS_DIR if is_frozen_executable() else LOCAL_ASSETS_DIR
+    assets_path = runtime_root / assets_dir
+
+    logger.debug("Assets directory resolved: %s", assets_path)
+
+    if not assets_path.exists():
+        logger.warning(
+            "Assets directory is missing and may not render: %s",
+            assets_path,
+        )
+
+    return str(assets_path)
+
+
+def build_static_asset_url(asset_filename: str) -> str:
+    """Return the stable static URL for an application asset.
+
+    Args:
+        asset_filename: Asset filename stored in the application assets directory.
+
+    Returns:
+        Stable URL under the registered static assets route.
+
+    Raises:
+        ValueError: If the filename is empty, absolute, drive-based, rooted, or
+            leaves the asset directory.
+    """
+    safe_asset_filename = _normalize_asset_filename(asset_filename)
+    return f"{STATIC_ASSETS_ROUTE}/{safe_asset_filename.as_posix()}"
 
 
 def get_application_icon_path() -> str:
