@@ -6,45 +6,110 @@ This changelog focuses on release-relevant changes for maintainers and users of 
 
 ---
 
-## [0.8.0] - 2026-05-14
+## [0.8.0] - 2026-05-15
 
 ### ✨ Added
 
-- Added `desktop_app.application.diagnostics` with reusable diagnostic sections for runtime, paths, lifecycle, logging, and settings support data.
-- Added `desktop_app.application.log_reader` with bounded log snapshots, runtime log path resolution, and recoverable read-error reporting.
-- Added `desktop_app.application.preferences` with validated updates for theme, dense mode, font scale, accent color, and auto-save behavior.
-- Added `desktop_app.application.status` and a `/status` SPA page for current in-memory status and recent status history.
-- Added `docs/runtime_support.md` to document the new support service boundary between NiceGUI pages and application logic.
-- Added focused application tests for diagnostics snapshots, log reading, preference updates, and status history.
+- Added `desktop_app.application.diagnostics` to build reusable diagnostic sections from `AppState`, keeping the `/diagnostics` page focused on NiceGUI composition.
+- Added `desktop_app.application.log_reader` to provide bounded runtime log snapshots with path metadata, file existence state, line limits, and recoverable read-error reporting.
+- Added `desktop_app.application.preferences` to centralize validation and persistence for safe UI preferences such as theme, dense mode, font scale, accent color, and auto-save behavior.
+- Added `desktop_app.application.status` to format current status and recent in-memory status history for support-oriented UI pages.
+- Added the `/status` SPA page to show current application feedback and recent in-memory status events for the current process.
+- Added the `/status` item to the sidebar navigation and SPA route table.
+- Added stable static asset support through `STATIC_ASSETS_ROUTE`, `get_assets_directory_path(...)`, and `build_static_asset_url(...)`.
+- Added explicit `/assets` static route registration for bundled application assets.
+- Added explicit `/favicon.ico` route registration to serve the bundled application icon for browser and native webview favicon requests.
+- Added `docs/runtime_support.md` to document the new support-service boundary for diagnostics, logs, preferences, and status history.
+- Added focused application tests for diagnostics snapshots, bounded log reading, preference validation, and status history.
+- Added focused asset-path tests for assets directory resolution and stable static asset URL generation.
+- Added focused router tests for static asset route registration, duplicate registration protection, favicon responses, and fallback behavior when `nicegui.app` is unavailable in unit tests.
+- Added folder-based native window state tests under `tests/infrastructure/native_window_state` to mirror the source package layout.
 
 ### 🔄 Changed
 
-- Changed the project version from `0.7.0` to `0.8.0`.
-- Updated Windows version metadata in `scripts/version_info.txt` to `0.8.0.0`.
-- Updated the bundled and root `settings.toml` version values to `0.8.0`.
-- Changed the diagnostics page to render service-generated support sections instead of reading all fields directly from page code.
-- Changed the logs page to render a `LogSnapshot` with source metadata, line limit, and read-error fallback state.
-- Changed the settings page to delegate validation and persistence to application services while exposing additional safe template preferences.
-- Updated navigation and route documentation to include the `/status` page.
+- Changed project metadata from `0.7.0` to `0.8.0` in `pyproject.toml`.
+- Changed `APPLICATION_VERSION` from `0.7.0` to `0.8.0` in `src/desktop_app/constants.py`.
+- Updated Windows executable metadata in `scripts/version_info.txt` from `0.7.0.0` to `0.8.0.0`.
+- Updated the bundled settings template version in `src/desktop_app/settings.toml` from `0.7.0` to `0.8.0`.
+- Updated the Home page image rendering to use the stable `/assets/page_image.png` URL while still resolving and storing the physical path in `AppState` for diagnostics.
+- Changed the diagnostics page to render service-generated diagnostic sections instead of reading scattered `AppState` fields directly inside the page builder.
+- Changed the logs page to render `LogSnapshot` data from the application service instead of reading log files directly inside UI code.
+- Changed the settings page to delegate validation, status messages, and persistence to application preference services.
+- Expanded settings UI coverage from the original theme/dense-mode controls to include validated font scale, accent color, and auto-save behavior.
+- Updated `ui/pages/routes.py` so the SPA route table includes `/status`.
+- Updated navigation metadata so the sidebar shows the Status page.
+- Updated `router.py` to register stable static assets and favicon routes while keeping tests safe when the fake NiceGUI module exposes only `ui`.
+- Updated coverage configuration to omit `tests/*` from coverage measurement so reports focus on application code under `desktop_app`.
+- Updated `scripts/clean_project.ps1` so default cleanup removes generated logs and the root runtime `settings.toml` file.
+- Added cleanup options to preserve logs or runtime settings when needed.
+- Updated documentation to describe runtime support services, the new `/status` page, folder-based native window tests, root runtime settings behavior, and cleanup defaults.
+- Updated `docs/code_quality.md`, `docs/first_run_checklist.md`, `docs/ui_shell.md`, `docs/settings.md`, `docs/architecture.md`, `docs/troubleshooting.md`, and the documentation index to reflect the current structure.
 
 ### 🐞 Fixed
 
-- Reduced UI-page coupling to `AppState` internals by moving diagnostics, log reading, and preference update rules out of NiceGUI page builders.
-- Reduced the risk of expensive log reads by keeping log inspection bounded in a reusable service.
-- Improved settings callback maintainability by keeping validation, persistence, and status messages outside inline UI callbacks.
+- Fixed transient NiceGUI auto-static image URL issues by serving the index page image through a stable `/assets` route instead of `_nicegui/auto/static/<hash>/...`.
+- Fixed favicon requests by registering an explicit `/favicon.ico` route for the bundled application icon.
+- Reduced UI-page coupling to `AppState` internals by moving diagnostics, log reading, preference validation, and status formatting into application-level services.
+- Reduced the risk of expensive or unsafe log reads by keeping log inspection bounded in a reusable service.
+- Improved settings callback maintainability by keeping validation, persistence, and status feedback outside inline UI callbacks.
+- Kept static route registration idempotent so duplicate SPA registration does not register `/assets` and `/favicon.ico` repeatedly.
+- Kept `router.py` importable in unit tests by resolving `nicegui.app` lazily instead of importing it directly at module import time.
+- Fixed native window package documentation so validation commands point to the folder-based test layout.
+- Fixed coverage reports counting test implementation files by omitting `tests/*` from coverage measurement.
+
+### 🗑️ Removed
+
+- Removed the root `settings.toml` from the source package comparison; it is now treated as a runtime-generated file rather than source structure.
+- Removed the old flat native window test files from the active test layout:
+  - `tests/infrastructure/test_native_window_state.py`
+  - `tests/infrastructure/test_native_window_state_package.py`
+
+### 🧪 Tests and quality
+
+- Added or updated tests for:
+  - application diagnostics service;
+  - bounded log reader service;
+  - preference validation and persistence service;
+  - status history service;
+  - stable asset URLs and assets directory resolution;
+  - SPA router static route registration;
+  - favicon response behavior;
+  - `/status` page rendering;
+  - updated Home page static asset behavior;
+  - folder-based native window package structure.
+- Coverage configuration now focuses on application code by omitting `tests/*`.
 
 ### 🧭 Migration notes
 
-- Reinstall the project after upgrading:
+- Reinstall the project after upgrading so editable metadata and package data are refreshed:
 
 ```powershell
 python -m pip install -e ".[dev,packaging]"
 ```
 
-- Rebuild the executable so Windows file properties show version `0.8.0.0` and the updated bundled settings template is included:
+- Rebuild the executable so Windows file properties show `0.8.0.0` and the updated bundled settings template is included:
 
 ```powershell
 .\scripts\package_windows.ps1
+```
+
+- If the root runtime settings file was previously tracked by Git, untrack it once while keeping the local file:
+
+```powershell
+git rm --cached settings.toml
+```
+
+- Use the folder-based native window test command:
+
+```powershell
+pytest tests/infrastructure/native_window_state
+```
+
+- Validate the updated UI shell and support pages with:
+
+```powershell
+pytest tests/ui/test_pages_and_router.py
+pytest tests/application
 ```
 
 ---
